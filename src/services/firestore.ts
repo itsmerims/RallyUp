@@ -35,7 +35,8 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
     path
   }
   console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  // We do not throw here to prevent crashing the entire React app
+  // when there are permission errors (e.g. from missing Firestore rules).
 }
 
 // Subscriptions
