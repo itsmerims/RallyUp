@@ -6,8 +6,9 @@ import CourtScene from './CourtScene';
 import MatchMakerModal from './MatchMakerModal';
 import AddPlayerModal from './AddPlayerModal';
 import SettingsModal from './SettingsModal';
-import { Plus, Check, Trophy, Settings, Trash2, LayoutGrid, Users, Activity, Menu, X, Loader2, LogOut } from 'lucide-react';
+import { Plus, Check, Trophy, Settings, Trash2, LayoutGrid, Users, Activity, Menu, X, Loader2, LogOut, ChevronDown, ChevronUp, Monitor, MonitorOff } from 'lucide-react';
 import { Player, SkillTier } from '../types';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -22,6 +23,7 @@ export default function Dashboard() {
   const [isAddPlayerModalOpen, setIsAddPlayerModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'courts' | 'players' | 'stats'>('courts');
+  const [is3DViewCollapsed, setIs3DViewCollapsed] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -219,12 +221,81 @@ export default function Dashboard() {
           <section className="flex-1 bg-slate-950 relative overflow-hidden flex flex-col">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(16,185,129,0.1),transparent_70%)] z-0 pointer-events-none"></div>
             
-            <div className="w-full relative z-10 border-b border-slate-800/50 bg-slate-950 shadow-2xl shrink-0">
-              <CourtScene courts={courts.map(c => ({
-                id: c.id,
-                name: c.name,
-                status: c.status === 'Available' ? 'VACANT' : c.status === 'Occupied' ? 'OCCUPIED' : 'FINISHING'
-              }))} />
+            {/* 3D Monitor Collapsible Header and Scene */}
+            <div className="w-full relative z-10 border-b border-slate-800/50 bg-slate-950/80 backdrop-blur-sm shadow-2xl shrink-0 flex flex-col">
+              <div 
+                onClick={() => setIs3DViewCollapsed(!is3DViewCollapsed)}
+                className="flex items-center justify-between px-4 md:px-8 py-3 bg-slate-900/30 hover:bg-slate-900/60 cursor-pointer select-none transition-colors border-b border-slate-800/20"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-2 h-2 rounded-full ${is3DViewCollapsed ? 'bg-slate-500' : 'bg-emerald-500 animate-pulse'}`}></div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-200">3D Court Monitor</span>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest hidden sm:inline">
+                      ({courts.filter(c => c.status !== 'Available').length} Active / {courts.length} Courts)
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIs3DViewCollapsed(!is3DViewCollapsed);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1 bg-slate-900 border border-slate-800 hover:border-emerald-500/50 hover:bg-emerald-500/10 text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-emerald-400 rounded-lg transition-all"
+                  >
+                    {is3DViewCollapsed ? (
+                      <>
+                        <Monitor className="w-3.5 h-3.5" />
+                        <span>Show 3D View</span>
+                      </>
+                    ) : (
+                      <>
+                        <MonitorOff className="w-3.5 h-3.5" />
+                        <span>Hide 3D View</span>
+                      </>
+                    )}
+                  </button>
+                  {is3DViewCollapsed ? (
+                    <ChevronDown className="w-4 h-4 text-slate-500" />
+                  ) : (
+                    <ChevronUp className="w-4 h-4 text-emerald-500" />
+                  )}
+                </div>
+              </div>
+              
+              <AnimatePresence initial={false}>
+                {!is3DViewCollapsed && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                  >
+                    <CourtScene courts={courts.map(c => {
+                      const activeMatch = matches.find(m => m.id === c.activeMatchId);
+                      const teamAPlayers = activeMatch ? activeMatch.teamA.map(pId => {
+                        const p = players.find(player => player.id === pId);
+                        return p ? { id: p.id, name: p.name, tier: p.tier } : null;
+                      }).filter((p): p is { id: string; name: string; tier: SkillTier } => p !== null) : [];
+                      
+                      const teamBPlayers = activeMatch ? activeMatch.teamB.map(pId => {
+                        const p = players.find(player => player.id === pId);
+                        return p ? { id: p.id, name: p.name, tier: p.tier } : null;
+                      }).filter((p): p is { id: string; name: string; tier: SkillTier } => p !== null) : [];
+
+                      return {
+                        id: c.id,
+                        name: c.name,
+                        status: c.status === 'Available' ? 'VACANT' : c.status === 'Occupied' ? 'OCCUPIED' : 'FINISHING',
+                        teamA: teamAPlayers,
+                        teamB: teamBPlayers
+                      };
+                    })} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <div className="p-4 md:p-8 flex-1 overflow-y-auto relative z-10 grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-8 content-start custom-scrollbar pb-32">

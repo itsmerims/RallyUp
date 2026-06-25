@@ -3,12 +3,73 @@ import { MapControls } from '@react-three/drei';
 import { useAppStore } from '../store';
 import { useRef } from 'react';
 import * as THREE from 'three';
+import { SkillTier } from '../types';
 
-interface CourtSceneProps {
-  courts: Array<{ id: string; status: 'VACANT' | 'OCCUPIED' | 'FINISHING'; name: string }>;
+interface PlayerData {
+  id: string;
+  name: string;
+  tier: SkillTier;
 }
 
-function CourtModel({ position, status, name }: { position: [number, number, number], status: string, name: string }) {
+interface CourtData {
+  id: string;
+  status: 'VACANT' | 'OCCUPIED' | 'FINISHING';
+  name: string;
+  teamA?: PlayerData[];
+  teamB?: PlayerData[];
+}
+
+interface CourtSceneProps {
+  courts: CourtData[];
+}
+
+function PlayerModel({ position, tier, name }: { position: [number, number, number]; tier: SkillTier; name: string }) {
+  const getTierColor = (t: SkillTier) => {
+    switch (t) {
+      case 'BEGINNER': return '#64748b'; // Slate/Gray
+      case 'LOW_INTERMEDIATE': return '#3b82f6'; // Blue
+      case 'INTERMEDIATE': return '#10b981'; // Emerald/Green
+      case 'ADVANCED': return '#a855f7'; // Purple
+      default: return '#cbd5e1';
+    }
+  };
+
+  const color = getTierColor(tier);
+
+  return (
+    <group position={position}>
+      {/* Body: cylinder representing a stylized avatar torso */}
+      <mesh castShadow position={[0, 0.35, 0]}>
+        <cylinderGeometry args={[0.14, 0.18, 0.7, 12]} />
+        <meshStandardMaterial color={color} roughness={0.3} metalness={0.1} />
+      </mesh>
+      {/* Head: sphere */}
+      <mesh castShadow position={[0, 0.8, 0]}>
+        <sphereGeometry args={[0.13, 12, 12]} />
+        <meshStandardMaterial color={color} roughness={0.3} metalness={0.1} />
+      </mesh>
+      {/* Small floating halo/ring for skill tier identity */}
+      <mesh position={[0, 0.98, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.07, 0.12, 12]} />
+        <meshBasicMaterial color={color} side={THREE.DoubleSide} />
+      </mesh>
+    </group>
+  );
+}
+
+function CourtModel({ 
+  position, 
+  status, 
+  name,
+  teamA = [],
+  teamB = []
+}: { 
+  position: [number, number, number], 
+  status: string, 
+  name: string,
+  teamA?: PlayerData[],
+  teamB?: PlayerData[]
+}) {
   const meshRef = useRef<THREE.Group>(null);
   const glowRef = useRef<THREE.Mesh>(null);
   
@@ -81,6 +142,37 @@ function CourtModel({ position, status, name }: { position: [number, number, num
       
       {/* Status Light casting light onto surrounding */}
       <pointLight position={[0, 2, 0]} color={colors.emissive} intensity={status === 'OCCUPIED' ? 1.8 : 1.2} distance={6} />
+
+      {/* Render Players on Court if not Vacant */}
+      {status !== 'VACANT' && (
+        <>
+          {/* Team A Players (stands on negative Z half of the court) */}
+          {teamA.map((player, idx) => {
+            const xOffset = teamA.length === 1 ? 0 : idx === 0 ? -0.8 : 0.8;
+            return (
+              <PlayerModel 
+                key={player.id} 
+                position={[xOffset, 0.1, -1.8]} 
+                tier={player.tier} 
+                name={player.name} 
+              />
+            );
+          })}
+          
+          {/* Team B Players (stands on positive Z half of the court) */}
+          {teamB.map((player, idx) => {
+            const xOffset = teamB.length === 1 ? 0 : idx === 0 ? -0.8 : 0.8;
+            return (
+              <PlayerModel 
+                key={player.id} 
+                position={[xOffset, 0.1, 1.8]} 
+                tier={player.tier} 
+                name={player.name} 
+              />
+            );
+          })}
+        </>
+      )}
     </group>
   );
 }
@@ -110,11 +202,37 @@ export default function CourtScene({ courts }: CourtSceneProps) {
                 position={[xPos, 0, 0]} 
                 status={court.status} 
                 name={court.name} 
+                teamA={court.teamA}
+                teamB={court.teamB}
               />
             );
           })}
         </group>
       </Canvas>
+      
+      {/* Legend Overlay */}
+      <div className="absolute bottom-4 left-4 bg-slate-900/95 border border-slate-800/80 rounded-xl p-3 flex flex-col gap-2 z-10 backdrop-blur-sm shadow-xl pointer-events-auto">
+        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Player Legend (Skill Tier)</span>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#64748b] shadow-[0_0_8px_rgba(100,116,139,0.5)]"></span>
+            <span className="text-[9px] font-bold text-slate-300 uppercase tracking-tight">Beginner</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#3b82f6] shadow-[0_0_8px_rgba(59,130,246,0.5)]"></span>
+            <span className="text-[9px] font-bold text-slate-300 uppercase tracking-tight">Low Inter</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+            <span className="text-[9px] font-bold text-slate-300 uppercase tracking-tight">Intermediate</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#a855f7] shadow-[0_0_8px_rgba(168,85,247,0.5)]"></span>
+            <span className="text-[9px] font-bold text-slate-300 uppercase tracking-tight">Advanced</span>
+          </div>
+        </div>
+      </div>
+
       <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-slate-950 via-transparent to-slate-950/20" />
     </div>
   );
