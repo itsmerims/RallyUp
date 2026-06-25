@@ -28,6 +28,8 @@ interface AppState {
   
   updateFinancialConfig: (userId: string, config: FinancialConfig) => void;
   initializeCourts: (userId: string) => void;
+  addCourt: (userId: string, name: string) => void;
+  deleteCourt: (userId: string, courtId: string) => void;
 }
 
 const getBaseRating = (tier: SkillTier) => {
@@ -194,6 +196,21 @@ export const useAppStore = create<AppState>()(
     
     initializeCourts: async (userId) => {
       await firestoreService.initializeDefaultCourts(userId);
+    },
+
+    addCourt: async (userId, name) => {
+      const newCourt: Court = {
+        id: 'c' + Math.random().toString(36).substring(7),
+        name,
+        status: 'Available',
+        activeMatchId: null,
+        queue: [],
+      };
+      await firestoreService.saveCourt(userId, newCourt);
+    },
+
+    deleteCourt: async (userId, courtId) => {
+      await firestoreService.deleteCourtDoc(userId, courtId);
     }
   })
 );

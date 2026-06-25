@@ -1,4 +1,5 @@
 import { Canvas, useFrame } from '@react-three/fiber';
+import { MapControls } from '@react-three/drei';
 import { useAppStore } from '../store';
 import { useRef } from 'react';
 import * as THREE from 'three';
@@ -88,13 +89,21 @@ export default function CourtScene({ courts }: CourtSceneProps) {
   return (
     <div className="w-full h-48 md:h-64 lg:h-80 bg-slate-950 relative overflow-hidden rounded-2xl border border-slate-800 shadow-2xl shadow-slate-950/50 mb-6">
       <Canvas shadows camera={{ position: [0, 8, 12], fov: 45 }}>
-        <fog attach="fog" args={['#020617', 10, 25]} />
+        <MapControls 
+          enableDamping 
+          dampingFactor={0.05}
+          maxPolarAngle={Math.PI / 2.2} 
+          minPolarAngle={Math.PI / 6}
+          minDistance={5}
+          maxDistance={30}
+        />
+        <fog attach="fog" args={['#020617', 10, 35]} />
         <ambientLight intensity={0.4} />
         <directionalLight position={[10, 15, -5]} intensity={1} castShadow shadow-mapSize={[1024, 1024]} />
         
         <group position={[0, 0, -2]}>
           {courts.map((court, index) => {
-            const xPos = (index - 1.5) * 5;
+            const xPos = (index - (courts.length - 1) / 2) * 5;
             return (
               <CourtModel 
                 key={court.id} 

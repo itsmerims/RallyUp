@@ -178,6 +178,15 @@ export const updateCourt = async (userId: string, courtId: string, updates: Part
   }
 };
 
+export const deleteCourtDoc = async (userId: string, courtId: string) => {
+  const path = `users/${userId}/courts/${courtId}`;
+  try {
+    await deleteDoc(doc(db, `users/${userId}/courts`, courtId));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
+};
+
 export const saveMatch = async (userId: string, match: Match) => {
   const path = `users/${userId}/matches/${match.id}`;
   try {

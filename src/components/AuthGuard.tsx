@@ -25,7 +25,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+      <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center p-4">
         <Loader2 className="w-12 h-12 text-emerald-500 animate-spin mb-4" />
         <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">Authenticating...</p>
       </div>
@@ -34,7 +34,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(16,185,129,0.1),transparent_70%)] z-0 pointer-events-none"></div>
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-md w-full text-center relative z-10 shadow-2xl">
           <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(16,185,129,0.3)]">

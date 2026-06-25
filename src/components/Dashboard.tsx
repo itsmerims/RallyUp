@@ -14,7 +14,7 @@ export default function Dashboard() {
   const { 
     players, courts, matches, isLoading, dataLoaded,
     setPlayers, setCourts, setMatches, setFinancialConfig, setDataLoaded, initializeCourts,
-    togglePlayerPaid, completeMatch, deletePlayer 
+    togglePlayerPaid, completeMatch, deletePlayer, addCourt, deleteCourt
   } = useAppStore();
   
   const [isMatchMakerOpen, setMatchMakerOpen] = useState(false);
@@ -65,7 +65,7 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="h-screen w-full bg-slate-950 flex flex-col items-center justify-center relative overflow-hidden">
+      <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(16,185,129,0.05),transparent_70%)] z-0 pointer-events-none"></div>
         <div className="relative z-10 flex flex-col items-center gap-6">
           <div className="w-16 h-16 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.15)] relative">
@@ -94,7 +94,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="h-screen w-full bg-slate-950 text-slate-100 font-sans flex flex-col overflow-hidden">
+    <div className="fixed inset-0 bg-slate-950 text-slate-100 font-sans flex flex-col overflow-hidden">
       {/* Top Navigation / Status Bar */}
       <header className="h-16 flex items-center justify-between px-4 md:px-8 bg-slate-900/50 border-b border-slate-800 backdrop-blur-md z-20 shrink-0">
         <div className="flex items-center gap-4">
@@ -236,8 +236,20 @@ export default function Dashboard() {
                     <div 
                       key={court.id} 
                       onClick={() => setMatchMakerOpen(true)}
-                      className="bg-slate-900/40 border-2 border-dashed border-emerald-500/40 rounded-3xl p-6 flex flex-col items-center justify-center min-h-[240px] group hover:bg-emerald-500/5 transition-all cursor-pointer"
+                      className="relative bg-slate-900/40 border-2 border-dashed border-emerald-500/40 rounded-3xl p-6 flex flex-col items-center justify-center min-h-[240px] group hover:bg-emerald-500/5 transition-all cursor-pointer"
                     >
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (user) {
+                            deleteCourt(user.uid, court.id);
+                          }
+                        }}
+                        className="absolute top-4 right-4 p-2 text-slate-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-full transition-colors z-50 cursor-pointer"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
                       <div className="w-16 h-16 rounded-full border-2 border-emerald-500/40 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                         <span className="text-3xl text-emerald-400">+</span>
                       </div>
@@ -253,8 +265,20 @@ export default function Dashboard() {
                 const textColor = isFinishing ? 'text-amber-400' : 'text-rose-400';
 
                 return (
-                  <div key={court.id} className={`bg-slate-900/80 border-2 ${borderColor} ${shadowColor} rounded-3xl p-6 flex flex-col min-h-[240px]`}>
-                    <div className="flex justify-between items-start mb-6">
+                  <div key={court.id} className={`relative bg-slate-900/80 border-2 ${borderColor} ${shadowColor} rounded-3xl p-6 flex flex-col min-h-[240px]`}>
+                    <button 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (user) {
+                          deleteCourt(user.uid, court.id);
+                        }
+                      }}
+                      className="absolute top-4 right-4 p-2 text-slate-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-full transition-colors z-50 cursor-pointer"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                    <div className="flex justify-between items-start mb-6 mt-4">
                       <div>
                         <span className={`text-[10px] font-bold ${textColor} uppercase tracking-widest`}>{court.name}</span>
                         <h3 className="text-xl font-black mt-1 uppercase">{isFinishing ? 'FINAL SET' : 'MATCH ACTIVE'}</h3>
@@ -320,6 +344,16 @@ export default function Dashboard() {
                   </div>
                 );
               })}
+              
+              <div 
+                onClick={() => user && addCourt(user.uid, `Court ${courts.length + 1}`)}
+                className="bg-slate-900/20 border-2 border-dashed border-slate-700/50 rounded-3xl p-6 flex flex-col items-center justify-center min-h-[240px] group hover:bg-slate-800/20 hover:border-slate-600 transition-all cursor-pointer"
+              >
+                <div className="w-16 h-16 rounded-full border-2 border-slate-700/50 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <span className="text-3xl text-slate-500">+</span>
+                </div>
+                <h3 className="text-xl font-black text-slate-600 mt-1">ADD COURT</h3>
+              </div>
             </div>
 
             {/* Floating Quick Actions */}
