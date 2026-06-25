@@ -1,0 +1,92 @@
+{
+  "entities": {
+    "Player": {
+      "title": "Player",
+      "description": "A player in the club.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "tier": { "type": "string", "enum": ["BEGINNER", "LOW_INTERMEDIATE", "INTERMEDIATE", "ADVANCED"] },
+        "ratingScore": { "type": "number" },
+        "joinedAt": { "type": "number" },
+        "hasPaid": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["WAITING", "PLAYING", "RESTING", "AWAY"] },
+        "stats": {
+          "type": "object",
+          "properties": {
+            "gamesPlayed": { "type": "number" },
+            "wins": { "type": "number" },
+            "losses": { "type": "number" },
+            "currentStreak": { "type": "number" }
+          }
+        }
+      },
+      "required": ["userId", "name", "tier", "ratingScore", "joinedAt", "hasPaid", "status", "stats"]
+    },
+    "Court": {
+      "title": "Court",
+      "description": "A badminton court.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "status": { "type": "string", "enum": ["Available", "Occupied", "Finishing Soon"] },
+        "activeMatchId": { "type": ["string", "null"] },
+        "queue": { 
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["userId", "name", "status", "queue"]
+    },
+    "Match": {
+      "title": "Match",
+      "description": "A match played on a court.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "courtId": { "type": "string" },
+        "teamA": { "type": "array", "items": { "type": "string" } },
+        "teamB": { "type": "array", "items": { "type": "string" } },
+        "startTime": { "type": ["number", "null"] },
+        "status": { "type": "string", "enum": ["Waiting", "Active", "Completed", "Cancelled"] },
+        "scoreA": { "type": "number" },
+        "scoreB": { "type": "number" },
+        "shuttlecocksUsed": { "type": "number" }
+      },
+      "required": ["userId", "courtId", "teamA", "teamB", "status"]
+    },
+    "FinancialConfig": {
+      "title": "FinancialConfig",
+      "description": "Financial configuration for the club.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "mode": { "type": "string", "enum": ["Breakdown", "Fixed"] },
+        "courtFee": { "type": "number" },
+        "shuttleFee": { "type": "number" },
+        "fixedRate": { "type": "number" }
+      },
+      "required": ["userId", "mode", "courtFee", "shuttleFee", "fixedRate"]
+    }
+  },
+  "firestore": {
+    "users/{userId}/players/{playerId}": {
+      "schema": { "$ref": "#/entities/Player" },
+      "description": "Players managed by a user."
+    },
+    "users/{userId}/courts/{courtId}": {
+      "schema": { "$ref": "#/entities/Court" },
+      "description": "Courts managed by a user."
+    },
+    "users/{userId}/matches/{matchId}": {
+      "schema": { "$ref": "#/entities/Match" },
+      "description": "Matches managed by a user."
+    },
+    "users/{userId}/financialConfig/default": {
+      "schema": { "$ref": "#/entities/FinancialConfig" },
+      "description": "Financial config for a user."
+    }
+  }
+}

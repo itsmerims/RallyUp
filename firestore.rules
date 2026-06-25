@@ -1,0 +1,104 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidPlayer(data) {
+      return data.keys().hasAll(['userId', 'name', 'tier', 'ratingScore', 'joinedAt', 'hasPaid', 'status', 'stats'])
+        && data.userId == request.auth.uid
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.tier in ['BEGINNER', 'LOW_INTERMEDIATE', 'INTERMEDIATE', 'ADVANCED']
+        && data.ratingScore is number
+        && data.joinedAt is number
+        && data.hasPaid is bool
+        && data.status in ['WAITING', 'PLAYING', 'RESTING', 'AWAY']
+        && data.stats is map
+        && data.stats.keys().hasAll(['gamesPlayed', 'wins', 'losses', 'currentStreak'])
+        && data.stats.gamesPlayed is number
+        && data.stats.wins is number
+        && data.stats.losses is number
+        && data.stats.currentStreak is number;
+    }
+
+    function isValidCourt(data) {
+      return data.keys().hasAll(['userId', 'name', 'status', 'queue'])
+        && data.userId == request.auth.uid
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.status in ['Available', 'Occupied', 'Finishing Soon']
+        && data.queue is list && data.queue.size() <= 50;
+    }
+
+    function isValidMatch(data) {
+      return data.keys().hasAll(['userId', 'courtId', 'teamA', 'teamB', 'status'])
+        && data.userId == request.auth.uid
+        && data.courtId is string && data.courtId.size() <= 128
+        && data.teamA is list && data.teamA.size() <= 2
+        && data.teamB is list && data.teamB.size() <= 2
+        && data.status in ['Waiting', 'Active', 'Completed', 'Cancelled']
+        && (data.get('scoreA', 0) is number)
+        && (data.get('scoreB', 0) is number)
+        && (data.get('shuttlecocksUsed', 0) is number);
+    }
+
+    function isValidFinancialConfig(data) {
+      return data.keys().hasAll(['userId', 'mode', 'courtFee', 'shuttleFee', 'fixedRate'])
+        && data.userId == request.auth.uid
+        && data.mode in ['Breakdown', 'Fixed']
+        && data.courtFee is number
+        && data.shuttleFee is number
+        && data.fixedRate is number;
+    }
+
+    match /users/{userId}/players/{playerId} {
+      allow read: if isOwner(userId) && isValidId(playerId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidId(playerId) && isValidPlayer(incoming());
+      allow update: if isOwner(userId) && isValidId(playerId) && isValidPlayer(incoming());
+      allow delete: if isOwner(userId) && isValidId(playerId);
+    }
+
+    match /users/{userId}/courts/{courtId} {
+      allow read: if isOwner(userId) && isValidId(courtId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidId(courtId) && isValidCourt(incoming());
+      allow update: if isOwner(userId) && isValidId(courtId) && isValidCourt(incoming());
+      allow delete: if isOwner(userId) && isValidId(courtId);
+    }
+
+    match /users/{userId}/matches/{matchId} {
+      allow read: if isOwner(userId) && isValidId(matchId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidId(matchId) && isValidMatch(incoming());
+      allow update: if isOwner(userId) && isValidId(matchId) && isValidMatch(incoming());
+      allow delete: if isOwner(userId) && isValidId(matchId);
+    }
+
+    match /users/{userId}/financialConfig/default {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isValidFinancialConfig(incoming());
+    }
+  }
+}
