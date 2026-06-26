@@ -19,6 +19,7 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
   const [name, setName] = useState(userProfile?.name || '');
   const [skillTier, setSkillTier] = useState<SkillTier>(userProfile?.skillTier || 'BEGINNER');
   const [country, setCountry] = useState(userProfile?.country || 'Philippines');
+  const [role, setRole] = useState<'PLAYER' | 'QUEUE_MASTER'>(userProfile?.role || 'PLAYER');
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -46,6 +47,7 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
       setName(userProfile.name || '');
       setSkillTier(userProfile.skillTier || 'BEGINNER');
       setCountry(userProfile.country || 'Philippines');
+      setRole(userProfile.role || 'PLAYER');
     }
   }, [userProfile]);
 
@@ -69,6 +71,7 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
         name,
         skillTier,
         country,
+        role,
       });
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
@@ -217,6 +220,36 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
                     <option key={c} value={c}>{c}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block flex items-center gap-1">
+                  <Shield className="w-3.5 h-3.5 text-slate-400" /> Account Role
+                </label>
+                <div className="bg-slate-950 p-1 rounded-2xl border border-slate-850 flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setRole('PLAYER')}
+                    className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 ${
+                      role === 'PLAYER' 
+                        ? 'bg-emerald-500 text-slate-950 shadow-md' 
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Player
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRole('QUEUE_MASTER')}
+                    className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 ${
+                      role === 'QUEUE_MASTER' 
+                        ? 'bg-red-500 text-white shadow-md' 
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Queue Master
+                  </button>
+                </div>
               </div>
 
               <button

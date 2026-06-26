@@ -84,18 +84,23 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (loading || (user && profileLoading)) {
     return (
-      <div className="fixed inset-0 bg-slate-50 flex flex-col items-center justify-center p-4">
-        <Loader2 className="w-12 h-12 text-red-500 animate-spin mb-4" />
-        <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Syncing your session...</p>
+      <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center p-4 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(16,185,129,0.05),transparent_70%)] z-0 pointer-events-none"></div>
+        <div className="relative z-10 flex flex-col items-center">
+          <Loader2 className="w-12 h-12 text-red-500 animate-spin mb-4" />
+          <p className="text-slate-400 font-bold uppercase tracking-widest text-xs font-mono">Syncing your session...</p>
+        </div>
       </div>
     );
   }
 
-  // Not signed in -> Show the brand new sleek light-themed login/register page (Image 1 & 2 inspired)
+  // Not signed in -> Show the brand new sleek dark-themed login/register page
   if (!user) {
     return (
-      <div className="fixed inset-0 bg-slate-50 flex flex-col items-center justify-center p-4 md:p-8 overflow-y-auto font-sans text-slate-800">
-        <div className="max-w-md w-full flex flex-col items-center">
+      <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center p-4 md:p-8 overflow-y-auto font-sans text-slate-100">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(239,68,68,0.03),transparent_70%)] z-0 pointer-events-none"></div>
+        
+        <div className="max-w-md w-full flex flex-col items-center relative z-10">
           {/* Logo / Header */}
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 bg-red-500 rounded-xl flex items-center justify-center shadow-lg shadow-red-500/20">
@@ -103,24 +108,24 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
               </svg>
             </div>
-            <span className="text-2xl font-black italic tracking-tighter text-slate-900 uppercase">RallyUp</span>
+            <span className="text-2xl font-black italic tracking-tighter text-white uppercase">RallyUp</span>
           </div>
-          <p className="text-slate-500 text-sm text-center max-w-sm mb-6 leading-relaxed">
+          <p className="text-slate-400 text-sm text-center max-w-sm mb-6 leading-relaxed">
             Track your games, connect with players, and keep the court flowing. Join the RallyUp badminton community for free.
           </p>
 
-          {/* White Card Container */}
-          <div className="bg-white border border-slate-100 rounded-3xl p-6 md:p-8 w-full shadow-xl shadow-slate-100/50 relative">
+          {/* Premium Dark Card Container */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 w-full shadow-2xl relative">
             
             {/* Custom Tab Switcher */}
-            <div className="bg-slate-100 p-1.5 rounded-2xl flex gap-1 mb-6">
+            <div className="bg-slate-950 p-1 rounded-2xl border border-slate-850 flex gap-1 mb-6">
               <button
                 type="button"
                 onClick={() => { setIsSignUp(false); setError(''); }}
-                className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all duration-200 ${
+                className={`flex-1 py-2 rounded-xl font-bold text-sm transition-all duration-200 ${
                   !isSignUp 
-                    ? 'bg-white text-slate-900 shadow-md shadow-slate-200/50' 
-                    : 'text-slate-500 hover:text-slate-800'
+                    ? 'bg-slate-800 text-white shadow' 
+                    : 'text-slate-500 hover:text-slate-300'
                 }`}
               >
                 Sign In
@@ -128,10 +133,10 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
               <button
                 type="button"
                 onClick={() => { setIsSignUp(true); setError(''); }}
-                className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all duration-200 ${
+                className={`flex-1 py-2 rounded-xl font-bold text-sm transition-all duration-200 ${
                   isSignUp 
-                    ? 'bg-white text-slate-900 shadow-md shadow-slate-200/50' 
-                    : 'text-slate-500 hover:text-slate-800'
+                    ? 'bg-slate-800 text-white shadow' 
+                    : 'text-slate-500 hover:text-slate-300'
                 }`}
               >
                 Register
@@ -141,38 +146,38 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
             <form onSubmit={handleAuthSubmit} className="flex flex-col gap-4">
               {isSignUp && (
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Your Name</label>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 font-mono">Your Name</label>
                   <input 
                     type="text" 
                     placeholder="e.g. Juan Dela Cruz" 
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full h-12 bg-slate-50/50 border border-slate-200 rounded-xl px-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-500 focus:bg-white transition-all text-sm"
+                    className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500 transition-all text-sm"
                     required
                   />
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 font-mono">Email Address</label>
                 <input 
                   type="email" 
                   placeholder="Enter your email" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full h-12 bg-slate-50/50 border border-slate-200 rounded-xl px-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-500 focus:bg-white transition-all text-sm"
+                  className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500 transition-all text-sm"
                   required
                 />
               </div>
 
               <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Password</label>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">Password</label>
                   {!isSignUp && (
                     <button 
                       type="button"
                       onClick={() => alert('Password reset is not enabled. Please contact support.')}
-                      className="text-xs font-semibold text-red-500 hover:text-red-600"
+                      className="text-xs font-semibold text-red-400 hover:text-red-300"
                     >
                       Forgot password?
                     </button>
@@ -184,13 +189,13 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
                     placeholder={isSignUp ? 'Min. 6 characters' : '••••••••'} 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full h-12 bg-slate-50/50 border border-slate-200 rounded-xl pl-4 pr-11 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-500 focus:bg-white transition-all text-sm"
+                    className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-11 text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500 transition-all text-sm"
                     required
                   />
                   <button 
                     type="button" 
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600"
+                    className="absolute right-3.5 top-3.5 text-slate-500 hover:text-slate-300"
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
@@ -199,20 +204,20 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
               {isSignUp && (
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Confirm Password</label>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 font-mono">Confirm Password</label>
                   <div className="relative">
                     <input 
                       type={showConfirmPassword ? 'text' : 'password'} 
                       placeholder="Re-enter password" 
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full h-12 bg-slate-50/50 border border-slate-200 rounded-xl pl-4 pr-11 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-500 focus:bg-white transition-all text-sm"
+                      className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-11 text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500 transition-all text-sm"
                       required
                     />
                     <button 
                       type="button" 
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600"
+                      className="absolute right-3.5 top-3.5 text-slate-500 hover:text-slate-300"
                     >
                       {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
@@ -221,13 +226,13 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
               )}
 
               {error && (
-                <p className="text-red-500 text-xs font-semibold">{error}</p>
+                <p className="text-red-400 text-xs font-semibold">{error}</p>
               )}
 
               <button 
                 type="submit"
                 disabled={authWorking}
-                className="w-full h-12 bg-red-500 hover:bg-red-600 disabled:bg-slate-300 text-white font-bold rounded-xl transition-all active:scale-95 shadow-lg shadow-red-500/10 flex items-center justify-center gap-2 mt-2"
+                className="w-full h-12 bg-red-500 hover:bg-red-400 disabled:bg-slate-800 disabled:text-slate-600 text-white font-bold rounded-xl transition-all active:scale-[0.98] shadow-lg shadow-red-500/10 flex items-center justify-center gap-2 mt-2"
               >
                 {authWorking ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -238,21 +243,21 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
             </form>
 
             <div className="flex items-center justify-between gap-4 my-6">
-              <div className="h-px bg-slate-100 flex-1"></div>
-              <span className="text-[10px] text-slate-400 uppercase tracking-widest font-black">Or continue with</span>
-              <div className="h-px bg-slate-100 flex-1"></div>
+              <div className="h-px bg-slate-800 flex-1"></div>
+              <span className="text-[10px] text-slate-500 uppercase tracking-widest font-black font-mono">Or continue with</span>
+              <div className="h-px bg-slate-800 flex-1"></div>
             </div>
 
             <button 
               onClick={signInWithGoogle}
               type="button"
-              className="w-full h-12 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold rounded-xl flex items-center justify-center gap-3 transition-all active:scale-95"
+              className="w-full h-12 bg-slate-950 hover:bg-slate-900 border border-slate-800 text-slate-200 font-semibold rounded-xl flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
             >
               <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
               Continue with Google
             </button>
             
-            <p className="text-[10px] text-slate-400 text-center mt-6 leading-normal">
+            <p className="text-[10px] text-slate-500 text-center mt-6 leading-normal font-mono">
               By continuing, you agree to RallyUp's terms, conditions, and club rules.
             </p>
           </div>
@@ -261,11 +266,13 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Signed in but User Profile is not yet completed -> Show Complete Your Profile page (Image 3 inspired)
+  // Signed in but User Profile is not yet completed -> Show Complete Your Profile page
   if (!userProfile || !userProfile.profileCompleted) {
     return (
-      <div className="fixed inset-0 bg-slate-50 flex flex-col items-center justify-center p-4 md:p-8 overflow-y-auto font-sans text-slate-800">
-        <div className="max-w-md w-full flex flex-col items-center">
+      <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center p-4 md:p-8 overflow-y-auto font-sans text-slate-100">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(16,185,129,0.03),transparent_70%)] z-0 pointer-events-none"></div>
+        
+        <div className="max-w-md w-full flex flex-col items-center relative z-10">
           
           {/* Logo Header */}
           <div className="flex items-center gap-3 mb-2">
@@ -274,23 +281,23 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
               </svg>
             </div>
-            <span className="text-2xl font-black italic tracking-tighter text-slate-900 uppercase">RallyUp</span>
+            <span className="text-2xl font-black italic tracking-tighter text-white uppercase">RallyUp</span>
           </div>
 
-          <div className="bg-white border border-slate-100 rounded-3xl p-6 md:p-8 w-full shadow-xl shadow-slate-100/50">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 w-full shadow-2xl">
             {profileStep === 1 ? (
               <div className="flex flex-col">
-                <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mb-4 text-red-500">
+                <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center mb-4 text-red-400 border border-red-500/20">
                   <Award className="w-6 h-6" />
                 </div>
-                <h2 className="text-xl font-black text-slate-950 tracking-tight mb-1">Complete Your Profile</h2>
-                <p className="text-slate-500 text-sm mb-6 leading-relaxed">
-                  Step 1: Choose your skill tier and select your country to get customized pairings.
+                <h2 className="text-xl font-black text-white tracking-tight mb-1">Complete Your Profile</h2>
+                <p className="text-slate-400 text-sm mb-6 leading-relaxed">
+                  Step 1: Choose your skill level and select your country to get customized pairings.
                 </p>
 
                 {/* Skill Select 2x2 Grid */}
                 <div className="mb-6">
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Skill Level *</label>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 font-mono">Skill Level *</label>
                   <div className="grid grid-cols-2 gap-3">
                     {[
                       { id: 'BEGINNER', label: 'Beginner', desc: 'Just starting out' },
@@ -302,17 +309,17 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
                         key={tier.id}
                         type="button"
                         onClick={() => setSelectedSkill(tier.id as SkillTier)}
-                        className={`p-3 rounded-2xl border text-left flex flex-col justify-between h-20 transition-all ${
+                        className={`p-3 rounded-2xl border text-left flex flex-col justify-between h-22 transition-all ${
                           selectedSkill === tier.id 
-                            ? 'border-emerald-500 bg-emerald-500 text-white shadow-lg shadow-emerald-500/15' 
-                            : 'border-slate-100 bg-slate-50 hover:border-slate-300 hover:bg-slate-100/60 text-slate-800'
+                            ? 'border-emerald-500 bg-emerald-500/10 text-white shadow-lg shadow-emerald-500/10' 
+                            : 'border-slate-800 bg-slate-950 hover:border-slate-700 hover:bg-slate-900 text-slate-300'
                         }`}
                       >
                         <div className="flex justify-between items-center w-full">
-                          <span className={`text-sm font-bold ${selectedSkill === tier.id ? 'text-white' : 'text-slate-900'}`}>{tier.label}</span>
-                          {selectedSkill === tier.id && <Check className="w-4 h-4 text-white" />}
+                          <span className="text-sm font-bold text-white">{tier.label}</span>
+                          {selectedSkill === tier.id && <Check className="w-4 h-4 text-emerald-400" />}
                         </div>
-                        <span className={`text-[10px] ${selectedSkill === tier.id ? 'text-emerald-100' : 'text-slate-400'}`}>{tier.desc}</span>
+                        <span className={`text-[10px] ${selectedSkill === tier.id ? 'text-emerald-400' : 'text-slate-500'}`}>{tier.desc}</span>
                       </button>
                     ))}
                   </div>
@@ -320,18 +327,18 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
                 {/* Country Dropdown */}
                 <div className="mb-6">
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5 font-mono">
+                    <MapPin className="w-3.5 h-3.5 text-slate-500" />
                     Country *
                   </label>
                   <div className="relative">
                     <select
                       value={country}
                       onChange={(e) => setCountry(e.target.value)}
-                      className="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-sm text-slate-900 focus:outline-none focus:border-red-500 focus:bg-white appearance-none cursor-pointer"
+                      className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-sm text-white focus:outline-none focus:border-red-500 appearance-none cursor-pointer"
                     >
                       {countries.map((c) => (
-                        <option key={c} value={c}>{c}</option>
+                        <option key={c} value={c} className="bg-slate-950 text-white">{c}</option>
                       ))}
                     </select>
                     <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-500">
@@ -346,18 +353,18 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
                   type="button"
                   disabled={!selectedSkill}
                   onClick={() => setProfileStep(2)}
-                  className="w-full h-12 bg-red-500 hover:bg-red-600 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2"
+                  className="w-full h-12 bg-red-500 hover:bg-red-400 disabled:bg-slate-800 disabled:text-slate-600 text-white font-bold rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                 >
                   Save & Continue
                 </button>
               </div>
             ) : (
               <div className="flex flex-col">
-                <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mb-4 text-red-500">
+                <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center mb-4 text-red-400 border border-red-500/20">
                   <Shield className="w-6 h-6" />
                 </div>
-                <h2 className="text-xl font-black text-slate-950 tracking-tight mb-1">Choose Your Role</h2>
-                <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+                <h2 className="text-xl font-black text-white tracking-tight mb-1">Choose Your Role</h2>
+                <p className="text-slate-400 text-sm mb-6 leading-relaxed">
                   Step 2: Select your role. Queue Masters host badminton sessions. Players join existing ones.
                 </p>
 
@@ -368,21 +375,21 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
                     onClick={() => setSelectedRole('PLAYER')}
                     className={`p-4 rounded-2xl border text-left flex items-start gap-3.5 transition-all ${
                       selectedRole === 'PLAYER' 
-                        ? 'border-emerald-500 bg-emerald-50 text-emerald-950 ring-2 ring-emerald-500/20' 
-                        : 'border-slate-100 bg-slate-50 hover:border-slate-300 hover:bg-slate-100/60 text-slate-800'
+                        ? 'border-emerald-500 bg-emerald-500/5 text-white ring-2 ring-emerald-500/10' 
+                        : 'border-slate-800 bg-slate-950 hover:border-slate-750 hover:bg-slate-900 text-slate-300'
                     }`}
                   >
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                      selectedRole === 'PLAYER' ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-600'
+                      selectedRole === 'PLAYER' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-900 text-slate-500'
                     }`}>
                       <UserIcon className="w-5 h-5" />
                     </div>
                     <div>
-                      <div className="text-sm font-bold flex items-center gap-1.5">
+                      <div className="text-sm font-bold flex items-center gap-1.5 text-white">
                         Player
-                        {selectedRole === 'PLAYER' && <span className="bg-emerald-100 text-emerald-700 text-[10px] px-1.5 py-0.5 rounded font-black uppercase">Selected</span>}
+                        {selectedRole === 'PLAYER' && <span className="bg-emerald-500/20 text-emerald-400 text-[10px] px-1.5 py-0.5 rounded font-black uppercase font-mono">Selected</span>}
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-0.5 leading-normal">
+                      <p className="text-[11px] text-slate-400 mt-1 leading-normal">
                         View active matches, live queues, check local rankings, and see your stats. Join hosted sessions in real-time.
                       </p>
                     </div>
@@ -393,21 +400,21 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
                     onClick={() => setSelectedRole('QUEUE_MASTER')}
                     className={`p-4 rounded-2xl border text-left flex items-start gap-3.5 transition-all ${
                       selectedRole === 'QUEUE_MASTER' 
-                        ? 'border-emerald-500 bg-emerald-50 text-emerald-950 ring-2 ring-emerald-500/20' 
-                        : 'border-slate-100 bg-slate-50 hover:border-slate-300 hover:bg-slate-100/60 text-slate-800'
+                        ? 'border-emerald-500 bg-emerald-500/5 text-white ring-2 ring-emerald-500/10' 
+                        : 'border-slate-800 bg-slate-950 hover:border-slate-750 hover:bg-slate-900 text-slate-300'
                     }`}
                   >
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                      selectedRole === 'QUEUE_MASTER' ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-600'
+                      selectedRole === 'QUEUE_MASTER' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-900 text-slate-500'
                     }`}>
                       <Shield className="w-5 h-5" />
                     </div>
                     <div>
-                      <div className="text-sm font-bold flex items-center gap-1.5">
+                      <div className="text-sm font-bold flex items-center gap-1.5 text-white">
                         Queue Master
-                        {selectedRole === 'QUEUE_MASTER' && <span className="bg-emerald-100 text-emerald-700 text-[10px] px-1.5 py-0.5 rounded font-black uppercase">Selected</span>}
+                        {selectedRole === 'QUEUE_MASTER' && <span className="bg-emerald-500/20 text-emerald-400 text-[10px] px-1.5 py-0.5 rounded font-black uppercase font-mono">Selected</span>}
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-0.5 leading-normal">
+                      <p className="text-[11px] text-slate-400 mt-1 leading-normal">
                         Host active sessions, configure courts and fees, manage matching algorithms, and have administrative authority.
                       </p>
                     </div>
@@ -418,7 +425,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
                   <button
                     type="button"
                     onClick={() => setProfileStep(1)}
-                    className="flex-1 h-12 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-all active:scale-95"
+                    className="flex-1 h-12 bg-slate-950 hover:bg-slate-900 border border-slate-800 text-slate-300 font-bold rounded-xl transition-all active:scale-[0.98]"
                   >
                     Back
                   </button>
@@ -426,7 +433,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
                     type="button"
                     disabled={!selectedRole || authWorking}
                     onClick={handleCompleteProfile}
-                    className="flex-1 h-12 bg-red-500 hover:bg-red-600 disabled:bg-slate-200 text-white font-bold rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2"
+                    className="flex-1 h-12 bg-red-500 hover:bg-red-400 disabled:bg-slate-800 disabled:text-slate-600 text-white font-bold rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                   >
                     {authWorking ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Complete Setup'}
                   </button>
