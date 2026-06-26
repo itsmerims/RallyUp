@@ -108,7 +108,7 @@ export default function Dashboard() {
               <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z" />
             </svg>
           </div>
-          <h1 className="text-xl md:text-2xl font-black tracking-tighter uppercase italic text-emerald-400">RallyUp <span className="text-slate-500 font-normal hidden sm:inline">v2.0</span></h1>
+          <h1 className="text-xl md:text-2xl font-black tracking-tighter uppercase italic text-emerald-400">RallyUp</h1>
         </div>
         <div className="flex items-center gap-6 md:gap-8">
           <div className="hidden md:flex items-center gap-8">
