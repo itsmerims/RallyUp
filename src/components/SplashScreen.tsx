@@ -233,13 +233,13 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
     window.addEventListener('mousemove', handleMouseMove);
 
     // --- ANIMATION LOOP ---
-    const clock = new THREE.Clock();
+    const startTime = performance.now();
     let animationFrameId: number;
 
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
 
-      const elapsedTime = clock.getElapsedTime();
+      const elapsedTime = (performance.now() - startTime) / 1000;
 
       // Ambient floating motion
       logoGroup.position.y = Math.sin(elapsedTime * 1.5) * 0.12;

@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAppStore } from '../store';
 import * as firestoreService from '../services/firestore';
-import { Settings, Shield, User, Globe, MapPin, Save, Plus, Trash2, Key, HelpCircle, Check, Loader2, RefreshCw } from 'lucide-react';
+import { Settings, Shield, User, Globe, MapPin, Save, Plus, Trash2, Key, HelpCircle, Check, Loader2, RefreshCw, Info, ChevronDown, MoreVertical } from 'lucide-react';
 import { SkillTier } from '../types';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface SettingsPageProps {
   onSessionJoined?: (qmUserId: string) => void;
@@ -14,6 +15,21 @@ interface SettingsPageProps {
 export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessionLeft }: SettingsPageProps) {
   const { user, userProfile, updateProfile } = useAuth();
   const { courts, addCourt, deleteCourt } = useAppStore();
+
+  // Collapsible States
+  const [openSections, setOpenSections] = useState({
+    profile: true,
+    sessionHosting: true,
+    courtsConfig: true,
+    connectSession: true,
+    resetData: false,
+    others: false,
+    dangerZone: false
+  });
+
+  const toggleSection = (key: keyof typeof openSections) => {
+    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   // Profile Form States
   const [name, setName] = useState(userProfile?.name || '');
@@ -175,270 +191,461 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start flex-1 min-h-0">
           
           {/* PROFILE CARD */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 lg:col-span-6 flex flex-col gap-6">
-            <div className="flex items-center gap-2">
-              <User className="w-5 h-5 text-emerald-400" />
-              <h3 className="font-bold text-white uppercase tracking-tight text-sm">Personal Profile</h3>
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 lg:col-span-6 flex flex-col gap-2">
+            <div className="flex items-center justify-between cursor-pointer group" onClick={() => toggleSection('profile')}>
+              <div className="flex items-center gap-2">
+                <User className="w-5 h-5 text-emerald-400" />
+                <h3 className="font-bold text-white uppercase tracking-tight text-sm">Personal Profile</h3>
+              </div>
+              <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform duration-300 ${openSections.profile ? 'rotate-180' : ''}`} />
             </div>
 
-            <form onSubmit={handleProfileSave} className="flex flex-col gap-4">
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Full Name</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full h-12 bg-slate-950 border border-slate-800 text-white text-sm rounded-xl px-4 outline-none focus:border-emerald-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Skill Level</label>
-                <select
-                  value={skillTier}
-                  onChange={(e) => setSkillTier(e.target.value as SkillTier)}
-                  className="w-full h-12 bg-slate-950 border border-slate-800 text-white text-sm rounded-xl px-4 outline-none focus:border-emerald-500 cursor-pointer"
+            <AnimatePresence initial={false}>
+              {openSections.profile && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  className="overflow-hidden"
                 >
-                  <option value="BEGINNER">Beginner (1000 PTS)</option>
-                  <option value="LOW_INTERMEDIATE">Low Intermediate (1400 PTS)</option>
-                  <option value="INTERMEDIATE">Intermediate (1800 PTS)</option>
-                  <option value="ADVANCED">Advanced (2200 PTS)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5" /> Country
-                </label>
-                <select
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                  className="w-full h-12 bg-slate-950 border border-slate-800 text-white text-sm rounded-xl px-4 outline-none focus:border-emerald-500 cursor-pointer"
-                >
-                  {countries.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block flex items-center gap-1">
-                  <Shield className="w-3.5 h-3.5 text-slate-400" /> Account Role
-                </label>
-                <div className="bg-slate-950 p-1 rounded-2xl border border-slate-850 flex gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setRole('PLAYER')}
-                    className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 ${
-                      role === 'PLAYER' 
-                        ? 'bg-emerald-500 text-slate-950 shadow-md' 
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Player
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRole('QUEUE_MASTER')}
-                    className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 ${
-                      role === 'QUEUE_MASTER' 
-                        ? 'bg-red-500 text-white shadow-md' 
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Queue Master
-                  </button>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={saveLoading}
-                className={`h-12 w-full font-black text-xs uppercase rounded-xl transition-all shadow-md flex items-center justify-center gap-2 ${
-                  saveSuccess 
-                    ? 'bg-teal-500 text-slate-950' 
-                    : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 active:scale-[0.98]'
-                }`}
-              >
-                {saveLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : saveSuccess ? (
-                  <>
-                    <Check className="w-4 h-4" /> Profile Updated!
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4" /> Save Changes
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
-
-          {/* DYNAMIC CARD DEPENDING ON ROLE */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 lg:col-span-6 flex flex-col gap-6">
-            
-            {isQM ? (
-              /* QUEUE MASTER - COURTS & SESSIONS */
-              <div className="flex flex-col gap-6">
-                
-                {/* Session Host Engine */}
-                <div className="flex flex-col gap-4 border-b border-slate-800 pb-5">
-                  <div className="flex items-center gap-2">
-                    <Key className="w-5 h-5 text-red-500" />
-                    <h3 className="font-bold text-white uppercase tracking-tight text-sm">Session Hosting</h3>
-                  </div>
-
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    Generate a secure 6-digit Session ID to allow other club members to log in as Players and view live courts, queue schedules, matches, and local statistics in real-time.
-                  </p>
-
-                  {isSessionActive ? (
-                    <div className="bg-slate-950 border border-slate-800 p-4 rounded-2xl flex flex-col items-center gap-3">
-                      <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Active Session ID</span>
-                      <span className="text-4xl font-black text-white font-mono tracking-widest bg-slate-900 px-6 py-2 rounded-xl border border-slate-800">
-                        {sessionId}
-                      </span>
-                      <button
-                        onClick={deactivateSession}
-                        disabled={sessionGenerating}
-                        className="text-xs font-bold text-red-500 hover:text-red-400 uppercase tracking-wider flex items-center gap-1.5 mt-1"
-                      >
-                        {sessionGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                        Deactivate Session
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={generateSession}
-                      disabled={sessionGenerating}
-                      className="w-full h-12 bg-red-500 hover:bg-red-400 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2"
-                    >
-                      {sessionGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
-                      Generate Active Session ID
-                    </button>
-                  )}
-                </div>
-
-                {/* Courts Configuration */}
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-center gap-2">
-                    <Globe className="w-5 h-5 text-emerald-400" />
-                    <h3 className="font-bold text-white uppercase tracking-tight text-sm">Courts Config</h3>
-                  </div>
-
-                  <form onSubmit={handleAddCourt} className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Add court (e.g. Court 5)"
-                      value={newCourtName}
-                      onChange={(e) => setNewCourtName(e.target.value)}
-                      className="flex-1 h-11 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl px-4 outline-none focus:border-emerald-500"
-                    />
-                    <button
-                      type="submit"
-                      className="w-11 h-11 bg-slate-800 hover:bg-slate-700 text-white rounded-xl flex items-center justify-center"
-                    >
-                      <Plus className="w-5 h-5" />
-                    </button>
-                  </form>
-
-                  {/* List of Courts */}
-                  <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
-                    {courts.map((court) => (
-                      <div key={court.id} className="flex items-center justify-between p-2.5 bg-slate-950/40 rounded-xl border border-slate-850">
-                        <span className="text-xs font-bold text-slate-200">{court.name}</span>
-                        <button
-                          onClick={() => {
-                            if (user) deleteCourt(user.uid, court.id);
-                          }}
-                          className="text-slate-500 hover:text-red-500 p-1.5 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-              </div>
-            ) : (
-              /* PLAYER - CONNECT TO SESSIONS */
-              <div className="flex flex-col gap-6">
-                <div className="flex items-center gap-2">
-                  <Key className="w-5 h-5 text-emerald-400" />
-                  <h3 className="font-bold text-white uppercase tracking-tight text-sm">Connect to Host Session</h3>
-                </div>
-
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Enter the 6-digit Session ID generated by your club's Queue Master to connect to their live court allocation schedules, queues, and matches.
-                </p>
-
-                {joinedQmUserId ? (
-                  <div className="bg-slate-950 border border-slate-800 p-4 rounded-2xl flex flex-col items-center gap-3 text-center">
-                    <span className="text-[10px] uppercase tracking-wider text-emerald-500 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/15">
-                      Connected
-                    </span>
-                    <div className="flex flex-col">
-                      <span className="text-2xl font-black text-white font-mono tracking-widest">
-                        {localStorage.getItem('rallyup_joined_code') || 'ACTIVE'}
-                      </span>
-                      <span className="text-[10px] text-slate-500 mt-1">Syncing matches & courts in real-time</span>
-                    </div>
-                    
-                    <button
-                      onClick={() => {
-                        if (onSessionLeft) {
-                          onSessionLeft();
-                        }
-                        setJoiningCode('');
-                      }}
-                      className="text-xs font-bold text-red-500 hover:text-red-400 uppercase tracking-wider flex items-center gap-1.5 mt-2"
-                    >
-                      Disconnect Session
-                    </button>
-                  </div>
-                ) : (
-                  <form onSubmit={handleJoinSession} className="flex flex-col gap-4">
-                    <div className="relative">
+                  <form onSubmit={handleProfileSave} className="flex flex-col gap-4 pt-4">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Full Name</label>
                       <input
                         type="text"
-                        placeholder="Enter 6-digit Session ID"
-                        value={joiningCode}
-                        onChange={(e) => setJoiningCode(e.target.value.slice(0, 6))}
-                        className="w-full h-14 bg-slate-950 border border-slate-800 text-white font-mono tracking-widest text-lg font-black text-center rounded-2xl outline-none focus:border-emerald-500 placeholder:text-sm placeholder:font-sans placeholder:tracking-normal placeholder:text-slate-600 placeholder:font-normal"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full h-12 bg-slate-950 border border-slate-800 text-white text-sm rounded-xl px-4 outline-none focus:border-emerald-500"
                         required
                       />
                     </div>
 
-                    {joinError && (
-                      <p className="text-red-500 text-xs font-semibold">{joinError}</p>
-                    )}
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Skill Level</label>
+                      <select
+                        value={skillTier}
+                        onChange={(e) => setSkillTier(e.target.value as SkillTier)}
+                        className="w-full h-12 bg-slate-950 border border-slate-800 text-white text-sm rounded-xl px-4 outline-none focus:border-emerald-500 cursor-pointer"
+                      >
+                        <option value="BEGINNER">Beginner (1000 PTS)</option>
+                        <option value="LOW_INTERMEDIATE">Low Intermediate (1400 PTS)</option>
+                        <option value="INTERMEDIATE">Intermediate (1800 PTS)</option>
+                        <option value="ADVANCED">Advanced (2200 PTS)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5" /> Country
+                      </label>
+                      <select
+                        value={country}
+                        onChange={(e) => setCountry(e.target.value)}
+                        className="w-full h-12 bg-slate-950 border border-slate-800 text-white text-sm rounded-xl px-4 outline-none focus:border-emerald-500 cursor-pointer"
+                      >
+                        {countries.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block flex items-center gap-1">
+                        <Shield className="w-3.5 h-3.5 text-slate-400" /> Account Role
+                      </label>
+                      <div className="bg-slate-950 p-1 rounded-2xl border border-slate-850 flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setRole('PLAYER')}
+                          className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 ${
+                            role === 'PLAYER' 
+                              ? 'bg-emerald-500 text-slate-950 shadow-md' 
+                              : 'text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          Player
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRole('QUEUE_MASTER')}
+                          className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 ${
+                            role === 'QUEUE_MASTER' 
+                              ? 'bg-red-500 text-white shadow-md' 
+                              : 'text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          Queue Master
+                        </button>
+                      </div>
+                    </div>
 
                     <button
                       type="submit"
-                      disabled={joinLoading}
-                      className="w-full h-12 bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-800 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2"
+                      disabled={saveLoading}
+                      className={`h-12 w-full font-black text-xs uppercase rounded-xl transition-all shadow-md flex items-center justify-center gap-2 ${
+                        saveSuccess 
+                          ? 'bg-teal-500 text-slate-950' 
+                          : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 active:scale-[0.98]'
+                      }`}
                     >
-                      {joinLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Connect To Session'}
+                      {saveLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : saveSuccess ? (
+                        <>
+                          <Check className="w-4 h-4" /> Profile Updated!
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4" /> Save Changes
+                        </>
+                      )}
                     </button>
                   </form>
-                )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
-                <div className="border-t border-slate-800/80 pt-4 mt-2">
-                  <div className="flex gap-2.5 items-start text-xs text-slate-400 bg-slate-950/30 p-3 rounded-2xl border border-slate-850">
-                    <HelpCircle className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
-                    <p className="leading-relaxed">
-                      Ask your Queue Master / Admin to generate an active 6-digit session ID in their Settings and display it so you can sync instantly!
-                    </p>
+          {/* DYNAMIC CARDS DEPENDING ON ROLE */}
+          <div className="lg:col-span-6 flex flex-col gap-6">
+            
+            {isQM ? (
+              /* QUEUE MASTER - COURTS & SESSIONS */
+              <>
+                
+                {/* Session Host Engine */}
+                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col gap-2">
+                  <div className="flex items-center justify-between cursor-pointer group" onClick={() => toggleSection('sessionHosting')}>
+                    <div className="flex items-center gap-2">
+                      <Key className="w-5 h-5 text-red-500" />
+                      <h3 className="font-bold text-white uppercase tracking-tight text-sm">Session Hosting</h3>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform duration-300 ${openSections.sessionHosting ? 'rotate-180' : ''}`} />
                   </div>
+
+                  <AnimatePresence initial={false}>
+                    {openSections.sessionHosting && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        className="overflow-hidden"
+                      >
+                        <div className="flex flex-col gap-4 pt-4">
+                          <p className="text-xs text-slate-400 leading-relaxed">
+                            Generate a secure 6-digit Session ID to allow other club members to log in as Players and view live courts, queue schedules, matches, and local statistics in real-time.
+                          </p>
+
+                          {isSessionActive ? (
+                            <div className="bg-slate-950 border border-slate-800 p-4 rounded-2xl flex flex-col items-center gap-3">
+                              <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Active Session ID</span>
+                              <span className="text-4xl font-black text-white font-mono tracking-widest bg-slate-900 px-6 py-2 rounded-xl border border-slate-800">
+                                {sessionId}
+                              </span>
+                              <button
+                                onClick={deactivateSession}
+                                disabled={sessionGenerating}
+                                className="text-xs font-bold text-red-500 hover:text-red-400 uppercase tracking-wider flex items-center gap-1.5 mt-1"
+                              >
+                                {sessionGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                                Deactivate Session
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={generateSession}
+                              disabled={sessionGenerating}
+                              className="w-full h-12 bg-red-500 hover:bg-red-400 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2"
+                            >
+                              {sessionGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
+                              Generate Active Session ID
+                            </button>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
+                {/* Courts Configuration */}
+                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col gap-2">
+                  <div className="flex items-center justify-between cursor-pointer group" onClick={() => toggleSection('courtsConfig')}>
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-5 h-5 text-emerald-400" />
+                      <h3 className="font-bold text-white uppercase tracking-tight text-sm">Courts Config</h3>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform duration-300 ${openSections.courtsConfig ? 'rotate-180' : ''}`} />
+                  </div>
+
+                  <AnimatePresence initial={false}>
+                    {openSections.courtsConfig && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        className="overflow-hidden"
+                      >
+                        <div className="flex flex-col gap-4 pt-4">
+                          <form onSubmit={handleAddCourt} className="flex gap-2">
+                            <input
+                              type="text"
+                              placeholder="Add court (e.g. Court 5)"
+                              value={newCourtName}
+                              onChange={(e) => setNewCourtName(e.target.value)}
+                              className="flex-1 h-11 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl px-4 outline-none focus:border-emerald-500"
+                            />
+                            <button
+                              type="submit"
+                              className="w-11 h-11 bg-slate-800 hover:bg-slate-700 text-white rounded-xl flex items-center justify-center"
+                            >
+                              <Plus className="w-5 h-5" />
+                            </button>
+                          </form>
+
+                          {/* List of Courts */}
+                          <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
+                            {courts.map((court) => (
+                              <div key={court.id} className="flex items-center justify-between p-2.5 bg-slate-950/40 rounded-xl border border-slate-850">
+                                <span className="text-xs font-bold text-slate-200">{court.name}</span>
+                                <button
+                                  onClick={() => {
+                                    if (user) deleteCourt(user.uid, court.id);
+                                  }}
+                                  className="text-slate-500 hover:text-red-500 p-1.5 transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+              </>
+            ) : (
+              /* PLAYER - CONNECT TO SESSIONS */
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col gap-2">
+                <div className="flex items-center justify-between cursor-pointer group" onClick={() => toggleSection('connectSession')}>
+                  <div className="flex items-center gap-2">
+                    <Key className="w-5 h-5 text-emerald-400" />
+                    <h3 className="font-bold text-white uppercase tracking-tight text-sm">Connect to Host Session</h3>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform duration-300 ${openSections.connectSession ? 'rotate-180' : ''}`} />
+                </div>
+
+                <AnimatePresence initial={false}>
+                  {openSections.connectSession && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3, ease: 'easeInOut' }}
+                      className="overflow-hidden"
+                    >
+                      <div className="flex flex-col gap-4 pt-4">
+                        <p className="text-xs text-slate-400 leading-relaxed">
+                          Enter the 6-digit Session ID generated by your club's Queue Master to connect to their live court allocation schedules, queues, and matches.
+                        </p>
+
+                        {joinedQmUserId ? (
+                          <div className="bg-slate-950 border border-slate-800 p-4 rounded-2xl flex flex-col items-center gap-3 text-center">
+                            <span className="text-[10px] uppercase tracking-wider text-emerald-500 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/15">
+                              Connected
+                            </span>
+                            <div className="flex flex-col">
+                              <span className="text-2xl font-black text-white font-mono tracking-widest">
+                                {localStorage.getItem('rallyup_joined_code') || 'ACTIVE'}
+                              </span>
+                              <span className="text-[10px] text-slate-500 mt-1">Syncing matches & courts in real-time</span>
+                            </div>
+                            
+                            <button
+                              onClick={() => {
+                                if (onSessionLeft) {
+                                  onSessionLeft();
+                                }
+                                setJoiningCode('');
+                              }}
+                              className="text-xs font-bold text-red-500 hover:text-red-400 uppercase tracking-wider flex items-center gap-1.5 mt-2"
+                            >
+                              Disconnect Session
+                            </button>
+                          </div>
+                        ) : (
+                          <form onSubmit={handleJoinSession} className="flex flex-col gap-4">
+                            <div className="relative">
+                              <input
+                                type="text"
+                                placeholder="Enter 6-digit Session ID"
+                                value={joiningCode}
+                                onChange={(e) => setJoiningCode(e.target.value.slice(0, 6))}
+                                className="w-full h-14 bg-slate-950 border border-slate-800 text-white font-mono tracking-widest text-lg font-black text-center rounded-2xl outline-none focus:border-emerald-500 placeholder:text-sm placeholder:font-sans placeholder:tracking-normal placeholder:text-slate-600 placeholder:font-normal"
+                                required
+                              />
+                            </div>
+
+                            {joinError && (
+                              <p className="text-red-500 text-xs font-semibold">{joinError}</p>
+                            )}
+
+                            <button
+                              type="submit"
+                              disabled={joinLoading}
+                              className="w-full h-12 bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-800 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2"
+                            >
+                              {joinLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Connect To Session'}
+                            </button>
+                          </form>
+                        )}
+
+                        <div className="border-t border-slate-800/80 pt-4 mt-2">
+                          <div className="flex gap-2.5 items-start text-xs text-slate-400 bg-slate-950/30 p-3 rounded-2xl border border-slate-850">
+                            <HelpCircle className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
+                            <p className="leading-relaxed">
+                              Ask your Queue Master / Admin to generate an active 6-digit session ID in their Settings and display it so you can sync instantly!
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )}
 
           </div>
+
+          {/* RESET DATA & DANGER ZONE SECTION (QM Only) */}
+          {isQM && (
+            <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6 mt-2 pb-12">
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col gap-2">
+                <div className="flex items-center justify-between cursor-pointer group" onClick={() => toggleSection('resetData')}>
+                  <div className="flex items-center gap-2">
+                    <Settings className="w-5 h-5 text-slate-400" />
+                    <h3 className="font-bold text-white tracking-tight text-sm">Reset Data</h3>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform duration-300 ${openSections.resetData ? 'rotate-180' : ''}`} />
+                </div>
+                
+                <AnimatePresence initial={false}>
+                  {openSections.resetData && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3, ease: 'easeInOut' }}
+                      className="overflow-hidden"
+                    >
+                      <div className="flex flex-col gap-6 pt-4">
+                        <div className="bg-blue-500/10 border-l-4 border-blue-500 p-4 rounded-r-xl rounded-l-sm flex flex-col gap-1">
+                          <span className="text-blue-400 font-bold text-xs flex items-center gap-1.5">
+                            <Info className="w-4 h-4" /> Session history limit: 10
+                          </span>
+                          <p className="text-blue-400/80 text-xs leading-relaxed mt-1">
+                            The 10 most recent queueing sessions are kept on this device. Older sessions are automatically and permanently removed when you end a new one.
+                          </p>
+                        </div>
+                        
+                        <div className="flex flex-col gap-4">
+                          <div className="flex items-center justify-between p-4 bg-slate-950/50 rounded-2xl border border-slate-850">
+                            <div className="pr-4">
+                              <h4 className="text-sm font-bold text-slate-200 mb-1">Reset All Data</h4>
+                              <p className="text-xs text-slate-500 leading-relaxed">
+                                Wipes everything on this device — roster, matches, fees, and session history. Does not affect global rankings.
+                              </p>
+                            </div>
+                            <button className="shrink-0 px-4 h-10 bg-slate-950 hover:bg-slate-800 text-slate-300 font-medium text-xs rounded-xl transition-colors border border-slate-700">
+                              Reset all
+                            </button>
+                          </div>
+                          
+                          <div className="flex items-center justify-between p-4 bg-slate-950/50 rounded-2xl border border-slate-850">
+                            <div className="pr-4">
+                              <h4 className="text-sm font-bold text-slate-200 mb-1">Reset Matches</h4>
+                              <p className="text-xs text-slate-500 leading-relaxed">
+                                Reset all match history, fees while keeping all player records intact.
+                              </p>
+                            </div>
+                            <button className="shrink-0 px-4 h-10 bg-slate-950 hover:bg-slate-800 text-slate-300 font-medium text-xs rounded-xl transition-colors border border-slate-700">
+                              Reset
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+              
+              <div className="flex flex-col gap-6">
+                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col gap-2">
+                  <div className="flex items-center justify-between cursor-pointer group" onClick={() => toggleSection('others')}>
+                    <div className="flex items-center gap-2">
+                      <MoreVertical className="w-5 h-5 text-slate-400" />
+                      <h3 className="font-bold text-white tracking-tight text-sm">Others</h3>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform duration-300 ${openSections.others ? 'rotate-180' : ''}`} />
+                  </div>
+
+                  <AnimatePresence initial={false}>
+                    {openSections.others && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        className="overflow-hidden"
+                      >
+                        <div className="flex items-center justify-between p-4 bg-slate-950/50 rounded-2xl border border-slate-850 mt-4">
+                          <span className="text-sm font-bold text-slate-200">Survey Form</span>
+                          <button className="px-5 h-10 bg-red-500 hover:bg-red-600 text-white font-bold text-xs rounded-xl transition-colors shadow-lg shadow-red-500/10">
+                            Give Feedback
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+                
+                <div className="bg-rose-500/5 border border-rose-500/20 rounded-3xl p-6 flex flex-col gap-2">
+                  <div className="flex items-center justify-between cursor-pointer group" onClick={() => toggleSection('dangerZone')}>
+                    <h3 className="font-bold text-rose-500 tracking-tight text-sm">Danger zone</h3>
+                    <ChevronDown className={`w-4 h-4 text-rose-500/70 transition-transform duration-300 ${openSections.dangerZone ? 'rotate-180' : ''}`} />
+                  </div>
+                  
+                  <AnimatePresence initial={false}>
+                    {openSections.dangerZone && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        className="overflow-hidden"
+                      >
+                        <div className="flex items-center justify-between p-4 bg-slate-950/50 rounded-2xl border border-rose-500/20 mt-4">
+                          <div className="pr-4">
+                            <h4 className="text-sm font-bold text-slate-200 mb-1">Delete account</h4>
+                            <p className="text-xs text-slate-500 leading-relaxed">
+                              Permanently delete your profile, match history, and ranking. This cannot be undone.
+                            </p>
+                          </div>
+                          <button className="shrink-0 px-5 h-10 bg-transparent border border-rose-500 text-rose-500 hover:bg-rose-500 hover:text-white font-bold text-xs rounded-xl transition-colors">
+                            Delete
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </div>
+          )}
 
         </div>
 

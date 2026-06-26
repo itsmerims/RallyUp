@@ -180,7 +180,7 @@ function CourtModel({
 export default function CourtScene({ courts }: CourtSceneProps) {
   return (
     <div className="w-full h-48 md:h-64 lg:h-80 bg-slate-950 relative overflow-hidden rounded-2xl border border-slate-800 shadow-2xl shadow-slate-950/50 mb-6">
-      <Canvas shadows camera={{ position: [0, 8, 12], fov: 45 }}>
+      <Canvas shadows={{ type: THREE.PCFShadowMap }} camera={{ position: [0, 8, 12], fov: 45 }}>
         <MapControls 
           enableDamping 
           dampingFactor={0.05}

@@ -12,7 +12,7 @@ import SettingsPage from './SettingsPage';
 import PlayerDashboard from './PlayerDashboard';
 import { 
   Plus, Check, Trophy, Settings, Trash2, LayoutGrid, Users, 
-  Activity, Menu, X, Loader2, LogOut, ChevronDown, ChevronUp, 
+  Activity, Menu, X, Loader2, LogOut, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
   Monitor, MonitorOff, Coins, Info, ShieldAlert, Sparkles 
 } from 'lucide-react';
 import { Player, SkillTier } from '../types';
@@ -33,6 +33,7 @@ export default function Dashboard() {
   // Custom navigation tabs
   const [activeTab, setActiveTab] = useState<'courts' | 'players' | 'stats' | 'finance' | 'rankings' | 'settings'>('courts');
   const [is3DViewCollapsed, setIs3DViewCollapsed] = useState(false);
+  const [isRosterCollapsed, setIsRosterCollapsed] = useState(false);
 
   // Connection management for player role
   const [joinedQmUserId, setJoinedQmUserId] = useState<string | null>(() => {
@@ -334,70 +335,90 @@ export default function Dashboard() {
             <div className="flex-1 flex overflow-hidden w-full">
               
               {/* QM Sidebar: Player Queue */}
-              <aside className="hidden lg:flex w-80 border-r border-slate-800 bg-slate-950/80 backdrop-blur-md flex-col p-6 shrink-0 h-full overflow-hidden">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xs font-black uppercase tracking-widest text-slate-400">Roster ({players.length})</h2>
-                  <span className="text-[10px] bg-slate-900 border border-slate-800 text-slate-500 font-bold px-2 py-0.5 rounded-md uppercase">Queue</span>
-                </div>
-                
-                <div className="mb-4">
-                  <button 
-                    onClick={() => setIsAddPlayerModalOpen(true)}
-                    className="w-full h-12 bg-slate-800 hover:bg-slate-750 text-white rounded-xl transition-colors border border-slate-700 flex items-center justify-center gap-2"
+              <AnimatePresence initial={false}>
+                {!isRosterCollapsed && (
+                  <motion.aside 
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: 320, opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: 'easeInOut' }}
+                    className="hidden lg:flex border-r border-slate-800 bg-slate-950/80 backdrop-blur-md flex-col p-6 shrink-0 h-full overflow-hidden"
                   >
-                    <Plus className="w-4.5 h-4.5" />
-                    <span className="font-bold text-xs tracking-wider uppercase">Add Player</span>
-                  </button>
-                </div>
+                    <div className="flex items-center justify-between mb-4 w-full">
+                      <h2 className="text-xs font-black uppercase tracking-widest text-slate-400 whitespace-nowrap">Roster ({players.length})</h2>
+                      <span className="text-[10px] bg-slate-900 border border-slate-800 text-slate-500 font-bold px-2 py-0.5 rounded-md uppercase whitespace-nowrap">Queue</span>
+                    </div>
+                    
+                    <div className="mb-4 w-full">
+                      <button 
+                        onClick={() => setIsAddPlayerModalOpen(true)}
+                        className="w-full h-12 bg-slate-800 hover:bg-slate-750 text-white rounded-xl transition-colors border border-slate-700 flex items-center justify-center gap-2 whitespace-nowrap"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span className="font-bold text-xs tracking-wider uppercase">Add Player</span>
+                      </button>
+                    </div>
 
-                <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
-                  {players.map(player => (
-                    <div key={player.id} className={`p-3 border rounded-xl flex items-center justify-between group transition-colors ${
-                      player.status === 'RESTING' ? 'bg-slate-900/40 border-slate-850 opacity-60' : 'bg-slate-900 border-slate-800'
-                    }`}>
-                      <div className="flex items-center gap-2.5">
-                        <div className={`w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center text-xs font-bold ${
-                          player.status === 'PLAYING' ? 'bg-red-500 text-white' : 'bg-slate-800 text-slate-300'
+                    <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 w-full">
+                      {players.map(player => (
+                        <div key={player.id} className={`p-3 border rounded-xl flex items-center justify-between group transition-colors ${
+                          player.status === 'RESTING' ? 'bg-slate-900/40 border-slate-850 opacity-60' : 'bg-slate-900 border-slate-800'
                         }`}>
-                          {player.name.substring(0, 2).toUpperCase()}
-                        </div>
-                        <div>
-                          <div className="text-xs font-bold text-slate-200">{player.name}</div>
-                          <div className="text-[9px] text-slate-500 uppercase tracking-wide">
-                            {player.tier?.replace('_', ' ')} • <span className={
-                              player.status === 'PLAYING' ? 'text-emerald-400 font-bold' :
-                              player.status === 'WAITING' ? 'text-amber-400' : 'text-slate-500'
-                            }>{player.status}</span>
+                          <div className="flex items-center gap-2.5">
+                            <div className={`w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center text-xs font-bold shrink-0 ${
+                              player.status === 'PLAYING' ? 'bg-red-500 text-white' : 'bg-slate-800 text-slate-300'
+                            }`}>
+                              {player.name.substring(0, 2).toUpperCase()}
+                            </div>
+                            <div className="overflow-hidden">
+                              <div className="text-xs font-bold text-slate-200 truncate">{player.name}</div>
+                              <div className="text-[9px] text-slate-500 uppercase tracking-wide truncate">
+                                {player.tier?.replace('_', ' ')} • <span className={
+                                  player.status === 'PLAYING' ? 'text-emerald-400 font-bold' :
+                                  player.status === 'WAITING' ? 'text-amber-400' : 'text-slate-500'
+                                }>{player.status}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button 
+                              onClick={() => {
+                                if (user) togglePlayerPaid(user.uid, player.id);
+                              }}
+                              className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors border ${
+                                player.hasPaid ? 'border-emerald-500/50 text-emerald-400 bg-emerald-500/10' : 'border-slate-800 text-slate-600 hover:text-white'
+                              }`}
+                              title={player.hasPaid ? 'Paid' : 'Unpaid'}
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                            </button>
+                            <button onClick={() => {
+                              if (user) deletePlayer(user.uid, player.id);
+                            }} className="text-slate-600 hover:text-rose-500 opacity-0 group-hover:opacity-100 p-1.5 transition-all">
+                              <Trash2 className="w-3.5 h-3.5"/>
+                            </button>
                           </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <button 
-                          onClick={() => {
-                            if (user) togglePlayerPaid(user.uid, player.id);
-                          }}
-                          className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors border ${
-                            player.hasPaid ? 'border-emerald-500/50 text-emerald-400 bg-emerald-500/10' : 'border-slate-800 text-slate-600 hover:text-white'
-                          }`}
-                          title={player.hasPaid ? 'Paid' : 'Unpaid'}
-                        >
-                          <Check className="w-3.5 h-3.5" />
-                        </button>
-                        <button onClick={() => {
-                          if (user) deletePlayer(user.uid, player.id);
-                        }} className="text-slate-600 hover:text-rose-500 opacity-0 group-hover:opacity-100 p-1.5 transition-all">
-                          <Trash2 className="w-3.5 h-3.5"/>
-                        </button>
-                      </div>
+                      ))}
+                      {players.length === 0 && (
+                        <div className="text-center text-slate-600 text-xs mt-10 whitespace-nowrap">
+                          Roster is empty.
+                        </div>
+                      )}
                     </div>
-                  ))}
-                  {players.length === 0 && (
-                    <div className="text-center text-slate-600 text-xs mt-10">
-                      Roster is empty.
-                    </div>
-                  )}
-                </div>
-              </aside>
+                  </motion.aside>
+                )}
+              </AnimatePresence>
+
+              {/* Roster Toggle Button */}
+              <div className="hidden lg:flex flex-col border-r border-slate-800 bg-slate-950/50 items-center justify-center">
+                <button 
+                  onClick={() => setIsRosterCollapsed(!isRosterCollapsed)}
+                  className="h-16 px-1 flex items-center justify-center text-slate-500 hover:text-white hover:bg-slate-900 transition-colors rounded-l-md"
+                >
+                  {isRosterCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+                </button>
+              </div>
 
               {/* Main courts center panel */}
               <section className="flex-1 bg-slate-950 relative overflow-hidden flex flex-col h-full">
@@ -480,34 +501,24 @@ export default function Dashboard() {
                   </AnimatePresence>
                 </div>
 
-                {/* Subheader control panel */}
-                <div className="relative z-10 px-4 md:px-6 py-4 border-b border-slate-900 flex items-center justify-between shrink-0">
-                  <div>
-                    <h2 className="text-lg font-black uppercase tracking-tight text-white italic">Live Schedules</h2>
-                    <p className="text-xs text-slate-500">Dispatch, end matches, and control your court traffic.</p>
-                  </div>
-                  <button 
-                    onClick={() => setMatchMakerOpen(true)}
-                    className="h-12 bg-red-500 hover:bg-red-600 text-white font-black rounded-xl text-xs uppercase tracking-widest px-6 transition-all shadow-lg shadow-red-500/10 active:scale-95 flex items-center gap-2"
-                  >
-                    <Plus className="w-4 h-4 stroke-[3]" />
-                    AUTO MATCHMAKER
-                  </button>
-                </div>
-
                 {/* Grid of Courts for QM */}
-                <div className="flex-1 overflow-y-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 relative z-10">
+                <div className="flex-1 overflow-y-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 relative z-10 pb-24">
                   {courts.map((court) => {
                     const activeMatch = matches.find(m => m.id === court.activeMatchId);
                     return (
                       <div key={court.id} className="bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col justify-between h-56 relative group hover:border-slate-700 transition-all">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-black uppercase tracking-wider text-slate-400">{court.name}</span>
-                          <span className={`text-[9px] px-2.5 py-0.5 rounded font-black uppercase ${
-                            court.status === 'Available' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
-                          }`}>
-                            {court.status === 'Available' ? 'Vacant' : 'Occupied'}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[9px] px-2.5 py-0.5 rounded font-black uppercase ${
+                              court.status === 'Available' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
+                            }`}>
+                              {court.status === 'Available' ? 'Vacant' : 'Occupied'}
+                            </span>
+                            <button onClick={() => { if (user) deleteCourt(user.uid, court.id); }} className="text-slate-500 hover:text-red-500 hover:bg-red-500/10 transition-colors p-1 rounded-md">
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
 
                         {activeMatch ? (
@@ -571,7 +582,25 @@ export default function Dashboard() {
                       </div>
                     );
                   })}
+                  
+                  {/* Add Court Button Card */}
+                  <button 
+                    onClick={() => { if (user) addCourt(user.uid, `Court ${courts.length + 1}`); }}
+                    className="bg-slate-900/50 border border-dashed border-slate-700 hover:border-slate-500 rounded-3xl p-5 flex flex-col items-center justify-center h-56 transition-all text-slate-500 hover:text-slate-300 group"
+                  >
+                    <Plus className="w-8 h-8 mb-2 group-hover:scale-110 transition-transform" />
+                    <span className="text-xs font-bold uppercase tracking-wider">Add Court</span>
+                  </button>
                 </div>
+
+                {/* Floating Auto Matchmaker Button */}
+                <button
+                  onClick={() => setMatchMakerOpen(true)}
+                  className="absolute bottom-6 right-6 h-14 bg-red-500 hover:bg-red-600 text-white font-black rounded-2xl text-xs uppercase tracking-widest px-6 transition-all shadow-xl shadow-red-500/20 active:scale-95 flex items-center gap-2 z-50 border border-red-400/50"
+                >
+                  <Sparkles className="w-5 h-5" />
+                  AUTO MATCHMAKER
+                </button>
               </section>
 
             </div>
