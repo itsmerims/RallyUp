@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Player, SkillTier } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
+import { requestNotificationPermission, setupMessageListener } from '../services/notifications';
 
 export default function Dashboard() {
   const { user, userProfile, logout } = useAuth();
@@ -41,6 +42,11 @@ export default function Dashboard() {
   const [scoreA, setScoreA] = useState('21');
   const [scoreB, setScoreB] = useState('19');
   const [shuttlesUsed, setShuttlesUsed] = useState('1');
+
+  // Setup Firebase Cloud Messaging listener
+  useEffect(() => {
+    setupMessageListener();
+  }, []);
 
   // Connection management for player role
   const [joinedQmUserId, setJoinedQmUserId] = useState<string | null>(() => {
@@ -287,15 +293,15 @@ export default function Dashboard() {
           <ThemeToggle />
           
           <button 
-            onClick={() => {
+            onClick={async () => {
+              if (!userProfile) return;
               if ('Notification' in window && Notification.permission !== 'granted') {
-                Notification.requestPermission().then(permission => {
-                  if (permission === 'granted') {
-                    new Notification('RallyUp', { body: 'Notifications enabled!' });
-                  }
-                });
+                const granted = await requestNotificationPermission(userProfile.id);
+                if (granted) {
+                  new Notification('RallyUp', { body: 'Notifications enabled!' });
+                }
               } else if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('RallyUp', { body: 'You have 0 new notifications.' });
+                new Notification('RallyUp', { body: 'You are already receiving notifications.' });
               } else {
                 alert('Notifications are not supported in this browser.');
               }

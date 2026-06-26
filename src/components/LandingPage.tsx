@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Download, Bell, ArrowRight, Activity, MapPin, Award, Users, ChevronRight, Zap, Shield, CheckCircle2 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
+import InstallModal from './InstallModal';
 
 interface LandingPageProps {
   onGetStarted: () => void;
@@ -14,6 +15,20 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [activePage, setActivePage] = useState<PageState>('home');
+  const [showInstallModal, setShowInstallModal] = useState(false);
+
+  useEffect(() => {
+    // Check if first time user to show modal
+    const hasVisited = localStorage.getItem('rallyup_has_visited');
+    if (!hasVisited) {
+      // Delay modal slightly for better UX
+      const timer = setTimeout(() => {
+        setShowInstallModal(true);
+        localStorage.setItem('rallyup_has_visited', 'true');
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: any) => {
@@ -386,6 +401,15 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
 
           <div className="flex items-center gap-3">
             <ThemeToggle />
+            <div className="hidden sm:flex items-center gap-2 text-xs text-slate-400 mr-2">
+              <span>Install ShuttleFlow on your device</span>
+              <button 
+                onClick={() => setShowInstallModal(true)}
+                className="text-red-500 hover:text-red-400 font-bold underline"
+              >
+                Click Here
+              </button>
+            </div>
             <button 
               onClick={onSignIn}
               className="px-4 py-2 text-sm font-bold bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800 transition-all text-white"
@@ -395,6 +419,8 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
           </div>
         </div>
       </div>
+      
+      <InstallModal isOpen={showInstallModal} onClose={() => setShowInstallModal(false)} />
       
       <div className="flex-1 w-full relative z-10">
         <AnimatePresence mode="wait">
