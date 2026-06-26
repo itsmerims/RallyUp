@@ -264,10 +264,10 @@ export default function FinancePage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/20">
-                    {players.map((p) => {
+                    {players.map((p, index) => {
                       const share = getIndividualCost();
                       return (
-                        <tr key={p.id} className="hover:bg-slate-850/20 transition-colors">
+                        <tr key={`${p.id}-${index}`} className="hover:bg-slate-850/20 transition-colors">
                           <td className="py-3 px-3">
                             <div className="flex items-center gap-2.5">
                               <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[9px] font-bold uppercase shrink-0">

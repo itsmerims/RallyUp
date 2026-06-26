@@ -151,7 +151,7 @@ function CourtModel({
             const xOffset = teamA.length === 1 ? 0 : idx === 0 ? -0.8 : 0.8;
             return (
               <PlayerModel 
-                key={player.id} 
+                key={`${player.id}-${idx}`} 
                 position={[xOffset, 0.1, -1.8]} 
                 tier={player.tier} 
                 name={player.name} 
@@ -164,7 +164,7 @@ function CourtModel({
             const xOffset = teamB.length === 1 ? 0 : idx === 0 ? -0.8 : 0.8;
             return (
               <PlayerModel 
-                key={player.id} 
+                key={`${player.id}-${idx}`} 
                 position={[xOffset, 0.1, 1.8]} 
                 tier={player.tier} 
                 name={player.name} 

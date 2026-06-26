@@ -179,7 +179,7 @@ export default function MatchMakerModal({ isOpen, onClose }: MatchMakerModalProp
           <div className="flex flex-col md:flex-row flex-1 overflow-y-auto md:overflow-hidden">
             
             {/* Sidebar: Waiting Players */}
-            <div className="w-full md:w-1/3 border-r-0 md:border-r border-b md:border-b-0 border-slate-800 flex flex-col bg-slate-900/50 min-h-[40vh] md:min-h-0">
+            <div className="w-full md:w-1/3 border-r-0 md:border-r border-b md:border-b-0 border-slate-800 flex flex-col min-h-[40vh] md:min-h-0">
               <div className="p-4 border-b border-slate-800 flex justify-between items-center">
                 <h3 className="text-sm font-semibold text-slate-300">Waiting ({availablePlayers.length})</h3>
                 <button 
@@ -208,7 +208,7 @@ export default function MatchMakerModal({ isOpen, onClose }: MatchMakerModalProp
                             } flex justify-between items-center`}
                           >
                             <span className="font-medium text-slate-200">{player.name}</span>
-                            <span className="text-[10px] uppercase tracking-wider text-slate-400 bg-slate-900 px-2 py-1 rounded">
+                            <span className="text-[10px] uppercase tracking-wider text-slate-400 bg-slate-950 border border-slate-800 px-2 py-1 rounded">
                               {player.tier.replace('_', ' ')}
                             </span>
                           </div>
@@ -247,7 +247,7 @@ export default function MatchMakerModal({ isOpen, onClose }: MatchMakerModalProp
                           ref={provided.innerRef}
                           {...provided.droppableProps}
                           className={`team-slot h-24 rounded-2xl border-2 border-dashed flex items-center justify-center transition-colors ${
-                            snapshot.isDraggingOver ? 'border-emerald-500 bg-emerald-500/10' : 'border-slate-700 bg-slate-900/50'
+                            snapshot.isDraggingOver ? 'border-emerald-500 bg-emerald-500/10' : 'border-slate-700'
                           }`}
                         >
                           {teamA[slotIdx] ? (
@@ -287,7 +287,7 @@ export default function MatchMakerModal({ isOpen, onClose }: MatchMakerModalProp
                           ref={provided.innerRef}
                           {...provided.droppableProps}
                           className={`team-slot h-24 rounded-2xl border-2 border-dashed flex items-center justify-center transition-colors ${
-                            snapshot.isDraggingOver ? 'border-teal-500 bg-teal-500/10' : 'border-slate-700 bg-slate-900/50'
+                            snapshot.isDraggingOver ? 'border-teal-500 bg-teal-500/10' : 'border-slate-700'
                           }`}
                         >
                           {teamB[slotIdx] ? (

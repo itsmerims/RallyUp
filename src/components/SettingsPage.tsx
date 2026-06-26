@@ -407,8 +407,8 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
 
                           {/* List of Courts */}
                           <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
-                            {courts.map((court) => (
-                              <div key={court.id} className="flex items-center justify-between p-2.5 bg-slate-950/40 rounded-xl border border-slate-850">
+                            {courts.map((court, index) => (
+                              <div key={`${court.id}-${index}`} className="flex items-center justify-between p-2.5 bg-slate-950/40 rounded-xl border border-slate-850">
                                 <span className="text-xs font-bold text-slate-200">{court.name}</span>
                                 <button
                                   onClick={() => {

@@ -441,8 +441,8 @@ export default function Dashboard() {
                     </div>
 
                     <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 w-full">
-                      {players.map(player => (
-                        <div key={player.id} className={`p-3 border rounded-xl flex items-center justify-between group transition-colors ${
+                      {players.map((player, index) => (
+                        <div key={`${player.id}-${index}`} className={`p-3 border rounded-xl flex items-center justify-between group transition-colors ${
                           player.status === 'RESTING' ? 'bg-slate-900/40 border-slate-850 opacity-60' : 'bg-slate-900 border-slate-800'
                         }`}>
                           <div className="flex items-center gap-2.5">
@@ -584,10 +584,10 @@ export default function Dashboard() {
 
                 {/* Grid of Courts for QM */}
                 <div className="flex-1 overflow-y-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 relative z-10 pb-24">
-                  {courts.map((court) => {
+                  {courts.map((court, index) => {
                     const activeMatch = matches.find(m => m.id === court.activeMatchId);
                     return (
-                      <div key={court.id} className="bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col justify-between h-56 relative group hover:border-slate-700 transition-all">
+                      <div key={`${court.id}-${index}`} className="bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col justify-between h-56 relative group hover:border-slate-700 transition-all">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-black uppercase tracking-wider text-slate-400">{court.name}</span>
                           <div className="flex items-center gap-2">
@@ -716,8 +716,8 @@ export default function Dashboard() {
 
               {/* Roster profiles table / cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {players.map((player) => (
-                  <div key={player.id} className="bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col justify-between group">
+                {players.map((player, index) => (
+                  <div key={`${player.id}-${index}`} className="bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col justify-between group">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-sm font-black uppercase text-slate-300">
@@ -796,8 +796,8 @@ export default function Dashboard() {
 
               <div className="space-y-4">
                 <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 border-b border-slate-800/80 pb-2">Match History</h3>
-                {matches.filter(m => m.status === 'Completed').reverse().map(match => (
-                  <div key={match.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                {matches.filter(m => m.status === 'Completed').reverse().map((match, index) => (
+                  <div key={`${match.id}-${index}`} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div className="flex flex-col gap-1">
                       <span className="text-[10px] text-slate-500 uppercase tracking-widest">{new Date(match.startTime || Date.now()).toLocaleString()}</span>
                       <span className="text-xs font-bold text-white">Court {match.id.substring(0, 4)}</span>
@@ -805,8 +805,8 @@ export default function Dashboard() {
                     
                     <div className="flex items-center gap-4 md:gap-8 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
                       <div className="flex flex-col items-end gap-1 min-w-[120px]">
-                        {match.teamA?.map(id => (
-                          <span key={id} className="text-xs text-slate-300 font-medium truncate max-w-[150px]">{players.find(p => p.id === id)?.name || 'Unknown'}</span>
+                        {match.teamA?.map((id, index) => (
+                          <span key={`${id}-${index}`} className="text-xs text-slate-300 font-medium truncate max-w-[150px]">{players.find(p => p.id === id)?.name || 'Unknown'}</span>
                         ))}
                       </div>
                       
@@ -817,8 +817,8 @@ export default function Dashboard() {
                       </div>
 
                       <div className="flex flex-col items-start gap-1 min-w-[120px]">
-                        {match.teamB?.map(id => (
-                          <span key={id} className="text-xs text-slate-300 font-medium truncate max-w-[150px]">{players.find(p => p.id === id)?.name || 'Unknown'}</span>
+                        {match.teamB?.map((id, index) => (
+                          <span key={`${id}-${index}`} className="text-xs text-slate-300 font-medium truncate max-w-[150px]">{players.find(p => p.id === id)?.name || 'Unknown'}</span>
                         ))}
                       </div>
                     </div>

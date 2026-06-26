@@ -2,24 +2,33 @@
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-slate-850: oklch(24.5% 0.041 260.031);
 }
 
 html, body, #root {
   height: 100%;
   margin: 0;
   overflow: hidden;
-  background-color: #020617; /* slate-950 */
+  background-color: var(--color-slate-950);
 }
 
-/* Light theme support */
+/* Light theme support (mapped from dark theme) */
 html.theme-light {
-  filter: invert(1) hue-rotate(180deg);
-}
+  /* Backgrounds & Borders */
+  --color-slate-950: var(--color-gray-100);
+  --color-slate-900: #ffffff;
+  --color-slate-850: var(--color-gray-50);
+  --color-slate-800: var(--color-gray-200);
+  --color-slate-700: var(--color-gray-300);
+  --color-slate-600: var(--color-gray-400);
 
-html.theme-light img, 
-html.theme-light video, 
-html.theme-light canvas {
-  filter: invert(1) hue-rotate(180deg);
+  /* Typography */
+  --color-white: var(--color-gray-900);
+  --color-slate-100: var(--color-gray-800);
+  --color-slate-200: var(--color-gray-700);
+  --color-slate-300: var(--color-gray-600);
+  --color-slate-400: var(--color-gray-500);
+  --color-slate-500: var(--color-gray-400);
 }
 
 @layer utilities {
@@ -30,10 +39,10 @@ html.theme-light canvas {
     background: transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #334155;
+    background: var(--color-slate-700);
     border-radius: 4px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #475569;
+    background: var(--color-slate-600);
   }
 }

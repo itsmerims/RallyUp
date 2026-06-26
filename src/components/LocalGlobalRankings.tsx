@@ -157,7 +157,7 @@ export default function LocalGlobalRankings() {
                             : 'text-slate-500';
                         
                         return (
-                          <tr key={player.id} className="hover:bg-slate-800/10 transition-colors">
+                          <tr key={`${player.id}-${index}`} className="hover:bg-slate-800/10 transition-colors">
                             <td className="py-3.5 px-4 font-mono font-bold text-sm text-slate-400">
                               {rank === 1 ? <span className="text-yellow-400 text-lg">🥇</span> : 
                                rank === 2 ? <span className="text-slate-300 text-lg">🥈</span> : 
@@ -299,7 +299,7 @@ export default function LocalGlobalRankings() {
                       {sortedGlobalPlayers.map((player, index) => {
                         const rank = index + 1;
                         return (
-                          <tr key={player.id} className="hover:bg-slate-800/10 transition-colors">
+                          <tr key={`${player.id}-${index}`} className="hover:bg-slate-800/10 transition-colors">
                             <td className="py-3.5 px-4 font-mono font-bold text-sm text-slate-400">
                               {rank === 1 ? <span className="text-yellow-400 text-lg">🥇</span> : 
                                rank === 2 ? <span className="text-slate-300 text-lg">🥈</span> : 

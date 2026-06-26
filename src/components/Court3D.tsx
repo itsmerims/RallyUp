@@ -95,7 +95,7 @@ export default function Court3D() {
             const xPos = (index - 1.5) * 5;
             return (
               <CourtModel 
-                key={court.id} 
+                key={`${court.id}-${index}`} 
                 position={[xPos, 0, 0]} 
                 status={court.status} 
                 name={court.name} 

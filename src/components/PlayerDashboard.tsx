@@ -191,14 +191,14 @@ export default function PlayerDashboard({ joinedQmUserId, onNavigateToSettings }
 
                   {/* Text-based live lists of courts */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 pt-2">
-                    {courts.map((court) => {
+                    {courts.map((court, index) => {
                       const activeMatch = matches.find(m => m.id === court.activeMatchId);
                       const isUserPlayingOnThisCourt = activeMatch && 
                         ([...activeMatch.teamA, ...activeMatch.teamB].includes(userProfile?.id || ''));
 
                       return (
                         <div 
-                          key={court.id} 
+                          key={`${court.id}-${index}`} 
                           className={`p-4 rounded-2xl border flex flex-col justify-between h-28 ${
                             isUserPlayingOnThisCourt
                               ? 'border-emerald-500 bg-emerald-500/5 ring-1 ring-emerald-500/20'
@@ -263,11 +263,11 @@ export default function PlayerDashboard({ joinedQmUserId, onNavigateToSettings }
               </div>
             ) : (
               <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
-                {players.map((p) => {
+                {players.map((p, index) => {
                   const isMe = p.id === userProfile?.id;
                   return (
                     <div 
-                      key={p.id} 
+                      key={`${p.id}-${index}`} 
                       className={`p-3 border rounded-xl flex items-center justify-between transition-colors ${
                         isMe 
                           ? 'bg-emerald-500/10 border-emerald-500/30 ring-1 ring-emerald-500/10' 

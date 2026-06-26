@@ -120,16 +120,16 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
           </p>
 
           {/* Premium Dark Card Container */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 w-full shadow-2xl relative">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 w-full shadow-2xl shadow-black/40 relative">
             
             {/* Custom Tab Switcher */}
-            <div className="bg-slate-950 p-1 rounded-2xl border border-slate-850 flex gap-1 mb-6">
+            <div className="bg-slate-950 p-1 rounded-2xl border border-slate-850 flex gap-1 mb-6 relative">
               <button
                 type="button"
                 onClick={() => { setIsSignUp(false); setError(''); }}
-                className={`flex-1 py-2 rounded-xl font-bold text-sm transition-all duration-200 ${
+                className={`flex-1 py-2 rounded-xl font-bold text-sm transition-all duration-200 relative z-10 ${
                   !isSignUp 
-                    ? 'bg-slate-800 text-white shadow' 
+                    ? 'text-white' 
                     : 'text-slate-500 hover:text-slate-300'
                 }`}
               >
@@ -138,18 +138,35 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
               <button
                 type="button"
                 onClick={() => { setIsSignUp(true); setError(''); }}
-                className={`flex-1 py-2 rounded-xl font-bold text-sm transition-all duration-200 ${
+                className={`flex-1 py-2 rounded-xl font-bold text-sm transition-all duration-200 relative z-10 ${
                   isSignUp 
-                    ? 'bg-slate-800 text-white shadow' 
+                    ? 'text-white' 
                     : 'text-slate-500 hover:text-slate-300'
                 }`}
               >
                 Register
               </button>
+              {/* Animated Switcher Background */}
+              <div className="absolute inset-1 pointer-events-none">
+                <motion.div
+                  className="w-1/2 h-full bg-slate-800 rounded-xl shadow"
+                  animate={{ x: isSignUp ? '100%' : '0%' }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+              </div>
             </div>
 
-            <form onSubmit={handleAuthSubmit} className="flex flex-col gap-4">
-              {isSignUp && (
+            <AnimatePresence mode="wait">
+              <motion.form 
+                key={isSignUp ? 'signup' : 'signin'}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                onSubmit={handleAuthSubmit} 
+                className="flex flex-col gap-4"
+              >
+                {isSignUp && (
                 <div>
                   <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 font-mono">Your Name</label>
                   <input 
@@ -245,7 +262,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
                   isSignUp ? 'Create Account' : 'Sign In'
                 )}
               </button>
-            </form>
+            </motion.form>
+            </AnimatePresence>
 
             <div className="flex items-center justify-between gap-4 my-6">
               <div className="h-px bg-slate-800 flex-1"></div>
