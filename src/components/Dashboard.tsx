@@ -287,6 +287,26 @@ export default function Dashboard() {
           <ThemeToggle />
           
           <button 
+            onClick={() => {
+              if ('Notification' in window && Notification.permission !== 'granted') {
+                Notification.requestPermission().then(permission => {
+                  if (permission === 'granted') {
+                    new Notification('RallyUp', { body: 'Notifications enabled!' });
+                  }
+                });
+              } else if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('RallyUp', { body: 'You have 0 new notifications.' });
+              } else {
+                alert('Notifications are not supported in this browser.');
+              }
+            }}
+            className={`flex items-center justify-center w-9 h-9 rounded-xl border transition-colors bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800`}
+            title="Notifications"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4.5 h-4.5"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          </button>
+          
+          <button 
             onClick={() => setActiveTab('settings')}
             className={`flex items-center justify-center w-9 h-9 rounded-xl border transition-colors ${
               activeTab === 'settings' 

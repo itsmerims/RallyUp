@@ -1,0 +1,21 @@
+{
+  "name": "RallyUp Badminton",
+  "short_name": "RallyUp",
+  "description": "Badminton community and session manager",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#ef4444",
+  "icons": [
+    {
+      "src": "/icon-512x512.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "/icon-512x512.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}

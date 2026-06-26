@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { SkillTier } from '../types';
 
 import ThemeToggle from './ThemeToggle';
+import LandingPage from './LandingPage';
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { 
@@ -17,6 +18,9 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     signUpWithEmail, 
     completeProfile 
   } = useAuth();
+
+  // Navigation State
+  const [showAuth, setShowAuth] = useState(false);
 
   // Authentication UI State
   const [isSignUp, setIsSignUp] = useState(false);
@@ -96,8 +100,17 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Not signed in -> Show the brand new sleek dark-themed login/register page
+  // Not signed in -> Show the brand new sleek dark-themed login/register page or Landing Page
   if (!user) {
+    if (!showAuth) {
+      return (
+        <LandingPage 
+          onGetStarted={() => { setShowAuth(true); setIsSignUp(true); }} 
+          onSignIn={() => { setShowAuth(true); setIsSignUp(false); }} 
+        />
+      );
+    }
+
     return (
       <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center p-4 md:p-8 overflow-y-auto font-sans text-slate-100">
         <div className="absolute top-4 right-4 z-50">
