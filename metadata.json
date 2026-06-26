@@ -1,6 +1,6 @@
 {
-  "name": "",
-  "description": "",
+  "name": "RallyUp PH",
+  "description": "Smart court monitoring and dynamic matchmaking application for sports enthusiasts.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
