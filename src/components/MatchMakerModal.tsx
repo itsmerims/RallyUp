@@ -15,7 +15,7 @@ interface MatchMakerModalProps {
 export default function MatchMakerModal({ isOpen, onClose }: MatchMakerModalProps) {
   const { user } = useAuth();
   const { players, courts, addMatch, updatePlayerStatus } = useAppStore();
-  const waitingPlayers = players.filter(p => p.status === 'WAITING');
+  const waitingPlayers = players.filter(p => p.status === 'WAITING' || p.status === 'RESTING');
   
   // Local state for drag and drop
   const [availablePlayers, setAvailablePlayers] = useState<Player[]>([]);

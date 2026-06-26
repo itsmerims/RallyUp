@@ -11,6 +11,17 @@ html, body, #root {
   background-color: #020617; /* slate-950 */
 }
 
+/* Light theme support */
+html.theme-light {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+html.theme-light img, 
+html.theme-light video, 
+html.theme-light canvas {
+  filter: invert(1) hue-rotate(180deg);
+}
+
 @layer utilities {
   .custom-scrollbar::-webkit-scrollbar {
     width: 4px;

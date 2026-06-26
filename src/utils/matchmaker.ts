@@ -17,7 +17,7 @@ export const calculateVariance = (players: Player[]) => {
 };
 
 export const generateOptimalMatch = (players: Player[]): Player[] | null => {
-  const waiting = players.filter(p => p.status === 'WAITING');
+  const waiting = players.filter(p => p.status === 'WAITING' || p.status === 'RESTING');
   if (waiting.length < 4) return null;
 
   const sortedCandidates = [...waiting].sort((a, b) => a.joinedAt - b.joinedAt);

@@ -4,6 +4,8 @@ import { Loader2, Eye, EyeOff, Activity, Check, MapPin, Award, Shield, User as U
 import { motion, AnimatePresence } from 'motion/react';
 import { SkillTier } from '../types';
 
+import ThemeToggle from './ThemeToggle';
+
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { 
     user, 
@@ -98,6 +100,9 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   if (!user) {
     return (
       <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center p-4 md:p-8 overflow-y-auto font-sans text-slate-100">
+        <div className="absolute top-4 right-4 z-50">
+          <ThemeToggle />
+        </div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(239,68,68,0.03),transparent_70%)] z-0 pointer-events-none"></div>
         
         <div className="max-w-md w-full flex flex-col items-center relative z-10">
@@ -270,6 +275,9 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   if (!userProfile || !userProfile.profileCompleted) {
     return (
       <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center p-4 md:p-8 overflow-y-auto font-sans text-slate-100">
+        <div className="absolute top-4 right-4 z-50">
+          <ThemeToggle />
+        </div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(16,185,129,0.03),transparent_70%)] z-0 pointer-events-none"></div>
         
         <div className="max-w-md w-full flex flex-col items-center relative z-10">

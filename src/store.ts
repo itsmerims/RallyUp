@@ -140,8 +140,8 @@ export const useAppStore = create<AppState>()(
       const playersToUpdate = state.players.filter(p => match.teamA.includes(p.id) || match.teamB.includes(p.id));
       
       for (const p of playersToUpdate) {
-         let stats = { ...p.stats };
-         let ratingScore = p.ratingScore;
+         let stats = p.stats ? { ...p.stats } : { gamesPlayed: 0, wins: 0, losses: 0, currentStreak: 0 };
+         let ratingScore = p.ratingScore || 1000;
          stats.gamesPlayed += 1;
          
          const isOnTeamA = match.teamA.includes(p.id);

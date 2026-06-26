@@ -10,6 +10,7 @@ import LocalGlobalRankings from './LocalGlobalRankings';
 import FinancePage from './FinancePage';
 import SettingsPage from './SettingsPage';
 import PlayerDashboard from './PlayerDashboard';
+import ThemeToggle from './ThemeToggle';
 import { 
   Plus, Check, Trophy, Settings, Trash2, LayoutGrid, Users, 
   Activity, Menu, X, Loader2, LogOut, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
@@ -34,6 +35,12 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<'courts' | 'players' | 'stats' | 'finance' | 'rankings' | 'settings'>('courts');
   const [is3DViewCollapsed, setIs3DViewCollapsed] = useState(false);
   const [isRosterCollapsed, setIsRosterCollapsed] = useState(false);
+
+  // Match completion state
+  const [completingMatchId, setCompletingMatchId] = useState<string | null>(null);
+  const [scoreA, setScoreA] = useState('21');
+  const [scoreB, setScoreB] = useState('19');
+  const [shuttlesUsed, setShuttlesUsed] = useState('1');
 
   // Connection management for player role
   const [joinedQmUserId, setJoinedQmUserId] = useState<string | null>(() => {
@@ -127,6 +134,78 @@ export default function Dashboard() {
       {/* 10-Second Welcome Modal */}
       <WelcomeModal />
 
+      {/* Complete Match Modal */}
+      <AnimatePresence>
+        {completingMatchId && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-sm shadow-2xl flex flex-col gap-6"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-black uppercase tracking-tight text-white">Match Result</h3>
+                <button onClick={() => setCompletingMatchId(null)} className="text-slate-500 hover:text-white transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-4">
+                <div className="flex gap-4">
+                  <div className="flex-1 flex flex-col gap-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Team A Score</label>
+                    <input
+                      type="number"
+                      value={scoreA}
+                      onChange={(e) => setScoreA(e.target.value)}
+                      className="w-full h-14 bg-slate-950 border border-slate-800 text-white text-xl font-black text-center rounded-2xl outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div className="flex-1 flex flex-col gap-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Team B Score</label>
+                    <input
+                      type="number"
+                      value={scoreB}
+                      onChange={(e) => setScoreB(e.target.value)}
+                      className="w-full h-14 bg-slate-950 border border-slate-800 text-white text-xl font-black text-center rounded-2xl outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Shuttles Used</label>
+                  <input
+                    type="number"
+                    value={shuttlesUsed}
+                    onChange={(e) => setShuttlesUsed(e.target.value)}
+                    className="w-full h-12 bg-slate-950 border border-slate-800 text-white text-sm font-bold rounded-xl px-4 outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  if (user && completingMatchId) {
+                    completeMatch(
+                      user.uid,
+                      completingMatchId,
+                      parseInt(scoreA) || 0,
+                      parseInt(scoreB) || 0,
+                      parseInt(shuttlesUsed) || 1
+                    );
+                    setCompletingMatchId(null);
+                  }
+                }}
+                className="w-full h-12 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider transition-all"
+              >
+                Confirm Match End
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Top Navigation / Status Bar */}
       <header className="h-16 flex items-center justify-between px-4 md:px-8 bg-slate-900/50 border-b border-slate-800 backdrop-blur-md z-20 shrink-0">
         <div className="flex items-center gap-4">
@@ -205,6 +284,8 @@ export default function Dashboard() {
 
         {/* Right header buttons */}
         <div className="flex items-center gap-3">
+          <ThemeToggle />
+          
           <button 
             onClick={() => setActiveTab('settings')}
             className={`flex items-center justify-center w-9 h-9 rounded-xl border transition-colors ${
@@ -515,9 +596,11 @@ export default function Dashboard() {
                             }`}>
                               {court.status === 'Available' ? 'Vacant' : 'Occupied'}
                             </span>
-                            <button onClick={() => { if (user) deleteCourt(user.uid, court.id); }} className="text-slate-500 hover:text-red-500 hover:bg-red-500/10 transition-colors p-1 rounded-md">
-                              <X className="w-4 h-4" />
-                            </button>
+                            {isQM && court.status === 'Available' && (
+                              <button onClick={() => { if (user) deleteCourt(user.uid, court.id); }} className="text-slate-500 hover:text-red-500 hover:bg-red-500/10 transition-colors p-1 rounded-md">
+                                <X className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </div>
 
@@ -548,28 +631,25 @@ export default function Dashboard() {
 
                         <div className="flex gap-2">
                           {activeMatch ? (
-                            <button
-                              onClick={() => {
-                                if (user) {
-                                  // Prompt QM for score
-                                  const scoreA = prompt('Enter Score for Team A:', '21');
-                                  const scoreB = prompt('Enter Score for Team B:', '19');
-                                  const shuttles = prompt('Shuttlecocks consumed in this match:', '1');
-                                  if (scoreA !== null && scoreB !== null) {
-                                    completeMatch(
-                                      user.uid, 
-                                      activeMatch.id, 
-                                      parseInt(scoreA) || 0, 
-                                      parseInt(scoreB) || 0, 
-                                      parseInt(shuttles) || 1
-                                    );
+                            isQM ? (
+                              <button
+                                onClick={() => {
+                                  if (user) {
+                                    setCompletingMatchId(activeMatch.id);
+                                    setScoreA('21');
+                                    setScoreB('19');
+                                    setShuttlesUsed('1');
                                   }
-                                }
-                              }}
-                              className="flex-1 h-10 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold text-xs uppercase tracking-wider rounded-xl border border-emerald-500/15"
-                            >
-                              Complete Match
-                            </button>
+                                }}
+                                className="flex-1 h-10 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold text-xs uppercase tracking-wider rounded-xl border border-emerald-500/15"
+                              >
+                                Complete Match
+                              </button>
+                            ) : (
+                              <div className="flex-1 h-10 bg-emerald-500/10 text-emerald-500 font-bold text-xs uppercase tracking-wider rounded-xl border border-emerald-500/15 flex items-center justify-center">
+                                Match in Progress
+                              </div>
+                            )
                           ) : (
                             <button
                               disabled
@@ -584,23 +664,27 @@ export default function Dashboard() {
                   })}
                   
                   {/* Add Court Button Card */}
-                  <button 
-                    onClick={() => { if (user) addCourt(user.uid, `Court ${courts.length + 1}`); }}
-                    className="bg-slate-900/50 border border-dashed border-slate-700 hover:border-slate-500 rounded-3xl p-5 flex flex-col items-center justify-center h-56 transition-all text-slate-500 hover:text-slate-300 group"
-                  >
-                    <Plus className="w-8 h-8 mb-2 group-hover:scale-110 transition-transform" />
-                    <span className="text-xs font-bold uppercase tracking-wider">Add Court</span>
-                  </button>
+                  {isQM && (
+                    <button 
+                      onClick={() => { if (user) addCourt(user.uid, `Court ${courts.length + 1}`); }}
+                      className="bg-slate-900/50 border border-dashed border-slate-700 hover:border-slate-500 rounded-3xl p-5 flex flex-col items-center justify-center h-56 transition-all text-slate-500 hover:text-slate-300 group"
+                    >
+                      <Plus className="w-8 h-8 mb-2 group-hover:scale-110 transition-transform" />
+                      <span className="text-xs font-bold uppercase tracking-wider">Add Court</span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Floating Auto Matchmaker Button */}
-                <button
-                  onClick={() => setMatchMakerOpen(true)}
-                  className="absolute bottom-6 right-6 h-14 bg-red-500 hover:bg-red-600 text-white font-black rounded-2xl text-xs uppercase tracking-widest px-6 transition-all shadow-xl shadow-red-500/20 active:scale-95 flex items-center gap-2 z-50 border border-red-400/50"
-                >
-                  <Sparkles className="w-5 h-5" />
-                  AUTO MATCHMAKER
-                </button>
+                {isQM && (
+                  <button
+                    onClick={() => setMatchMakerOpen(true)}
+                    className="absolute bottom-6 right-6 h-14 bg-red-500 hover:bg-red-600 text-white font-black rounded-2xl text-xs uppercase tracking-widest px-6 transition-all shadow-xl shadow-red-500/20 active:scale-95 flex items-center gap-2 z-50 border border-red-400/50"
+                  >
+                    <Sparkles className="w-5 h-5" />
+                    AUTO MATCHMAKER
+                  </button>
+                )}
               </section>
 
             </div>
