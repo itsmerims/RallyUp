@@ -1,6 +1,6 @@
 import { db, auth } from '../firebase';
 import { 
-  collection, doc, getDocs, setDoc, updateDoc, deleteDoc, 
+  collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, 
   onSnapshot, query, where, writeBatch 
 } from 'firebase/firestore';
 import { Player, Court, Match, FinancialConfig } from '../types';
@@ -250,3 +250,82 @@ export const initializeDefaultCourts = async (userId: string) => {
     handleFirestoreError(error, OperationType.WRITE, `users/${userId}/courts`);
   }
 };
+
+// Global Profile operations
+export const subscribeToUserProfile = (userId: string, callback: (profile: any | null) => void) => {
+  const path = `profiles/${userId}`;
+  return onSnapshot(doc(db, 'profiles', userId), (docSnap) => {
+    if (docSnap.exists()) {
+      callback({ id: docSnap.id, ...docSnap.data() });
+    } else {
+      callback(null);
+    }
+  }, (error) => {
+    handleFirestoreError(error, OperationType.GET, path);
+  });
+};
+
+export const saveUserProfile = async (userId: string, profile: any) => {
+  const path = `profiles/${userId}`;
+  try {
+    await setDoc(doc(db, 'profiles', userId), profile);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+};
+
+export const updateUserProfile = async (userId: string, updates: any) => {
+  const path = `profiles/${userId}`;
+  try {
+    await updateDoc(doc(db, 'profiles', userId), updates);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, path);
+  }
+};
+
+export const deleteUserProfile = async (userId: string) => {
+  const path = `profiles/${userId}`;
+  try {
+    await deleteDoc(doc(db, 'profiles', userId));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
+};
+
+export const subscribeToGlobalProfiles = (callback: (profiles: any[]) => void) => {
+  const path = 'profiles';
+  return onSnapshot(collection(db, 'profiles'), (snapshot) => {
+    const profiles: any[] = [];
+    snapshot.forEach((docSnap) => {
+      profiles.push({ id: docSnap.id, ...docSnap.data() });
+    });
+    callback(profiles);
+  }, (error) => {
+    handleFirestoreError(error, OperationType.LIST, path);
+  });
+};
+
+// Session mapping operations (6-digit code mapping to QM's userId)
+export const saveSessionMapping = async (sessionId: string, qmUserId: string, active: boolean) => {
+  const path = `sessions/${sessionId}`;
+  try {
+    await setDoc(doc(db, 'sessions', sessionId), { qmUserId, active });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+};
+
+export const getSessionMapping = async (sessionId: string): Promise<string | null> => {
+  const path = `sessions/${sessionId}`;
+  try {
+    const docSnap = await getDoc(doc(db, 'sessions', sessionId));
+    if (docSnap.exists() && docSnap.data().active) {
+      return docSnap.data().qmUserId;
+    }
+    return null;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, path);
+    return null;
+  }
+};
+

@@ -91,10 +91,10 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 block">Court Fee (Total per hr)</label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">$</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">₱</span>
                     <input 
                       type="number" 
-                      value={config.courtFee}
+                      value={config.courtFee || ''}
                       onChange={(e) => setConfig({ ...config, courtFee: parseFloat(e.target.value) || 0 })}
                       className="w-full h-14 bg-slate-950 border border-slate-700 text-white text-lg rounded-xl focus:ring-emerald-500 focus:border-emerald-500 block pl-10 pr-4 outline-none transition-colors"
                       min="0" step="0.01"
@@ -104,10 +104,10 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 block">Shuttlecock Fee (Each)</label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">$</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">₱</span>
                     <input 
                       type="number" 
-                      value={config.shuttleFee}
+                      value={config.shuttleFee || ''}
                       onChange={(e) => setConfig({ ...config, shuttleFee: parseFloat(e.target.value) || 0 })}
                       className="w-full h-14 bg-slate-950 border border-slate-700 text-white text-lg rounded-xl focus:ring-emerald-500 focus:border-emerald-500 block pl-10 pr-4 outline-none transition-colors"
                       min="0" step="0.01"
@@ -119,10 +119,10 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <div>
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 block">Fixed Rate (Per Player)</label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">$</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">₱</span>
                   <input 
                     type="number" 
-                    value={config.fixedRate}
+                    value={config.fixedRate || ''}
                     onChange={(e) => setConfig({ ...config, fixedRate: parseFloat(e.target.value) || 0 })}
                     className="w-full h-14 bg-slate-950 border border-slate-700 text-white text-lg rounded-xl focus:ring-emerald-500 focus:border-emerald-500 block pl-10 pr-4 outline-none transition-colors"
                     min="0" step="0.01"

@@ -2,6 +2,25 @@ export type SkillTier = 'BEGINNER' | 'LOW_INTERMEDIATE' | 'INTERMEDIATE' | 'ADVA
 export type PlayerStatus = 'PLAYING' | 'WAITING' | 'RESTING' | 'OUT';
 export type CourtStatus = 'Available' | 'Occupied' | 'Finishing Soon';
 
+export interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  skillTier: SkillTier;
+  country: string;
+  role: 'PLAYER' | 'QUEUE_MASTER';
+  profileCompleted: boolean;
+  hasSeenWelcomeModal: boolean;
+  ratingScore?: number;
+  joinedAt?: number;
+  stats?: {
+    gamesPlayed: number;
+    wins: number;
+    losses: number;
+    currentStreak: number;
+  };
+}
+
 export interface Player {
   id: string;
   name: string;

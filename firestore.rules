@@ -73,32 +73,44 @@ service cloud.firestore {
     }
 
     match /users/{userId}/players/{playerId} {
-      allow read: if isOwner(userId) && isValidId(playerId);
-      allow list: if isOwner(userId);
+      allow read: if isSignedIn() && isValidId(playerId);
+      allow list: if isSignedIn();
       allow create: if isOwner(userId) && isValidId(playerId) && isValidPlayer(incoming());
       allow update: if isOwner(userId) && isValidId(playerId) && isValidPlayer(incoming());
       allow delete: if isOwner(userId) && isValidId(playerId);
     }
 
     match /users/{userId}/courts/{courtId} {
-      allow read: if isOwner(userId) && isValidId(courtId);
-      allow list: if isOwner(userId);
+      allow read: if isSignedIn() && isValidId(courtId);
+      allow list: if isSignedIn();
       allow create: if isOwner(userId) && isValidId(courtId) && isValidCourt(incoming());
       allow update: if isOwner(userId) && isValidId(courtId) && isValidCourt(incoming());
       allow delete: if isOwner(userId) && isValidId(courtId);
     }
 
     match /users/{userId}/matches/{matchId} {
-      allow read: if isOwner(userId) && isValidId(matchId);
-      allow list: if isOwner(userId);
+      allow read: if isSignedIn() && isValidId(matchId);
+      allow list: if isSignedIn();
       allow create: if isOwner(userId) && isValidId(matchId) && isValidMatch(incoming());
       allow update: if isOwner(userId) && isValidId(matchId) && isValidMatch(incoming());
       allow delete: if isOwner(userId) && isValidId(matchId);
     }
 
     match /users/{userId}/financialConfig/default {
-      allow read: if isOwner(userId);
+      allow read: if isSignedIn();
       allow create, update: if isOwner(userId) && isValidFinancialConfig(incoming());
+    }
+
+    match /profiles/{profileUserId} {
+      allow read: if isSignedIn();
+      allow create, update: if isOwner(profileUserId);
+      allow delete: if isOwner(profileUserId);
+    }
+
+    match /sessions/{sessionId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
   }
 }

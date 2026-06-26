@@ -69,6 +69,43 @@
         "fixedRate": { "type": "number" }
       },
       "required": ["userId", "mode", "courtFee", "shuttleFee", "fixedRate"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with skill, country, and role details.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "skillTier": { "type": "string", "enum": ["BEGINNER", "LOW_INTERMEDIATE", "INTERMEDIATE", "ADVANCED"] },
+        "country": { "type": "string" },
+        "role": { "type": "string", "enum": ["PLAYER", "QUEUE_MASTER"] },
+        "hasSeenWelcomeModal": { "type": "boolean" },
+        "profileCompleted": { "type": "boolean" },
+        "ratingScore": { "type": "number" },
+        "joinedAt": { "type": "number" },
+        "stats": {
+          "type": "object",
+          "properties": {
+            "gamesPlayed": { "type": "number" },
+            "wins": { "type": "number" },
+            "losses": { "type": "number" },
+            "currentStreak": { "type": "number" }
+          }
+        }
+      },
+      "required": ["id", "name", "email", "skillTier", "country", "role", "profileCompleted", "hasSeenWelcomeModal"]
+    },
+    "SessionMapping": {
+      "title": "SessionMapping",
+      "description": "Mapping of a 6-digit Session ID to a Queue Master's User ID.",
+      "type": "object",
+      "properties": {
+        "qmUserId": { "type": "string" },
+        "active": { "type": "boolean" }
+      },
+      "required": ["qmUserId", "active"]
     }
   },
   "firestore": {
@@ -87,6 +124,14 @@
     "users/{userId}/financialConfig/default": {
       "schema": { "$ref": "#/entities/FinancialConfig" },
       "description": "Financial config for a user."
+    },
+    "profiles/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Global user profiles."
+    },
+    "sessions/{sessionId}": {
+      "schema": { "$ref": "#/entities/SessionMapping" },
+      "description": "Session code mapping."
     }
   }
 }
