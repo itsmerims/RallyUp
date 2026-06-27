@@ -263,6 +263,7 @@ export const subscribeToUserProfile = (userId: string, callback: (profile: any |
     }
   }, (error) => {
     handleFirestoreError(error, OperationType.GET, path);
+    callback(null);
   });
 };
 
