@@ -255,7 +255,7 @@ export default function LocalGlobalRankings() {
                         onClick={() => setTierFilter(t)}
                         className={`px-2.5 py-1 rounded-lg text-[9px] font-bold transition-all uppercase ${
                           tierFilter === t 
-                            ? 'bg-red-500 text-white' 
+                            ? 'bg-red-500 text-[#ffffff]' 
                             : 'text-slate-500 hover:text-slate-300'
                         }`}
                       >
@@ -335,7 +335,7 @@ export default function LocalGlobalRankings() {
                             <td className="py-3.5 px-4 font-mono text-xs text-center text-teal-400 font-bold">
                               {calculateWinRate(player.stats)}
                             </td>
-                            <td className="py-3.5 px-4 font-mono text-right font-black text-white text-sm">
+                            <td className="py-3.5 px-4 font-mono text-right font-black text-[#ffffff] text-sm">
                               {player.ratingScore || 1000}
                             </td>
                           </tr>

@@ -83,7 +83,7 @@ export default function WelcomeModal() {
           {isQM ? <Shield className="w-8 h-8" /> : <User className="w-8 h-8" />}
         </div>
         
-        <h2 className="text-2xl font-black italic tracking-tight uppercase text-white mb-2">
+        <h2 className="text-2xl font-black italic tracking-tight uppercase text-[#ffffff] mb-2">
           {isQM ? 'Queue Master Dashboard' : 'Player Dashboard'}
         </h2>
         
@@ -116,7 +116,7 @@ export default function WelcomeModal() {
             countdown > 0
               ? 'bg-slate-800 border border-slate-700 text-slate-500 cursor-not-allowed'
               : isQM
-                ? 'bg-red-500 hover:bg-red-400 text-white shadow-lg shadow-red-500/20 hover:scale-[1.02] active:scale-95'
+                ? 'bg-red-500 hover:bg-red-400 text-[#ffffff] shadow-lg shadow-red-500/20 hover:scale-[1.02] active:scale-95'
                 : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20 hover:scale-[1.02] active:scale-95'
           }`}
         >

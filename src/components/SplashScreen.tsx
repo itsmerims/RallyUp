@@ -380,7 +380,7 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
         <button
           ref={buttonRef}
           onClick={handleExit}
-          className="group h-12 bg-red-500 hover:bg-red-400 text-white font-black text-xs uppercase tracking-widest px-8 rounded-2xl transition-all duration-300 shadow-xl shadow-red-500/15 hover:shadow-red-500/30 active:scale-95 flex items-center gap-2.5"
+          className="group h-12 bg-red-500 hover:bg-red-400 text-[#ffffff] font-black text-xs uppercase tracking-widest px-8 rounded-2xl transition-all duration-300 shadow-xl shadow-red-500/15 hover:shadow-red-500/30 active:scale-95 flex items-center gap-2.5"
         >
           <span>Enter Application</span>
           <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />

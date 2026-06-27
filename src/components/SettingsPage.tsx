@@ -276,7 +276,7 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
                           onClick={() => setRole('QUEUE_MASTER')}
                           className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 ${
                             role === 'QUEUE_MASTER' 
-                              ? 'bg-red-500 text-white shadow-md border border-red-400' 
+                              ? 'bg-red-500 text-[#ffffff] shadow-md border border-red-400' 
                               : 'text-slate-400 hover:text-white border border-transparent'
                           }`}
                         >
@@ -362,7 +362,7 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
                             <button
                               onClick={generateSession}
                               disabled={sessionGenerating}
-                              className="w-full h-12 bg-red-500 hover:bg-red-400 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2"
+                              className="w-full h-12 bg-red-500 hover:bg-red-400 text-[#ffffff] font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2"
                             >
                               {sessionGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
                               Generate Active Session ID
@@ -609,7 +609,7 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
                       >
                         <div className="flex items-center justify-between p-4 bg-slate-950/50 rounded-2xl border border-slate-850 mt-4">
                           <span className="text-sm font-bold text-slate-200">Survey Form</span>
-                          <button className="px-5 h-10 bg-red-500 hover:bg-red-600 text-white font-bold text-xs rounded-xl transition-colors shadow-lg shadow-red-500/10">
+                          <button className="px-5 h-10 bg-red-500 hover:bg-red-600 text-[#ffffff] font-bold text-xs rounded-xl transition-colors shadow-lg shadow-red-500/10">
                             Give Feedback
                           </button>
                         </div>

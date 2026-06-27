@@ -235,7 +235,7 @@ export default function Dashboard() {
             <Menu className="w-6 h-6" />
           </button>
           <div className="w-10 h-10 bg-red-500 flex items-center justify-center rounded-xl shadow-[0_0_20px_rgba(239,68,68,0.25)]">
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <svg className="w-6 h-6 text-[#ffffff]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
           </div>
@@ -491,7 +491,7 @@ export default function Dashboard() {
                         }`}>
                           <div className="flex items-center gap-2.5">
                             <div className={`w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center text-xs font-bold shrink-0 ${
-                              player.status === 'PLAYING' ? 'bg-red-500 text-white' : 'bg-slate-800 text-slate-300'
+                              player.status === 'PLAYING' ? 'bg-red-500 text-[#ffffff]' : 'bg-slate-800 text-slate-300'
                             }`}>
                               {player.name.substring(0, 2).toUpperCase()}
                             </div>
@@ -723,7 +723,7 @@ export default function Dashboard() {
                 {isQM && (
                   <button
                     onClick={() => setMatchMakerOpen(true)}
-                    className="absolute bottom-6 right-6 h-14 bg-red-500 hover:bg-red-600 text-white font-black rounded-2xl text-xs uppercase tracking-widest px-6 transition-all shadow-xl shadow-red-500/20 active:scale-95 flex items-center gap-2 z-50 border border-red-400/50"
+                    className="absolute bottom-6 right-6 h-14 bg-red-500 hover:bg-red-600 text-[#ffffff] font-black rounded-2xl text-xs uppercase tracking-widest px-6 transition-all shadow-xl shadow-red-500/20 active:scale-95 flex items-center gap-2 z-50 border border-red-400/50"
                   >
                     <Sparkles className="w-5 h-5" />
                     AUTO MATCHMAKER
@@ -752,7 +752,7 @@ export default function Dashboard() {
                 </div>
                 <button
                   onClick={() => setIsAddPlayerModalOpen(true)}
-                  className="h-12 bg-red-500 hover:bg-red-600 text-white font-black rounded-xl text-xs uppercase tracking-widest px-6 transition-all"
+                  className="h-12 bg-red-500 hover:bg-red-600 text-[#ffffff] font-black rounded-xl text-xs uppercase tracking-widest px-6 transition-all"
                 >
                   Create New Player
                 </button>

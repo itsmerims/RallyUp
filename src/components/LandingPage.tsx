@@ -75,14 +75,20 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
   useEffect(() => {
     if (counterRef.current) {
       const counters = counterRef.current.querySelectorAll('.num-counter');
-      gsap.fromTo(counters,
-        { textContent: 0 },
-        {
-          textContent: (i) => [68, 124, 12, 3400][i],
-          duration: 2, ease: 'power2.out', snap: { textContent: 1 },
+      const targets = [68, 124, 12, 3400];
+      counters.forEach((el, i) => {
+        const target = targets[i] || 0;
+        const val = { n: 0 };
+        gsap.to(val, {
+          n: target,
+          duration: 2,
+          ease: 'power2.out',
           scrollTrigger: { trigger: counterRef.current, start: 'top 85%' },
-        }
-      );
+          onUpdate: () => {
+            el.textContent = Math.round(val.n);
+          },
+        });
+      });
     }
   }, [activePage]);
 
@@ -158,7 +164,7 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
               Rankings are calculated based on your match history, win rate, and the skill level of your opponents.
               Sign in to see your current standing and local club leaderboards!
             </p>
-            <button onClick={onSignIn} className="px-8 py-3 bg-red-500 hover:bg-red-400 text-white font-bold rounded-xl mb-8">
+            <button onClick={onSignIn} className="px-8 py-3 bg-red-500 hover:bg-red-400 text-[#ffffff] font-bold rounded-xl mb-8">
               Sign In to View Rankings
             </button>
             <div>
@@ -182,7 +188,7 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
                   ref={logoRef}
                 >
                   <div className="w-12 h-12 bg-red-500 rounded-xl flex items-center justify-center shadow-lg shadow-red-500/20">
-                    <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <svg className="w-7 h-7 text-[#ffffff]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                     </svg>
                   </div>
@@ -213,12 +219,12 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
                   transition={{ delay: 0.3 }}
                   className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto"
                 >
-                  <button 
-                    onClick={onGetStarted}
-                    className="px-8 py-4 bg-red-500 hover:bg-red-400 text-white font-bold rounded-2xl transition-all active:scale-[0.98] shadow-xl shadow-red-500/20 flex items-center justify-center gap-2 text-lg"
-                  >
-                    Open App <ArrowRight className="w-5 h-5" />
-                  </button>
+                <button 
+                  onClick={onGetStarted}
+                  className="px-8 py-4 bg-red-500 hover:bg-red-400 text-[#ffffff] font-bold rounded-2xl transition-all active:scale-[0.98] shadow-xl shadow-red-500/20 flex items-center justify-center gap-2 text-lg"
+                >
+                  Open App <ArrowRight className="w-5 h-5" />
+                </button>
                   
                   <button 
                     onClick={handleInstallClick}
@@ -250,7 +256,7 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
                   <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-6 border border-emerald-500/20">
                     <Activity className="w-6 h-6 text-emerald-400" />
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-3">Live Queues</h3>
+                  <h3 className="text-xl font-bold text-[#ffffff] mb-3">Live Queues</h3>
                   <p className="text-slate-400 leading-relaxed">
                     Real-time court management. See exactly who's playing, who's next, and estimated wait times.
                   </p>
@@ -388,7 +394,7 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
                       {[1,2,3,4,5].map(i => <svg key={i} className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>)}
                     </div>
                     <p className="text-slate-300 mb-4">"RallyUp completely transformed how we run our Wednesday night sessions. What used to be 2 hours of me shouting names is now fully automated."</p>
-                    <p className="font-bold text-white">— David L., Club Organizer</p>
+                    <p className="font-bold text-[#ffffff]">— David L., Club Organizer</p>
                   </motion.div>
                   <motion.div whileHover={{ y: -4 }} className="bg-slate-900 border border-slate-800 p-6 rounded-2xl transition-shadow hover:shadow-xl hover:shadow-red-500/5">
                     <div className="flex text-yellow-500 mb-4">
@@ -412,7 +418,7 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
                 <h2 className="text-5xl font-black mb-8">Ready when you are. <br/>Show up. Get a fair game.</h2>
                 <button 
                   onClick={onGetStarted}
-                  className="px-10 py-5 bg-red-500 hover:bg-red-400 text-white font-bold rounded-2xl transition-all shadow-xl shadow-red-500/20 text-xl"
+                  className="px-10 py-5 bg-red-500 hover:bg-red-400 text-[#ffffff] font-bold rounded-2xl transition-all shadow-xl shadow-red-500/20 text-xl"
                 >
                   Join RallyUp Now
                 </button>
@@ -433,7 +439,7 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => setActivePage('home')}>
             <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-[#ffffff]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
               </svg>
             </div>
@@ -480,7 +486,7 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
           >
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-9 h-9 bg-red-500 rounded-xl flex items-center justify-center shrink-0">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-[#ffffff]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
               </div>
@@ -491,7 +497,7 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
             </div>
             <button
               onClick={handleInstallClick}
-              className="px-5 py-2.5 bg-red-500 hover:bg-red-400 text-white font-bold rounded-xl text-sm shrink-0 transition-all active:scale-95"
+              className="px-5 py-2.5 bg-red-500 hover:bg-red-400 text-[#ffffff] font-bold rounded-xl text-sm shrink-0 transition-all active:scale-95"
             >
               Install
             </button>
@@ -520,7 +526,7 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-[#ffffff]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                   </svg>
                 </div>

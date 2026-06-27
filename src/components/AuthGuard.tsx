@@ -128,7 +128,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
           {/* Logo / Header */}
           <div className="flex items-center gap-3 mb-2 shrink-0">
             <div className="w-10 h-10 bg-red-500 rounded-xl flex items-center justify-center shadow-lg shadow-red-500/20">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 text-[#ffffff]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
               </svg>
             </div>
@@ -273,7 +273,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
               <button 
                 type="submit"
                 disabled={authWorking}
-                className="w-full h-12 bg-red-500 hover:bg-red-400 disabled:bg-slate-800 disabled:text-slate-600 text-white font-bold rounded-xl transition-all active:scale-[0.98] shadow-lg shadow-red-500/10 flex items-center justify-center gap-2 mt-2"
+                className="w-full h-12 bg-red-500 hover:bg-red-400 disabled:bg-slate-800 disabled:text-slate-600 text-[#ffffff] font-bold rounded-xl transition-all active:scale-[0.98] shadow-lg shadow-red-500/10 flex items-center justify-center gap-2 mt-2"
               >
                 {authWorking ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -342,7 +342,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
           {/* Logo Header */}
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 bg-red-500 rounded-xl flex items-center justify-center shadow-lg shadow-red-500/20">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 text-[#ffffff]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
               </svg>
             </div>
@@ -418,7 +418,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
                   type="button"
                   disabled={!selectedSkill}
                   onClick={() => setProfileStep(2)}
-                  className="w-full h-12 bg-red-500 hover:bg-red-400 disabled:bg-slate-800 disabled:text-slate-600 text-white font-bold rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                  className="w-full h-12 bg-red-500 hover:bg-red-400 disabled:bg-slate-800 disabled:text-slate-600 text-[#ffffff] font-bold rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                 >
                   Save & Continue
                 </button>
@@ -470,7 +470,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
                     }`}
                   >
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                      selectedRole === 'QUEUE_MASTER' ? 'bg-red-500 text-white font-bold' : 'bg-slate-900 text-slate-500'
+                      selectedRole === 'QUEUE_MASTER' ? 'bg-red-500 text-[#ffffff] font-bold' : 'bg-slate-900 text-slate-500'
                     }`}>
                       <Shield className="w-5 h-5" />
                     </div>
