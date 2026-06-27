@@ -26,6 +26,10 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
     const width = containerRef.current.clientWidth;
     const height = containerRef.current.clientHeight;
 
+    const isLightMode = document.documentElement.classList.contains('theme-light');
+    const cardColor = isLightMode ? 0xf87171 : 0xef4444;
+    const cardLightColor = isLightMode ? 0xfca5a5 : 0xef4444;
+
     const scene = new THREE.Scene();
     
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
@@ -47,7 +51,7 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
     mainLight.position.set(5, 5, 5);
     scene.add(mainLight);
 
-    const redLight = new THREE.PointLight(0xef4444, 3, 10);
+    const redLight = new THREE.PointLight(cardLightColor, 3, 10);
     redLight.position.set(-3, -2, 2);
     scene.add(redLight);
 
@@ -90,10 +94,12 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
     cardGeometry.center();
 
     const cardMaterial = new THREE.MeshPhysicalMaterial({
-      color: 0xef4444, // Red-500
+      color: cardColor,
       roughness: 0.15,
       metalness: 0.1,
       clearcoat: 1.0,
+      emissive: cardColor,
+      emissiveIntensity: 0.04,
       clearcoatRoughness: 0.1,
       shadowSide: THREE.DoubleSide,
     });
@@ -150,7 +156,7 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
 
     particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     const particleMaterial = new THREE.PointsMaterial({
-      color: 0xef4444,
+      color: cardColor,
       size: 0.035,
       transparent: true,
       opacity: 0.4,
@@ -219,6 +225,11 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
         1.6
       );
     }
+
+    // 3. Subtle breathing glow on the card after entrance
+    tl.to(cardMaterial, {
+      emissiveIntensity: 0.15, duration: 2, ease: 'sine.inOut', yoyo: true, repeat: -1,
+    }, 3);
 
     // --- INTERACTIVE MOUSE ROTATION ---
     let mouseX = 0;

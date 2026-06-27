@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '../store';
 import { useAuth } from '../contexts/AuthContext';
 import { Activity, Users, Trophy, Award, MapPin, Key, Shield, RefreshCw, Sparkles, AlertCircle, HelpCircle, Bell, BellRing } from 'lucide-react';
 import CourtScene from './CourtScene';
 import { SkillTier } from '../types';
 import { requestPlayerNotificationPermission } from '../services/notifications';
+import gsap from 'gsap';
 
 interface PlayerDashboardProps {
   joinedQmUserId: string | null;
@@ -15,6 +16,47 @@ export default function PlayerDashboard({ joinedQmUserId, onNavigateToSettings }
   const { userProfile } = useAuth();
   const { players, courts, matches } = useAppStore();
   const [activeTab, setActiveTab] = useState<'overview' | 'roster'>('overview');
+
+  const bannerRef = useRef<HTMLDivElement>(null);
+  const statsGridRef = useRef<HTMLDivElement>(null);
+  const courtMonitorRef = useRef<HTMLDivElement>(null);
+  const rosterRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      if (bannerRef.current) {
+        gsap.fromTo(bannerRef.current,
+          { y: -20, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.6, ease: 'power3.out' }
+        );
+      }
+      if (statsGridRef.current) {
+        const statCards = statsGridRef.current.querySelectorAll('.stat-card');
+        gsap.fromTo(statCards,
+          { y: 30, opacity: 0, scale: 0.95 },
+          { y: 0, opacity: 1, scale: 1, duration: 0.5, stagger: 0.07, ease: 'power2.out', delay: 0.2 }
+        );
+      }
+      if (courtMonitorRef.current) {
+        gsap.fromTo(courtMonitorRef.current,
+          { y: 20, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.5, ease: 'power2.out', delay: 0.4 }
+        );
+      }
+      if (rosterRef.current) {
+        gsap.fromTo(rosterRef.current,
+          { y: 20, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.5, ease: 'power2.out', delay: 0.5 }
+        );
+        const rosterItems = rosterRef.current.querySelectorAll('.roster-item');
+        gsap.fromTo(rosterItems,
+          { x: -15, opacity: 0 },
+          { x: 0, opacity: 1, duration: 0.4, stagger: 0.04, ease: 'power2.out', delay: 0.6 }
+        );
+      }
+    });
+    return () => ctx.revert();
+  }, []);
 
   const [notifyingId, setNotifyingId] = useState<string | null>(null);
   const [subscribedPlayers, setSubscribedPlayers] = useState<string[]>(() => {
@@ -76,7 +118,7 @@ export default function PlayerDashboard({ joinedQmUserId, onNavigateToSettings }
       <div className="relative z-10 max-w-5xl w-full mx-auto flex-1 flex flex-col gap-6">
         
         {/* Banner Card / Connection Status */}
-        <div className="bg-slate-900 border border-slate-800/80 rounded-3xl p-6 shadow-2xl relative overflow-hidden shrink-0">
+        <div ref={bannerRef} className="bg-slate-900 border border-slate-800/80 rounded-3xl p-6 shadow-2xl relative overflow-hidden shrink-0">
           <div className="absolute right-0 top-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
           
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -126,28 +168,28 @@ export default function PlayerDashboard({ joinedQmUserId, onNavigateToSettings }
         </div>
 
         {/* Player Stats Dashboard Widgets */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 shrink-0">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+        <div ref={statsGridRef} className="grid grid-cols-2 md:grid-cols-5 gap-4 shrink-0">
+          <div className="stat-card bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
             <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Rating Score</span>
             <span className="text-2xl font-black text-white font-mono mt-1">{userProfile?.ratingScore || 1000}</span>
             <span className="text-[9px] text-slate-400">All-time points</span>
           </div>
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+          <div className="stat-card bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
             <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Games Played</span>
             <span className="text-2xl font-black text-white font-mono mt-1">{userProfile?.stats?.gamesPlayed || 0}</span>
             <span className="text-[9px] text-slate-400">Total match completions</span>
           </div>
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+          <div className="stat-card bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
             <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Wins</span>
             <span className="text-2xl font-black text-emerald-400 font-mono mt-1">{userProfile?.stats?.wins || 0}</span>
             <span className="text-[9px] text-slate-400">Total match victories</span>
           </div>
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+          <div className="stat-card bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
             <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Win Rate</span>
             <span className="text-2xl font-black text-teal-400 font-mono mt-1">{winRate}</span>
             <span className="text-[9px] text-slate-400">Efficiency percentage</span>
           </div>
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 col-span-2 md:col-span-1 flex flex-col justify-between">
+          <div className="stat-card bg-slate-900 border border-slate-800 rounded-2xl p-4 col-span-2 md:col-span-1 flex flex-col justify-between">
             <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Current Streak</span>
             <span className={`text-2xl font-black font-mono mt-1 ${userProfile?.stats?.currentStreak && userProfile.stats.currentStreak > 0 ? 'text-emerald-400' : 'text-slate-400'}`}>
               {userProfile?.stats?.currentStreak && userProfile.stats.currentStreak > 0 ? `+${userProfile.stats.currentStreak}` : userProfile?.stats?.currentStreak || '0'}
@@ -163,7 +205,7 @@ export default function PlayerDashboard({ joinedQmUserId, onNavigateToSettings }
           <div className="lg:col-span-8 flex flex-col gap-6 h-full overflow-hidden">
             
             {/* Live Courts status card */}
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col h-full overflow-hidden">
+            <div ref={courtMonitorRef} className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col h-full overflow-hidden">
               <div className="flex items-center justify-between mb-4 shrink-0">
                 <div className="flex items-center gap-2">
                   <Activity className="w-5 h-5 text-emerald-400" />
@@ -278,7 +320,7 @@ export default function PlayerDashboard({ joinedQmUserId, onNavigateToSettings }
           </div>
 
           {/* Right Sidebar: Personal Notifications / Active Queues */}
-          <div className="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col gap-5 h-full overflow-hidden">
+          <div ref={rosterRef} className="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col gap-5 h-full overflow-hidden">
             <div className="flex items-center gap-2">
               <Users className="w-5 h-5 text-emerald-400" />
               <h3 className="font-bold text-white uppercase tracking-tight text-sm">Active Session Roster</h3>
@@ -301,7 +343,7 @@ export default function PlayerDashboard({ joinedQmUserId, onNavigateToSettings }
                   return (
                     <div 
                       key={`${p.id}-${index}`} 
-                      className={`p-3 border rounded-xl flex items-center justify-between transition-colors ${
+                      className={`roster-item p-3 border rounded-xl flex items-center justify-between transition-colors ${
                         isMe 
                           ? 'bg-emerald-500/10 border-emerald-500/30 ring-1 ring-emerald-500/10' 
                           : 'bg-slate-950/40 border-slate-850'

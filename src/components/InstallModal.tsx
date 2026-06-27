@@ -50,6 +50,7 @@ export default function InstallModal({ isOpen, onClose, deferredPrompt, isInstal
   const platform = detectPlatform();
   const cardRef = useRef<HTMLDivElement>(null);
   const [showDetailed, setShowDetailed] = useState(false);
+  const [guidePlatform, setGuidePlatform] = useState<Platform>(platform);
 
   useEffect(() => {
     if (isOpen && cardRef.current) {
@@ -61,8 +62,8 @@ export default function InstallModal({ isOpen, onClose, deferredPrompt, isInstal
   }, [isOpen]);
 
   useEffect(() => {
-    if (!isOpen) setShowDetailed(false);
-  }, [isOpen]);
+    if (!isOpen) { setShowDetailed(false); setGuidePlatform(platform); }
+  }, [isOpen, platform]);
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
@@ -98,7 +99,7 @@ export default function InstallModal({ isOpen, onClose, deferredPrompt, isInstal
       >
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 via-orange-500 to-red-500" />
 
-        {showDetailed ? (
+          {showDetailed ? (
           /* ─── DETAILED GUIDE VIEW ─── */
           <div className="p-6 pt-8 flex flex-col">
             <button
@@ -107,12 +108,25 @@ export default function InstallModal({ isOpen, onClose, deferredPrompt, isInstal
             >
               <ArrowLeft className="w-4 h-4" /> Back to quick guide
             </button>
-            <h2 className="text-xl font-black text-white mb-1">Step-by-Step Guide</h2>
-            <p className="text-xs text-slate-500 mb-6">
-              {platform === 'ios' ? 'Installing on iOS (Safari)' : platform === 'android' ? 'Installing on Android (Chrome)' : 'Installing on Desktop (Chrome/Edge)'}
-            </p>
+            <h2 className="text-xl font-black text-white mb-3">Step-by-Step Guide</h2>
+            <div className="flex gap-1.5 mb-5">
+              {(['ios', 'android', 'desktop'] as Platform[]).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setGuidePlatform(p)}
+                  className={`flex-1 flex items-center justify-center gap-1.5 h-9 text-xs font-bold rounded-xl transition-colors ${
+                    guidePlatform === p
+                      ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                      : 'bg-slate-800/50 text-slate-400 border border-slate-800 hover:text-white'
+                  }`}
+                >
+                  {p === 'ios' ? <Smartphone className="w-3.5 h-3.5" /> : p === 'android' ? <Smartphone className="w-3.5 h-3.5" /> : <Monitor className="w-3.5 h-3.5" />}
+                  {p === 'ios' ? 'iOS' : p === 'android' ? 'Android' : 'Desktop'}
+                </button>
+              ))}
+            </div>
             <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1 custom-scrollbar">
-              {(steps[platform] || steps.unknown).map((step, i) => {
+              {(steps[guidePlatform] || steps.unknown).map((step, i) => {
                 const Icon = step.icon;
                 return (
                   <div key={i} className="flex gap-4 items-start bg-slate-950/50 border border-slate-800 rounded-2xl p-4">

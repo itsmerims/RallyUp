@@ -1,7 +1,6 @@
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { MapControls } from '@react-three/drei';
-import { useAppStore } from '../store';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { SkillTier } from '../types';
 
@@ -62,13 +61,15 @@ function CourtModel({
   status, 
   name,
   teamA = [],
-  teamB = []
+  teamB = [],
+  isLightMode = false,
 }: { 
   position: [number, number, number], 
   status: string, 
   name: string,
   teamA?: PlayerData[],
-  teamB?: PlayerData[]
+  teamB?: PlayerData[],
+  isLightMode?: boolean,
 }) {
   const meshRef = useRef<THREE.Group>(null);
   const glowRef = useRef<THREE.Mesh>(null);
@@ -97,11 +98,11 @@ function CourtModel({
       <mesh position={[0, 0, 0]} receiveShadow castShadow>
         <boxGeometry args={[4, 0.2, 8]} />
         <meshStandardMaterial 
-          color="#0f172a" 
+          color={isLightMode ? '#f8fafc' : '#0f172a'} 
           roughness={0.8}
           metalness={0.2}
           emissive={colors.emissive}
-          emissiveIntensity={0.1}
+          emissiveIntensity={isLightMode ? 0.25 : 0.1}
         />
       </mesh>
       
@@ -120,12 +121,12 @@ function CourtModel({
       <mesh position={[0, 0.5, 0]}>
         <boxGeometry args={[4.2, 0.8, 0.05]} />
         <meshStandardMaterial 
-          color="#cbd5e1" 
+          color={isLightMode ? '#64748b' : '#cbd5e1'} 
           transparent 
-          opacity={0.3} 
+          opacity={isLightMode ? 0.15 : 0.3} 
           wireframe 
           emissive="#ffffff"
-          emissiveIntensity={0.2}
+          emissiveIntensity={isLightMode ? 0.1 : 0.2}
         />
       </mesh>
 
@@ -177,10 +178,30 @@ function CourtModel({
   );
 }
 
+function SceneTheme() {
+  const { scene } = useThree();
+
+  useEffect(() => {
+    const isLight = document.documentElement.classList.contains('theme-light');
+    if (isLight) {
+      scene.background = new THREE.Color('#e2e8f0');
+    } else {
+      scene.background = new THREE.Color('#020617');
+    }
+  }, [scene]);
+
+  return null;
+}
+
 export default function CourtScene({ courts }: CourtSceneProps) {
+  const isLightMode = typeof document !== 'undefined' && document.documentElement.classList.contains('theme-light');
+
   return (
-    <div className="w-full h-48 md:h-64 lg:h-80 bg-slate-950 relative overflow-hidden rounded-2xl border border-slate-800 shadow-2xl shadow-slate-950/50 mb-6">
+    <div className={`w-full h-48 md:h-64 lg:h-80 relative overflow-hidden rounded-2xl border shadow-2xl mb-6 ${
+      isLightMode ? 'bg-slate-200 border-slate-300 shadow-slate-300/50' : 'bg-slate-950 border-slate-800 shadow-slate-950/50'
+    }`}>
       <Canvas shadows={{ type: THREE.PCFShadowMap }} camera={{ position: [0, 8, 12], fov: 45 }}>
+        <SceneTheme />
         <MapControls 
           enableDamping 
           dampingFactor={0.05}
@@ -189,9 +210,13 @@ export default function CourtScene({ courts }: CourtSceneProps) {
           minDistance={5}
           maxDistance={30}
         />
-        <fog attach="fog" args={['#020617', 10, 35]} />
-        <ambientLight intensity={0.4} />
-        <directionalLight position={[10, 15, -5]} intensity={1} castShadow shadow-mapSize={[1024, 1024]} />
+        {isLightMode ? (
+          <fog attach="fog" args={['#e2e8f0', 10, 35]} />
+        ) : (
+          <fog attach="fog" args={['#020617', 10, 35]} />
+        )}
+        <ambientLight intensity={isLightMode ? 0.6 : 0.4} />
+        <directionalLight position={[10, 15, -5]} intensity={isLightMode ? 1.2 : 1} castShadow shadow-mapSize={[1024, 1024]} />
         
         <group position={[0, 0, -2]}>
           {courts.map((court, index) => {
@@ -204,6 +229,7 @@ export default function CourtScene({ courts }: CourtSceneProps) {
                 name={court.name} 
                 teamA={court.teamA}
                 teamB={court.teamB}
+                isLightMode={isLightMode}
               />
             );
           })}
@@ -211,29 +237,28 @@ export default function CourtScene({ courts }: CourtSceneProps) {
       </Canvas>
       
       {/* Legend Overlay */}
-      <div className="absolute bottom-4 left-4 bg-slate-900/95 border border-slate-800/80 rounded-xl p-3 flex flex-col gap-2 z-10 backdrop-blur-sm shadow-xl pointer-events-auto">
-        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Player Legend (Skill Tier)</span>
+      <div className={`absolute bottom-4 left-4 border rounded-xl p-3 flex flex-col gap-2 z-10 backdrop-blur-sm shadow-xl pointer-events-auto ${
+        isLightMode ? 'bg-white/95 border-slate-200 shadow-slate-200/50' : 'bg-slate-900/95 border-slate-800/80'
+      }`}>
+        <span className={`text-[10px] font-black uppercase tracking-wider ${isLightMode ? 'text-slate-500' : 'text-slate-400'}`}>Player Legend (Skill Tier)</span>
         <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#64748b] shadow-[0_0_8px_rgba(100,116,139,0.5)]"></span>
-            <span className="text-[9px] font-bold text-slate-300 uppercase tracking-tight">Beginner</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#3b82f6] shadow-[0_0_8px_rgba(59,130,246,0.5)]"></span>
-            <span className="text-[9px] font-bold text-slate-300 uppercase tracking-tight">Low Inter</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
-            <span className="text-[9px] font-bold text-slate-300 uppercase tracking-tight">Intermediate</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#a855f7] shadow-[0_0_8px_rgba(168,85,247,0.5)]"></span>
-            <span className="text-[9px] font-bold text-slate-300 uppercase tracking-tight">Advanced</span>
-          </div>
+          {[
+            { color: '#64748b', label: 'Beginner' },
+            { color: '#3b82f6', label: 'Low Inter' },
+            { color: '#10b981', label: 'Intermediate' },
+            { color: '#a855f7', label: 'Advanced' },
+          ].map((item) => (
+            <div key={item.label} className="flex items-center gap-1.5">
+              <span className={`w-2.5 h-2.5 rounded-full`} style={{ backgroundColor: item.color, boxShadow: `0 0 8px ${item.color}80` }}></span>
+              <span className={`text-[9px] font-bold uppercase tracking-tight ${isLightMode ? 'text-slate-600' : 'text-slate-300'}`}>{item.label}</span>
+            </div>
+          ))}
         </div>
       </div>
 
-      <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-slate-950 via-transparent to-slate-950/20" />
+      <div className={`absolute inset-0 pointer-events-none ${
+        isLightMode ? 'bg-gradient-to-t from-slate-200 via-transparent to-slate-200/20' : 'bg-gradient-to-t from-slate-950 via-transparent to-slate-950/20'
+      }`} />
     </div>
   );
 }

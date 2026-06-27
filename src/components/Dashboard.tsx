@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '../store';
 import { useAuth } from '../contexts/AuthContext';
 import * as firestoreService from '../services/firestore';
@@ -21,6 +21,7 @@ import {
 import { Player, SkillTier } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { requestNotificationPermission, setupMessageListener } from '../services/notifications';
+import gsap from 'gsap';
 
 export default function Dashboard() {
   const { user, userProfile, logout } = useAuth();
@@ -38,6 +39,48 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<'courts' | 'players' | 'stats' | 'finance' | 'rankings' | 'settings'>('courts');
   const [is3DViewCollapsed, setIs3DViewCollapsed] = useState(false);
   const [isRosterCollapsed, setIsRosterCollapsed] = useState(false);
+
+  // Animation refs
+  const headerRef = useRef<HTMLDivElement>(null);
+  const courtGridRef = useRef<HTMLDivElement>(null);
+  const footerRef = useRef<HTMLElement>(null);
+
+  // GSAP entrance animations
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      if (headerRef.current) {
+        gsap.fromTo(headerRef.current,
+          { y: -20, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.6, ease: 'power3.out' }
+        );
+      }
+      if (courtGridRef.current) {
+        const cards = courtGridRef.current.querySelectorAll('.court-card');
+        gsap.fromTo(cards,
+          { y: 30, opacity: 0, scale: 0.95 },
+          { y: 0, opacity: 1, scale: 1, duration: 0.5, stagger: 0.06, ease: 'power2.out', delay: 0.3 }
+        );
+      }
+      if (footerRef.current) {
+        gsap.fromTo(footerRef.current,
+          { y: 20, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.5, ease: 'power2.out', delay: 0.6 }
+        );
+      }
+    });
+    return () => ctx.revert();
+  }, [dataLoaded]);
+
+  // Re-animate court cards when courts change
+  useEffect(() => {
+    if (courtGridRef.current && dataLoaded) {
+      const cards = courtGridRef.current.querySelectorAll('.court-card');
+      gsap.fromTo(cards,
+        { y: 20, opacity: 0, scale: 0.95 },
+        { y: 0, opacity: 1, scale: 1, duration: 0.4, stagger: 0.05, ease: 'power2.out' }
+      );
+    }
+  }, [courts.length, dataLoaded]);
 
   // Match completion state
   const [completingMatchId, setCompletingMatchId] = useState<string | null>(null);
@@ -229,7 +272,7 @@ export default function Dashboard() {
       </AnimatePresence>
 
       {/* Top Navigation / Status Bar */}
-      <header className="h-16 flex items-center justify-between px-4 md:px-8 bg-slate-900/50 border-b border-slate-800 backdrop-blur-md z-20 shrink-0">
+      <header ref={headerRef} className="h-16 flex items-center justify-between px-4 md:px-8 bg-slate-900/50 border-b border-slate-800 backdrop-blur-md z-20 shrink-0">
         <div className="flex items-center gap-4">
           <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 -ml-2 text-slate-400 hover:text-white transition-colors lg:hidden">
             <Menu className="w-6 h-6" />
@@ -627,11 +670,11 @@ export default function Dashboard() {
                 </div>
 
                 {/* Grid of Courts for QM */}
-                <div className="flex-1 overflow-y-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 relative z-10 pb-24">
+                <div ref={courtGridRef} className="flex-1 overflow-y-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 relative z-10 pb-24">
                   {courts.map((court, index) => {
                     const activeMatch = matches.find(m => m.id === court.activeMatchId);
                     return (
-                      <div key={`${court.id}-${index}`} className="bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col justify-between h-56 relative group hover:border-slate-700 transition-all">
+                      <div key={`${court.id}-${index}`} className="court-card bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col justify-between h-56 relative group hover:border-slate-700 transition-all">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-black uppercase tracking-wider text-slate-400">{court.name}</span>
                           <div className="flex items-center gap-2">
@@ -888,7 +931,7 @@ export default function Dashboard() {
       </main>
 
       {/* Footer System Status Bar (Desktop & Mobile status indicator) */}
-      <footer className="bg-slate-900 border-t border-slate-800 shrink-0 z-30 flex flex-col">
+      <footer ref={footerRef} className="bg-slate-900 border-t border-slate-800 shrink-0 z-30 flex flex-col">
         <div className="h-10 md:h-12 flex items-center px-4 md:px-8 text-[10px] text-slate-500 justify-between">
           <div className="flex gap-4 md:gap-6 items-center uppercase tracking-widest font-bold">
             <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> Cloud Synced</span>
