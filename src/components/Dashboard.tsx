@@ -22,6 +22,7 @@ import { Player, SkillTier } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { requestNotificationPermission, setupMessageListener } from '../services/notifications';
 import gsap from 'gsap';
+import PlayerInfoModal from './PlayerInfoModal';
 
 export default function Dashboard() {
   const { user, userProfile, logout } = useAuth();
@@ -95,6 +96,47 @@ export default function Dashboard() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
+  // Player detail popup
+  const [detailPlayer, setDetailPlayer] = useState<Player | null>(null);
+
+  // Roster search & filter
+  const [rosterSearch, setRosterSearch] = useState('');
+  const [rosterTierFilter, setRosterTierFilter] = useState<SkillTier | 'ALL'>('ALL');
+
+  const filteredPlayers = players.filter((p) => {
+    const matchName = p.name.toLowerCase().includes(rosterSearch.toLowerCase());
+    const matchTier = rosterTierFilter === 'ALL' || p.tier === rosterTierFilter;
+    return matchName && matchTier;
+  });
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === 'a' || e.key === 'A') { if (isQM) setIsAddPlayerModalOpen(true); }
+      if (e.key === 'm' || e.key === 'M') { if (isQM) setMatchMakerOpen(true); }
+      if (e.key >= '1' && e.key <= '9') {
+        const idx = parseInt(e.key) - 1;
+        const activeOnCourt = matches.find(m => m.status === 'Active');
+        if (activeOnCourt && isQM) {
+          setCompletingMatchId(activeOnCourt.id);
+          setScoreA('21'); setScoreB('19'); setShuttlesUsed('1');
+        }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isQM, matches]);
+
+  // Loading state for async operations
+  const [pendingOps, setPendingOps] = useState<Set<string>>(new Set());
+  const runOp = async (name: string, fn: () => Promise<any>) => {
+    setPendingOps((prev) => new Set(prev).add(name));
+    try { await fn(); } finally { setPendingOps((prev) => { const next = new Set(prev); next.delete(name); return next; }); }
+  };
+  const isPending = (name: string) => pendingOps.has(name);
+
   // Setup Firebase Cloud Messaging listener
   useEffect(() => {
     const unsubscribe = setupMessageListener((payload) => {
@@ -105,6 +147,22 @@ export default function Dashboard() {
       }, 6000);
     });
     return unsubscribe;
+  }, []);
+
+  // Auto-join from URL ?join=XXXXXX
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const joinCode = params.get('join');
+    if (joinCode && !localStorage.getItem('rallyup_joined_qm')) {
+      firestoreService.getSessionMapping(joinCode).then((qmId) => {
+        if (qmId) {
+          setJoinedQmUserId(qmId);
+          localStorage.setItem('rallyup_joined_qm', qmId);
+          localStorage.setItem('rallyup_joined_code', joinCode);
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+      });
+    }
   }, []);
 
   // Connection management for player role
@@ -196,6 +254,27 @@ export default function Dashboard() {
   return (
     <div className="fixed inset-0 bg-slate-950 text-slate-100 font-sans flex flex-col overflow-hidden">
       
+      {/* Sign-out loading overlay */}
+      <AnimatePresence>
+        {isPending('signout') && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center"
+          >
+            <div className="w-16 h-16 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(239,68,68,0.15)] relative">
+              <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
+              <div className="absolute inset-0 border-2 border-red-500/20 rounded-2xl animate-pulse"></div>
+            </div>
+            <div className="flex flex-col items-center gap-1 mt-6">
+              <h2 className="text-lg font-black italic uppercase tracking-widest text-white">Signing Out</h2>
+              <p className="text-xs font-mono text-slate-500">Cleaning up session...</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* 10-Second Welcome Modal */}
       <WelcomeModal />
 
@@ -252,18 +331,22 @@ export default function Dashboard() {
               <button
                 onClick={() => {
                   if (user && completingMatchId) {
-                    completeMatch(
-                      user.uid,
-                      completingMatchId,
-                      parseInt(scoreA) || 0,
-                      parseInt(scoreB) || 0,
-                      parseInt(shuttlesUsed) || 1
-                    );
-                    setCompletingMatchId(null);
+                    runOp('completeMatch', async () => {
+                      await completeMatch(
+                        user.uid,
+                        completingMatchId,
+                        parseInt(scoreA) || 0,
+                        parseInt(scoreB) || 0,
+                        parseInt(shuttlesUsed) || 1
+                      );
+                      setCompletingMatchId(null);
+                    });
                   }
                 }}
-                className="w-full h-12 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider transition-all"
+                className="w-full h-12 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2"
+                disabled={isPending('completeMatch')}
               >
+                {isPending('completeMatch') ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 Confirm Match End
               </button>
             </motion.div>
@@ -352,7 +435,7 @@ export default function Dashboard() {
           <ThemeToggle />
           
           <button 
-            onClick={async () => {
+            onClick={() => runOp('notif', async () => {
               if (!userProfile) return;
               if ('Notification' in window && Notification.permission !== 'granted') {
                 const granted = await requestNotificationPermission(userProfile.id);
@@ -366,11 +449,12 @@ export default function Dashboard() {
                 setToasts((prev) => [...prev, toast]);
                 setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== toast.id)), 4000);
               }
-            }}
+            })}
             className={`flex items-center justify-center w-9 h-9 rounded-xl border transition-colors bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800`}
             title="Notifications"
+            disabled={isPending('notif')}
           >
-            <Bell className="w-4.5 h-4.5" />
+            {isPending('notif') ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4.5 h-4.5" />}
           </button>
           
           <button 
@@ -386,11 +470,12 @@ export default function Dashboard() {
           </button>
           
           <button 
-            onClick={logout}
+            onClick={() => runOp('signout', async () => { await logout(); })}
             className="flex items-center justify-center w-9 h-9 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 hover:border-red-500/20 transition-colors"
             title="Sign Out"
+            disabled={isPending('signout')}
           >
-            <LogOut className="w-4.5 h-4.5" />
+            {isPending('signout') ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4.5 h-4.5" />}
           </button>
         </div>
       </header>
@@ -527,11 +612,35 @@ export default function Dashboard() {
                       </button>
                     </div>
 
+                    {/* Roster search & filter */}
+                    <div className="mb-3 w-full">
+                      <input
+                        type="text"
+                        placeholder="Search players..."
+                        value={rosterSearch}
+                        onChange={(e) => setRosterSearch(e.target.value)}
+                        className="w-full h-9 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl px-3 outline-none focus:border-red-500/50 placeholder:text-slate-600"
+                      />
+                      <div className="flex gap-1 mt-1.5">
+                        {(['ALL', 'BEGINNER', 'LOW_INTERMEDIATE', 'INTERMEDIATE', 'ADVANCED'] as const).map((t) => (
+                          <button
+                            key={t}
+                            onClick={() => setRosterTierFilter(t)}
+                            className={`text-[8px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider transition-colors ${
+                              rosterTierFilter === t ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'text-slate-500 bg-slate-950/50 border border-slate-800 hover:text-white'
+                            }`}
+                          >
+                            {t === 'ALL' ? 'All' : t === 'LOW_INTERMEDIATE' ? 'Low Int' : t.charAt(0) + t.slice(1).toLowerCase()}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
                     <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 w-full">
-                      {players.map((player, index) => (
-                        <div key={`${player.id}-${index}`} className={`p-3 border rounded-xl flex items-center justify-between group transition-colors ${
+                      {filteredPlayers.map((player, index) => (
+                        <div key={`${player.id}-${index}`} className={`p-3 border rounded-xl flex items-center justify-between group transition-colors cursor-pointer ${
                           player.status === 'RESTING' ? 'bg-slate-900/40 border-slate-850 opacity-60' : 'bg-slate-900 border-slate-800'
-                        }`}>
+                        }`} onClick={() => setDetailPlayer(player)}>
                           <div className="flex items-center gap-2.5">
                             <div className={`w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center text-xs font-bold shrink-0 ${
                               player.status === 'PLAYING' ? 'bg-red-500 text-[#ffffff]' : 'bg-slate-800 text-slate-300'
@@ -551,19 +660,20 @@ export default function Dashboard() {
                           <div className="flex items-center gap-1.5 shrink-0">
                             <button 
                               onClick={() => {
-                                if (user) togglePlayerPaid(user.uid, player.id);
+                                if (user) runOp(`paid-${player.id}`, () => togglePlayerPaid(user.uid, player.id));
                               }}
                               className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors border ${
                                 player.hasPaid ? 'border-emerald-500/50 text-emerald-400 bg-emerald-500/10' : 'border-slate-800 text-slate-600 hover:text-white'
                               }`}
                               title={player.hasPaid ? 'Paid' : 'Unpaid'}
+                              disabled={isPending(`paid-${player.id}`)}
                             >
-                              <Check className="w-3.5 h-3.5" />
+                              {isPending(`paid-${player.id}`) ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
                             </button>
                             <button onClick={() => {
-                              if (user) deletePlayer(user.uid, player.id);
-                            }} className="text-slate-600 hover:text-rose-500 opacity-0 group-hover:opacity-100 p-1.5 transition-all">
-                              <Trash2 className="w-3.5 h-3.5"/>
+                              if (user) runOp(`del-${player.id}`, () => deletePlayer(user.uid, player.id));
+                            }} className="text-slate-600 hover:text-rose-500 opacity-0 group-hover:opacity-100 p-1.5 transition-all" disabled={isPending(`del-${player.id}`)}>
+                              {isPending(`del-${player.id}`) ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3.5 h-3.5"/>}
                             </button>
                           </div>
                         </div>
@@ -673,6 +783,7 @@ export default function Dashboard() {
                 <div ref={courtGridRef} className="flex-1 overflow-y-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 relative z-10 pb-24">
                   {courts.map((court, index) => {
                     const activeMatch = matches.find(m => m.id === court.activeMatchId);
+                    const elapsed = activeMatch?.startTime ? Math.floor((Date.now() - activeMatch.startTime) / 60000) : 0;
                     return (
                       <div key={`${court.id}-${index}`} className="court-card bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col justify-between h-56 relative group hover:border-slate-700 transition-all">
                         <div className="flex items-center justify-between">
@@ -683,17 +794,26 @@ export default function Dashboard() {
                             }`}>
                               {court.status === 'Available' ? 'Vacant' : 'Occupied'}
                             </span>
+                            {activeMatch && (
+                              <span className="text-[9px] font-mono text-slate-500 bg-slate-950/50 px-1.5 py-0.5 rounded">
+                                {elapsed < 60 ? `${elapsed}m` : `${Math.floor(elapsed / 60)}h${elapsed % 60}m`}
+                              </span>
+                            )}
+                            {court.queue.length > 0 && (
+                              <span className="text-[9px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                                Q{court.queue.length}
+                              </span>
+                            )}
                             {isQM && court.status === 'Available' && (
-                              <button onClick={() => { if (user) deleteCourt(user.uid, court.id); }} className="text-slate-500 hover:text-red-500 hover:bg-red-500/10 transition-colors p-1 rounded-md">
-                                <X className="w-4 h-4" />
+                              <button onClick={() => { if (user) runOp(`delcourt-${court.id}`, () => deleteCourt(user.uid, court.id)); }} className="text-slate-500 hover:text-red-500 hover:bg-red-500/10 transition-colors p-1 rounded-md" disabled={isPending(`delcourt-${court.id}`)}>
+                                {isPending(`delcourt-${court.id}`) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-4 h-4" />}
                               </button>
                             )}
                           </div>
                         </div>
 
                         {activeMatch ? (
-                          <div className="my-4 flex flex-col gap-2.5">
-                            {/* Team A vs Team B Display */}
+                          <div className="my-2 flex flex-col gap-2">
                             <div className="flex items-center justify-between bg-slate-950/40 p-3 rounded-2xl border border-slate-850">
                               <div className="flex flex-col text-left">
                                 <span className="text-[10px] text-slate-500 uppercase font-black tracking-wider">Team A</span>
@@ -711,8 +831,21 @@ export default function Dashboard() {
                             </div>
                           </div>
                         ) : (
-                          <div className="my-4 text-center py-6 border border-dashed border-slate-800 rounded-2xl">
+                          <div className="my-2 text-center py-3 border border-dashed border-slate-800 rounded-2xl">
                             <span className="text-slate-600 text-xs font-bold">No active match</span>
+                          </div>
+                        )}
+                        {court.queue.length > 0 && (
+                          <div className="text-[9px] text-amber-400 bg-amber-500/5 rounded-xl px-2.5 py-1.5 flex flex-wrap gap-1 items-center">
+                            <span className="font-bold uppercase tracking-wider text-[8px]">Queue:</span>
+                            {court.queue.map((pId) => {
+                              const p = players.find(pl => pl.id === pId);
+                              return p ? (
+                                <span key={pId} className="bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded font-bold text-[8px]">
+                                  {p.name}
+                                </span>
+                              ) : null;
+                            })}
                           </div>
                         )}
 
@@ -753,10 +886,11 @@ export default function Dashboard() {
                   {/* Add Court Button Card */}
                   {isQM && (
                     <button 
-                      onClick={() => { if (user) addCourt(user.uid, `Court ${courts.length + 1}`); }}
+                      onClick={() => { if (user) runOp('addcourt', () => addCourt(user.uid, `Court ${courts.length + 1}`)); }}
                       className="bg-slate-900/50 border border-dashed border-slate-700 hover:border-slate-500 rounded-3xl p-5 flex flex-col items-center justify-center h-56 transition-all text-slate-500 hover:text-slate-300 group"
+                      disabled={isPending('addcourt')}
                     >
-                      <Plus className="w-8 h-8 mb-2 group-hover:scale-110 transition-transform" />
+                      {isPending('addcourt') ? <Loader2 className="w-8 h-8 mb-2 animate-spin" /> : <Plus className="w-8 h-8 mb-2 group-hover:scale-110 transition-transform" />}
                       <span className="text-xs font-bold uppercase tracking-wider">Add Court</span>
                     </button>
                   )}
@@ -801,10 +935,32 @@ export default function Dashboard() {
                 </button>
               </div>
 
+              {/* Roster search */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Search by name..."
+                  value={rosterSearch}
+                  onChange={(e) => setRosterSearch(e.target.value)}
+                  className="flex-1 h-10 bg-slate-900 border border-slate-800 text-white text-xs rounded-xl px-4 outline-none focus:border-red-500/50 placeholder:text-slate-600"
+                />
+                <select
+                  value={rosterTierFilter}
+                  onChange={(e) => setRosterTierFilter(e.target.value as SkillTier | 'ALL')}
+                  className="h-10 bg-slate-900 border border-slate-800 text-white text-xs rounded-xl px-3 outline-none focus:border-red-500/50 cursor-pointer"
+                >
+                  <option value="ALL">All Tiers</option>
+                  <option value="BEGINNER">Beginner</option>
+                  <option value="LOW_INTERMEDIATE">Low Inter</option>
+                  <option value="INTERMEDIATE">Intermediate</option>
+                  <option value="ADVANCED">Advanced</option>
+                </select>
+              </div>
+
               {/* Roster profiles table / cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {players.map((player, index) => (
-                  <div key={`${player.id}-${index}`} className="bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col justify-between group">
+                {filteredPlayers.map((player, index) => (
+                  <div key={`${player.id}-${index}`} className="bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col justify-between group cursor-pointer" onClick={() => setDetailPlayer(player)}>
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-sm font-black uppercase text-slate-300">
@@ -818,11 +974,12 @@ export default function Dashboard() {
 
                       <button
                         onClick={() => {
-                          if (user) deletePlayer(user.uid, player.id);
+                          if (user) runOp(`del-${player.id}`, () => deletePlayer(user.uid, player.id));
                         }}
                         className="text-slate-600 hover:text-red-500 p-1 bg-slate-950 border border-slate-850 rounded-lg"
+                        disabled={isPending(`del-${player.id}`)}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        {isPending(`del-${player.id}`) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                       </button>
                     </div>
 
@@ -946,6 +1103,7 @@ export default function Dashboard() {
       <MatchMakerModal isOpen={isMatchMakerOpen} onClose={() => setMatchMakerOpen(false)} />
       <AddPlayerModal isOpen={isAddPlayerModalOpen} onClose={() => setIsAddPlayerModalOpen(false)} />
       <NotificationToast toasts={toasts} onDismiss={dismissToast} />
+      <PlayerInfoModal isOpen={!!detailPlayer} player={detailPlayer} players={players} matches={matches} onClose={() => setDetailPlayer(null)} />
     </div>
   );
 }

@@ -87,6 +87,7 @@ export const requestNotificationPermission = async (userId: string): Promise<boo
 
 export const removeFcmToken = async (userId: string): Promise<void> => {
   if (!messaging) return;
+  if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') return;
   try {
     const token = await getToken(messaging, { vapidKey: VAPID_KEY });
     if (token) {

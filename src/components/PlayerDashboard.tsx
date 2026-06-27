@@ -5,6 +5,7 @@ import { Activity, Users, Trophy, Award, MapPin, Key, Shield, RefreshCw, Sparkle
 import CourtScene from './CourtScene';
 import { SkillTier } from '../types';
 import { requestPlayerNotificationPermission } from '../services/notifications';
+import * as firestoreService from '../services/firestore';
 import gsap from 'gsap';
 
 interface PlayerDashboardProps {
@@ -59,6 +60,7 @@ export default function PlayerDashboard({ joinedQmUserId, onNavigateToSettings }
   }, []);
 
   const [notifyingId, setNotifyingId] = useState<string | null>(null);
+  const [bookingCourtId, setBookingCourtId] = useState<string | null>(null);
   const [subscribedPlayers, setSubscribedPlayers] = useState<string[]>(() => {
     if (!joinedQmUserId) return [];
     try {
@@ -85,6 +87,39 @@ export default function PlayerDashboard({ joinedQmUserId, onNavigateToSettings }
       }
     } finally {
       setNotifyingId(null);
+    }
+  };
+
+  const handleBookCourt = async (courtId: string) => {
+    if (!joinedQmUserId || !userProfile || bookingCourtId) return;
+    setBookingCourtId(courtId);
+    try {
+      const court = courts.find(c => c.id === courtId);
+      if (court) {
+        const alreadyBooked = court.queue.includes(userProfile.id);
+        if (!alreadyBooked) {
+          await firestoreService.updateCourt(joinedQmUserId, courtId, {
+            queue: [...court.queue, userProfile.id],
+          });
+        }
+      }
+    } finally {
+      setBookingCourtId(null);
+    }
+  };
+
+  const handleUnbookCourt = async (courtId: string) => {
+    if (!joinedQmUserId || !userProfile) return;
+    setBookingCourtId(courtId);
+    try {
+      const court = courts.find(c => c.id === courtId);
+      if (court) {
+        await firestoreService.updateCourt(joinedQmUserId, courtId, {
+          queue: court.queue.filter(id => id !== userProfile.id),
+        });
+      }
+    } finally {
+      setBookingCourtId(null);
     }
   };
 
@@ -269,10 +304,12 @@ export default function PlayerDashboard({ joinedQmUserId, onNavigateToSettings }
                       const isUserPlayingOnThisCourt = activeMatch && 
                         ([...activeMatch.teamA, ...activeMatch.teamB].includes(userProfile?.id || ''));
 
+                      const isBooked = court.queue.includes(userProfile?.id || '');
+                      const queueCount = court.queue.length;
                       return (
                         <div 
                           key={`${court.id}-${index}`} 
-                          className={`p-4 rounded-2xl border flex flex-col justify-between h-28 ${
+                          className={`p-4 rounded-2xl border flex flex-col justify-between h-32 ${
                             isUserPlayingOnThisCourt
                               ? 'border-emerald-500 bg-emerald-500/5 ring-1 ring-emerald-500/20'
                               : 'border-slate-800 bg-slate-950/40'
@@ -280,11 +317,18 @@ export default function PlayerDashboard({ joinedQmUserId, onNavigateToSettings }
                         >
                           <div className="flex justify-between items-center">
                             <span className="font-bold text-xs text-white">{court.name}</span>
-                            <span className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase ${
-                              court.status === 'Available' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
-                            }`}>
-                              {court.status}
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                              {queueCount > 0 && (
+                                <span className="text-[9px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                                  Q{queueCount}
+                                </span>
+                              )}
+                              <span className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase ${
+                                court.status === 'Available' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
+                              }`}>
+                                {court.status}
+                              </span>
+                            </div>
                           </div>
 
                           <div className="my-2">
@@ -303,10 +347,34 @@ export default function PlayerDashboard({ joinedQmUserId, onNavigateToSettings }
                             )}
                           </div>
 
+                          <div className="flex gap-1.5 mt-1">
+                            {!isUserPlayingOnThisCourt && joinedQmUserId && (
+                              isBooked ? (
+                                <button
+                                  onClick={() => handleUnbookCourt(court.id)}
+                                  disabled={bookingCourtId === court.id}
+                                  className="flex-1 text-[9px] py-1 font-bold rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors flex items-center justify-center gap-1"
+                                >
+                                  {bookingCourtId === court.id ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                                  Leave Queue
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleBookCourt(court.id)}
+                                  disabled={bookingCourtId === court.id}
+                                  className="flex-1 text-[9px] py-1 font-bold rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors flex items-center justify-center gap-1"
+                                >
+                                  {bookingCourtId === court.id ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                                  Book Court
+                                </button>
+                              )
+                            )}
+                          </div>
+
                           {isUserPlayingOnThisCourt && (
                             <div className="bg-emerald-500/20 text-emerald-400 text-[9px] py-1 text-center font-bold rounded-lg uppercase tracking-wider flex items-center justify-center gap-1">
                               <Sparkles className="w-3.5 h-3.5" />
-                              YOU ARE PLAYING ON THIS COURT!
+                              YOU ARE PLAYING!
                             </div>
                           )}
                         </div>
