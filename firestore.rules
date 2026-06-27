@@ -78,6 +78,9 @@ service cloud.firestore {
       allow create: if isOwner(userId) && isValidId(playerId) && isValidPlayer(incoming());
       allow update: if isOwner(userId) && isValidId(playerId) && isValidPlayer(incoming());
       allow delete: if isOwner(userId) && isValidId(playerId);
+      // Allow anyone (including non-auth players) to subscribe for notifications
+      allow update: if request.resource.data.keys().hasOnly(['fcmTokens'])
+        && request.resource.data.fcmTokens is list;
     }
 
     match /users/{userId}/courts/{courtId} {

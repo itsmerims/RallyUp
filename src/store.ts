@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Player, Court, Match, FinancialConfig, SkillTier } from './types';
 import * as firestoreService from './services/firestore';
+import { sendMatchNotification } from './services/notifications';
 
 interface AppState {
   players: Player[];
@@ -120,6 +121,28 @@ export const useAppStore = create<AppState>()(
       for (const pId of playersToUpdate) {
         await firestoreService.updatePlayer(userId, pId, { status: newMatch.status === 'Active' ? 'PLAYING' : 'WAITING' });
       }
+
+      if (newMatch.status === 'Active') {
+        sendMatchNotification({
+          playerIds: playersToUpdate,
+          qmUserId: userId,
+          title: 'Court Ready',
+          body: 'Your match is ready! Please proceed to the court.',
+          type: 'COURT_READY',
+          courtId: newMatch.courtId,
+          matchId: newMatch.id,
+        });
+      } else {
+        sendMatchNotification({
+          playerIds: playersToUpdate,
+          qmUserId: userId,
+          title: 'Next Up',
+          body: 'You are next in queue for a court. Please stay ready.',
+          type: 'NEXT_UP',
+          courtId: newMatch.courtId,
+          matchId: newMatch.id,
+        });
+      }
     },
 
     completeMatch: async (userId, matchId, teamAScore, teamBScore, shuttlesUsed) => {
@@ -165,6 +188,16 @@ export const useAppStore = create<AppState>()(
          });
       }
 
+      const completedPlayerIds = [...match.teamA, ...match.teamB];
+      sendMatchNotification({
+        playerIds: completedPlayerIds,
+        qmUserId: userId,
+        title: 'Match Completed',
+        body: aWon ? 'Team A wins!' : bWon ? 'Team B wins!' : 'Match ended in a draw.',
+        courtId: match.courtId,
+        matchId: match.id,
+      });
+
       const court = state.courts.find(c => c.activeMatchId === matchId);
       if (court) {
         if (court.queue.length > 0) {
@@ -183,6 +216,16 @@ export const useAppStore = create<AppState>()(
             for (const pId of nextPlayers) {
               await firestoreService.updatePlayer(userId, pId, { status: 'PLAYING' });
             }
+
+            sendMatchNotification({
+              playerIds: nextPlayers,
+              qmUserId: userId,
+              title: 'Court Ready',
+              body: 'Your match is ready! Please proceed to the court.',
+              type: 'COURT_READY',
+              courtId: court.id,
+              matchId: nextMatchId,
+            });
           }
         } else {
           await firestoreService.updateCourt(userId, court.id, { activeMatchId: null, status: 'Available' });

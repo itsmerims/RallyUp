@@ -83,6 +83,7 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
     setSaveLoading(true);
     setSaveSuccess(false);
     try {
+      const roleChanged = role !== userProfile?.role;
       await updateProfile({
         name,
         skillTier,
@@ -90,6 +91,10 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
         role,
       });
       setSaveSuccess(true);
+      if (roleChanged) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        window.dispatchEvent(new CustomEvent('rallyup:reload'));
+      }
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
       console.error(err);
@@ -260,8 +265,8 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
                           onClick={() => setRole('PLAYER')}
                           className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 ${
                             role === 'PLAYER' 
-                              ? 'bg-emerald-500 text-slate-950 shadow-md' 
-                              : 'text-slate-400 hover:text-white'
+                              ? 'bg-emerald-500 text-slate-950 shadow-md border border-emerald-400' 
+                              : 'text-slate-400 hover:text-white border border-transparent'
                           }`}
                         >
                           Player
@@ -271,8 +276,8 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
                           onClick={() => setRole('QUEUE_MASTER')}
                           className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 ${
                             role === 'QUEUE_MASTER' 
-                              ? 'bg-red-500 text-white shadow-md' 
-                              : 'text-slate-400 hover:text-white'
+                              ? 'bg-red-500 text-white shadow-md border border-red-400' 
+                              : 'text-slate-400 hover:text-white border border-transparent'
                           }`}
                         >
                           Queue Master

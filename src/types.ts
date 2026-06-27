@@ -19,6 +19,7 @@ export interface UserProfile {
     losses: number;
     currentStreak: number;
   };
+  fcmTokens?: string[];
 }
 
 export interface Player {
@@ -29,6 +30,8 @@ export interface Player {
   ratingScore: number;
   joinedAt: number;
   hasPaid: boolean;
+  userId?: string;
+  fcmTokens?: string[];
   stats: {
     gamesPlayed: number;
     wins: number;
@@ -62,4 +65,16 @@ export interface FinancialConfig {
   courtFee: number;
   shuttleFee: number;
   fixedRate: number;
+}
+
+export type NotificationType = 'NEXT_UP' | 'COURT_READY';
+
+export interface FcmNotificationPayload {
+  title: string;
+  body: string;
+  icon: string;
+  click_action: string;
+  type?: NotificationType;
+  courtId?: string;
+  matchId?: string;
 }

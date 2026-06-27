@@ -3,6 +3,17 @@ build/
 dist/
 coverage/
 .DS_Store
+Thumbs.db
 *.log
+*.tsbuildinfo
 .env*
 !.env.example
+
+# Firebase Admin Credentials
+serviceAccountKey.json
+*.p8
+*.p12
+
+.vercel
+.env*.local
+.env.production

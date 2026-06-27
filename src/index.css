@@ -12,6 +12,20 @@ html, body, #root {
   background-color: var(--color-slate-950);
 }
 
+html {
+  color-scheme: dark;
+  transition: background-color 0.3s ease;
+}
+
+html.theme-light {
+  color-scheme: light;
+}
+
+html.theme-transitioning, 
+html.theme-transitioning * {
+  transition: background-color 0.25s ease, border-color 0.2s ease, color 0.2s ease !important;
+}
+
 /* Light theme support (mapped from dark theme) */
 html.theme-light {
   /* Backgrounds & Borders */
@@ -29,6 +43,22 @@ html.theme-light {
   --color-slate-300: var(--color-gray-600);
   --color-slate-400: var(--color-gray-500);
   --color-slate-500: var(--color-gray-400);
+
+  /* Selection */
+  --color-selection-bg: var(--color-red-200);
+  --color-selection-text: var(--color-gray-900);
+}
+
+html.theme-light ::selection {
+  background-color: var(--color-red-200);
+  color: var(--color-gray-900);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.theme-transitioning,
+  html.theme-transitioning * {
+    transition: none !important;
+  }
 }
 
 @layer utilities {

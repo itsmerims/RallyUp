@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, Eye, EyeOff, Activity, Check, MapPin, Award, Shield, User as UserIcon } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Activity, Check, MapPin, Award, Shield, User as UserIcon, ExternalLink, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SkillTier } from '../types';
 
 import ThemeToggle from './ThemeToggle';
 import LandingPage from './LandingPage';
+import TermsPage from './TermsPage';
+import ClubRulesPage from './ClubRulesPage';
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { 
@@ -38,6 +40,10 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [selectedSkill, setSelectedSkill] = useState<SkillTier | null>(null);
   const [country, setCountry] = useState('Philippines');
   const [selectedRole, setSelectedRole] = useState<'PLAYER' | 'QUEUE_MASTER' | null>(null);
+
+  // Legal pages
+  const [showTerms, setShowTerms] = useState(false);
+  const [showClubRules, setShowClubRules] = useState(false);
 
   const countries = [
     'Philippines', 'United States', 'Singapore', 'Malaysia', 'Indonesia', 
@@ -112,15 +118,15 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     }
 
     return (
-      <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center p-4 md:p-8 overflow-y-auto font-sans text-slate-100">
+      <div className="fixed inset-0 bg-slate-950 flex flex-col items-center p-4 md:p-8 overflow-y-auto font-sans text-slate-100">
         <div className="absolute top-4 right-4 z-50">
           <ThemeToggle />
         </div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(239,68,68,0.03),transparent_70%)] z-0 pointer-events-none"></div>
         
-        <div className="max-w-md w-full flex flex-col items-center relative z-10">
+        <div className="max-w-md w-full flex flex-col items-center relative z-10 pt-8 md:pt-12">
           {/* Logo / Header */}
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-3 mb-2 shrink-0">
             <div className="w-10 h-10 bg-red-500 rounded-xl flex items-center justify-center shadow-lg shadow-red-500/20">
               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -128,7 +134,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
             </div>
             <span className="text-2xl font-black italic tracking-tighter text-white uppercase">RallyUp</span>
           </div>
-          <p className="text-slate-400 text-sm text-center max-w-sm mb-6 leading-relaxed">
+          <p className="text-slate-400 text-sm text-center max-w-sm mb-6 leading-relaxed shrink-0">
             Track your games, connect with players, and keep the court flowing. Join the RallyUp badminton community for free.
           </p>
 
@@ -187,7 +193,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
                     placeholder="e.g. Juan Dela Cruz" 
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500 transition-all text-sm"
+                    className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-[#ffffff] placeholder:text-slate-600 focus:outline-none focus:border-red-500 transition-all text-sm"
                     required
                   />
                 </div>
@@ -200,7 +206,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
                   placeholder="Enter your email" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl px-4 text-[#ffffff] placeholder:text-slate-600 focus:outline-none focus:border-red-500 transition-all text-sm"
                   required
                 />
               </div>
@@ -224,7 +230,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
                     placeholder={isSignUp ? 'Min. 6 characters' : '••••••••'} 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-11 text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500 transition-all text-sm"
+                    className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-11 text-[#ffffff] placeholder:text-slate-600 focus:outline-none focus:border-red-500 transition-all text-sm"
                     required
                   />
                   <button 
@@ -246,7 +252,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
                       placeholder="Re-enter password" 
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-11 text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500 transition-all text-sm"
+                      className="w-full h-12 bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-11 text-[#ffffff] placeholder:text-slate-600 focus:outline-none focus:border-red-500 transition-all text-sm"
                       required
                     />
                     <button 
@@ -267,7 +273,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
               <button 
                 type="submit"
                 disabled={authWorking}
-                className="w-full h-12 bg-red-500 hover:bg-red-400 disabled:bg-slate-800 disabled:text-slate-600 text-white font-bold rounded-xl transition-all active:scale-[0.98] shadow-lg shadow-red-500/10 flex items-center justify-center gap-2 mt-2"
+                className="w-full h-12 bg-red-500 hover:bg-red-400 disabled:bg-slate-800 disabled:text-slate-600 text-[#ffffff] font-bold rounded-xl transition-all active:scale-[0.98] shadow-lg shadow-red-500/10 flex items-center justify-center gap-2 mt-2"
               >
                 {authWorking ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -294,10 +300,30 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
             </button>
             
             <p className="text-[10px] text-slate-500 text-center mt-6 leading-normal font-mono">
-              By continuing, you agree to RallyUp's terms, conditions, and club rules.
+              By continuing, you agree to RallyUp's{' '}
+              <button type="button" onClick={() => setShowTerms(true)} className="text-slate-300 hover:text-white underline underline-offset-2 transition-colors">
+                terms and conditions
+              </button>
+              {' '}and{' '}
+              <button type="button" onClick={() => setShowClubRules(true)} className="text-slate-300 hover:text-white underline underline-offset-2 transition-colors">
+                club rules
+              </button>
+              .
             </p>
           </div>
         </div>
+
+        {/* Legal Pages Modals */}
+        <AnimatePresence>
+          {showTerms && (
+            <TermsPage onClose={() => setShowTerms(false)} />
+          )}
+        </AnimatePresence>
+        <AnimatePresence>
+          {showClubRules && (
+            <ClubRulesPage onClose={() => setShowClubRules(false)} />
+          )}
+        </AnimatePresence>
       </div>
     );
   }
@@ -415,7 +441,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
                     className={`p-4 rounded-2xl border text-left flex items-start gap-3.5 transition-all ${
                       selectedRole === 'PLAYER' 
                         ? 'border-emerald-500 bg-emerald-500/5 text-white ring-2 ring-emerald-500/10' 
-                        : 'border-slate-800 bg-slate-950 hover:border-slate-750 hover:bg-slate-900 text-slate-300'
+                        : 'border-slate-800 bg-slate-950 hover:border-emerald-500/30 hover:bg-slate-900 text-slate-300'
                     }`}
                   >
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
@@ -439,19 +465,19 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
                     onClick={() => setSelectedRole('QUEUE_MASTER')}
                     className={`p-4 rounded-2xl border text-left flex items-start gap-3.5 transition-all ${
                       selectedRole === 'QUEUE_MASTER' 
-                        ? 'border-emerald-500 bg-emerald-500/5 text-white ring-2 ring-emerald-500/10' 
-                        : 'border-slate-800 bg-slate-950 hover:border-slate-750 hover:bg-slate-900 text-slate-300'
+                        ? 'border-red-500 bg-red-500/5 text-white ring-2 ring-red-500/10' 
+                        : 'border-slate-800 bg-slate-950 hover:border-red-500/30 hover:bg-slate-900 text-slate-300'
                     }`}
                   >
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                      selectedRole === 'QUEUE_MASTER' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-900 text-slate-500'
+                      selectedRole === 'QUEUE_MASTER' ? 'bg-red-500 text-white font-bold' : 'bg-slate-900 text-slate-500'
                     }`}>
                       <Shield className="w-5 h-5" />
                     </div>
                     <div>
                       <div className="text-sm font-bold flex items-center gap-1.5 text-white">
                         Queue Master
-                        {selectedRole === 'QUEUE_MASTER' && <span className="bg-emerald-500/20 text-emerald-400 text-[10px] px-1.5 py-0.5 rounded font-black uppercase font-mono">Selected</span>}
+                        {selectedRole === 'QUEUE_MASTER' && <span className="bg-red-500/20 text-red-400 text-[10px] px-1.5 py-0.5 rounded font-black uppercase font-mono">Selected</span>}
                       </div>
                       <p className="text-[11px] text-slate-400 mt-1 leading-normal">
                         Host active sessions, configure courts and fees, manage matching algorithms, and have administrative authority.

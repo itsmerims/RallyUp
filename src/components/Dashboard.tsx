@@ -11,10 +11,12 @@ import FinancePage from './FinancePage';
 import SettingsPage from './SettingsPage';
 import PlayerDashboard from './PlayerDashboard';
 import ThemeToggle from './ThemeToggle';
+import NotificationToast, { createToast } from './NotificationToast';
+import type { ToastItem } from './NotificationToast';
 import { 
   Plus, Check, Trophy, Settings, Trash2, LayoutGrid, Users, 
   Activity, Menu, X, Loader2, LogOut, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
-  Monitor, MonitorOff, Coins, Info, ShieldAlert, Sparkles 
+  Monitor, MonitorOff, Coins, Info, ShieldAlert, Sparkles, Bell 
 } from 'lucide-react';
 import { Player, SkillTier } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -43,9 +45,23 @@ export default function Dashboard() {
   const [scoreB, setScoreB] = useState('19');
   const [shuttlesUsed, setShuttlesUsed] = useState('1');
 
+  // Notification toast state
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+
+  const dismissToast = (id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
+
   // Setup Firebase Cloud Messaging listener
   useEffect(() => {
-    setupMessageListener();
+    const unsubscribe = setupMessageListener((payload) => {
+      const toast = createToast(payload);
+      setToasts((prev) => [...prev, toast]);
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== toast.id));
+      }, 6000);
+    });
+    return unsubscribe;
   }, []);
 
   // Connection management for player role
@@ -298,18 +314,20 @@ export default function Dashboard() {
               if ('Notification' in window && Notification.permission !== 'granted') {
                 const granted = await requestNotificationPermission(userProfile.id);
                 if (granted) {
-                  new Notification('RallyUp', { body: 'Notifications enabled!' });
+                  const toast = createToast({ title: 'RallyUp', body: 'Notifications enabled!', icon: '/icon-192x192.png', click_action: '/' });
+                  setToasts((prev) => [...prev, toast]);
+                  setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== toast.id)), 4000);
                 }
               } else if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('RallyUp', { body: 'You are already receiving notifications.' });
-              } else {
-                alert('Notifications are not supported in this browser.');
+                const toast = createToast({ title: 'RallyUp', body: 'You are already receiving notifications.', icon: '/icon-192x192.png', click_action: '/' });
+                setToasts((prev) => [...prev, toast]);
+                setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== toast.id)), 4000);
               }
             }}
             className={`flex items-center justify-center w-9 h-9 rounded-xl border transition-colors bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800`}
             title="Notifications"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4.5 h-4.5"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            <Bell className="w-4.5 h-4.5" />
           </button>
           
           <button 
@@ -884,6 +902,7 @@ export default function Dashboard() {
       
       <MatchMakerModal isOpen={isMatchMakerOpen} onClose={() => setMatchMakerOpen(false)} />
       <AddPlayerModal isOpen={isAddPlayerModalOpen} onClose={() => setIsAddPlayerModalOpen(false)} />
+      <NotificationToast toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }

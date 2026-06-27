@@ -55,6 +55,7 @@ export const subscribeToPlayers = (userId: string, callback: (players: Player[])
         hasPaid: data.hasPaid,
         status: data.status,
         stats: data.stats,
+        fcmTokens: data.fcmTokens || [],
       } as Player);
     });
     callback(players);

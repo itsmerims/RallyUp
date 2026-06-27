@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { Sparkles, ArrowRight, Loader2 } from 'lucide-react';
+import { motion } from 'motion/react';
 
 interface SplashScreenProps {
   onFinish: () => void;
@@ -325,8 +326,10 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
   const titleText = "RALLYUP";
 
   return (
-    <div 
+    <motion.div
       ref={containerRef}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.6, ease: 'easeInOut' }}
       className="fixed inset-0 bg-slate-950 z-50 flex flex-col items-center justify-center overflow-hidden"
     >
       {/* Background gradients */}
@@ -389,6 +392,6 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
           <span>Auto launching in {countdown}s...</span>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

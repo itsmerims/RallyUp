@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../store';
 import { useAuth } from '../contexts/AuthContext';
-import { Activity, Users, Trophy, Award, MapPin, Key, Shield, RefreshCw, Sparkles, AlertCircle, HelpCircle } from 'lucide-react';
+import { Activity, Users, Trophy, Award, MapPin, Key, Shield, RefreshCw, Sparkles, AlertCircle, HelpCircle, Bell, BellRing } from 'lucide-react';
 import CourtScene from './CourtScene';
 import { SkillTier } from '../types';
+import { requestPlayerNotificationPermission } from '../services/notifications';
 
 interface PlayerDashboardProps {
   joinedQmUserId: string | null;
@@ -14,6 +15,36 @@ export default function PlayerDashboard({ joinedQmUserId, onNavigateToSettings }
   const { userProfile } = useAuth();
   const { players, courts, matches } = useAppStore();
   const [activeTab, setActiveTab] = useState<'overview' | 'roster'>('overview');
+
+  const [notifyingId, setNotifyingId] = useState<string | null>(null);
+  const [subscribedPlayers, setSubscribedPlayers] = useState<string[]>(() => {
+    if (!joinedQmUserId) return [];
+    try {
+      const stored = localStorage.getItem(`rallyup_subscribed_players_${joinedQmUserId}`);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    if (joinedQmUserId) {
+      localStorage.setItem(`rallyup_subscribed_players_${joinedQmUserId}`, JSON.stringify(subscribedPlayers));
+    }
+  }, [subscribedPlayers, joinedQmUserId]);
+
+  const handleSubscribe = async (playerId: string) => {
+    if (!joinedQmUserId || notifyingId) return;
+    setNotifyingId(playerId);
+    try {
+      const ok = await requestPlayerNotificationPermission(joinedQmUserId, playerId);
+      if (ok && !subscribedPlayers.includes(playerId)) {
+        setSubscribedPlayers(prev => [...prev, playerId]);
+      }
+    } finally {
+      setNotifyingId(null);
+    }
+  };
 
   const currentMatch = matches.find(m => 
     m.status === 'Active' && 
@@ -265,6 +296,8 @@ export default function PlayerDashboard({ joinedQmUserId, onNavigateToSettings }
               <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
                 {players.map((p, index) => {
                   const isMe = p.id === userProfile?.id;
+                  const isSubscribed = subscribedPlayers.includes(p.id);
+                  const isNotifying = notifyingId === p.id;
                   return (
                     <div 
                       key={`${p.id}-${index}`} 
@@ -274,29 +307,50 @@ export default function PlayerDashboard({ joinedQmUserId, onNavigateToSettings }
                           : 'bg-slate-950/40 border-slate-850'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <div className={`w-7 h-7 rounded-full border flex items-center justify-center text-[10px] font-bold uppercase ${
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`w-7 h-7 rounded-full border flex items-center justify-center text-[10px] font-bold uppercase shrink-0 ${
                           isMe ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-black' : 'bg-slate-800 border-slate-700 text-slate-300'
                         }`}>
                           {p.name.substring(0, 2)}
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <div className="text-xs font-bold text-slate-200 flex items-center gap-1.5 truncate max-w-[120px]">
-                            {p.name}
-                            {isMe && <span className="bg-emerald-500 text-slate-950 text-[8px] px-1.5 py-0.2 rounded uppercase font-black tracking-wide">Me</span>}
+                            <span className="truncate">{p.name}</span>
+                            {isMe && <span className="bg-emerald-500 text-slate-950 text-[8px] px-1.5 py-0.2 rounded uppercase font-black tracking-wide shrink-0">Me</span>}
+                            {isSubscribed && <BellRing className="w-3 h-3 text-emerald-400 shrink-0" />}
                           </div>
-                          <span className="text-[9px] text-slate-500 uppercase tracking-wide">
+                          <span className="text-[9px] text-slate-500 uppercase tracking-wide truncate block">
                             {getTierLabel(p.tier)}
                           </span>
                         </div>
                       </div>
 
-                      <span className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase shrink-0 ${
-                        p.status === 'PLAYING' ? 'bg-emerald-500/10 text-emerald-400' :
-                        p.status === 'WAITING' ? 'bg-amber-500/10 text-amber-400' : 'bg-slate-800 text-slate-400'
-                      }`}>
-                        {p.status}
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={() => handleSubscribe(p.id)}
+                          disabled={isNotifying || isSubscribed}
+                          className={`p-1 rounded-lg transition-colors ${
+                            isSubscribed
+                              ? 'text-emerald-400/60 cursor-default'
+                              : isNotifying
+                                ? 'text-slate-600 animate-pulse'
+                                : 'text-slate-500 hover:text-emerald-400 hover:bg-emerald-500/10'
+                          }`}
+                          title={isSubscribed ? 'Notifications active' : 'Get notified when your match is ready'}
+                        >
+                          {isSubscribed ? (
+                            <BellRing className="w-3.5 h-3.5" />
+                          ) : (
+                            <Bell className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                        <span className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase ${
+                          p.status === 'PLAYING' ? 'bg-emerald-500/10 text-emerald-400' :
+                          p.status === 'WAITING' ? 'bg-amber-500/10 text-amber-400' : 'bg-slate-800 text-slate-400'
+                        }`}>
+                          {p.status}
+                        </span>
+                      </div>
                     </div>
                   );
                 })}

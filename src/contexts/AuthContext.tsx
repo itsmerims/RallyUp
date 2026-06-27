@@ -10,6 +10,7 @@ import {
 } from 'firebase/auth';
 import { UserProfile, SkillTier } from '../types';
 import * as firestoreService from '../services/firestore';
+import { requestNotificationPermission, removeFcmToken } from '../services/notifications';
 
 interface AuthContextType {
   user: User | null;
@@ -98,15 +99,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error('Error signing out', error);
-      throw error;
-    }
-  };
-
   const updateProfile = async (updates: Partial<UserProfile>) => {
     if (!user) return;
     try {
@@ -151,8 +143,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       await firestoreService.saveUserProfile(user.uid, initialProfile);
+      // Auto-prompt for notification permission after profile completion
+      if ('Notification' in window && Notification.permission === 'default') {
+        requestNotificationPermission(user.uid);
+      }
     } catch (error) {
       console.error('Error completing user profile', error);
+      throw error;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      if (user) {
+        await removeFcmToken(user.uid);
+      }
+      await signOut(auth);
+    } catch (error) {
+      console.error('Error signing out', error);
       throw error;
     }
   };
