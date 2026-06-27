@@ -253,7 +253,7 @@ export default function LandingPage() {
                   <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-6 border border-emerald-500/20">
                     <Activity className="w-6 h-6 text-emerald-400" />
                   </div>
-                  <h3 className="text-xl font-bold text-[#ffffff] mb-3">Live Queues</h3>
+                  <h3 className="text-xl font-bold text-white mb-3">Live Queues</h3>
                   <p className="text-slate-400 leading-relaxed">
                     Real-time court management. See exactly who's playing, who's next, and estimated wait times.
                   </p>
