@@ -75,6 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
+      window.location.reload();
     } catch (error) {
       console.error('Error signing in with Google', error);
       throw error;
@@ -84,6 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signInWithEmail = async (email: string, pass: string) => {
     try {
       await signInWithEmailAndPassword(auth, email, pass);
+      window.location.reload();
     } catch (error) {
       console.error('Error signing in with Email', error);
       throw error;
@@ -93,6 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUpWithEmail = async (email: string, pass: string) => {
     try {
       await createUserWithEmailAndPassword(auth, email, pass);
+      window.location.reload();
     } catch (error) {
       console.error('Error signing up with Email', error);
       throw error;
@@ -145,8 +148,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await firestoreService.saveUserProfile(user.uid, initialProfile);
       // Auto-prompt for notification permission after profile completion
       if ('Notification' in window && Notification.permission === 'default') {
-        requestNotificationPermission(user.uid);
+        await requestNotificationPermission(user.uid);
       }
+      window.location.reload();
     } catch (error) {
       console.error('Error completing user profile', error);
       throw error;
@@ -159,6 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await removeFcmToken(user.uid);
       }
       await signOut(auth);
+      window.location.reload();
     } catch (error) {
       console.error('Error signing out', error);
       throw error;
