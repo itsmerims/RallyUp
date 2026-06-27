@@ -22,23 +22,31 @@ export default function MatchMakerModal({ isOpen, onClose }: MatchMakerModalProp
   const [teamA, setTeamA] = useState<(Player | null)[]>([null, null]);
   const [teamB, setTeamB] = useState<(Player | null)[]>([null, null]);
   const [selectedCourt, setSelectedCourt] = useState<string>('');
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
+      setVisible(true);
       setAvailablePlayers(waitingPlayers);
       setTeamA([null, null]);
       setTeamB([null, null]);
       if (courts.length > 0) setSelectedCourt(courts[0].id);
       
-      // Animate modal entry
-      gsap.fromTo('.modal-content', 
-        { y: 50, opacity: 0 }, 
-        { y: 0, opacity: 1, duration: 0.4, ease: 'power2.out' }
-      );
+      requestAnimationFrame(() => {
+        gsap.fromTo('.modal-content', 
+          { y: 50, opacity: 0 }, 
+          { y: 0, opacity: 1, duration: 0.4, ease: 'power2.out' }
+        );
+      });
+    } else if (visible) {
+      gsap.to('.modal-content', {
+        y: 50, opacity: 0, duration: 0.25, ease: 'power2.in',
+        onComplete: () => setVisible(false),
+      });
     }
   }, [isOpen, players]);
 
-  if (!isOpen) return null;
+  if (!visible) return null;
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
@@ -149,14 +157,20 @@ export default function MatchMakerModal({ isOpen, onClose }: MatchMakerModalProp
     
     gsap.to('.modal-content', { 
       y: 50, opacity: 0, duration: 0.3, 
-      onComplete: onClose 
+      onComplete: () => {
+        setVisible(false);
+        onClose();
+      }
     });
   };
 
   const closeWithAnim = () => {
     gsap.to('.modal-content', { 
       y: 50, opacity: 0, duration: 0.3, 
-      onComplete: onClose 
+      onComplete: () => {
+        setVisible(false);
+        onClose();
+      }
     });
   }
 

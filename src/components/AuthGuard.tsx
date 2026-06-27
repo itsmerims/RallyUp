@@ -273,7 +273,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
               <button 
                 type="submit"
                 disabled={authWorking}
-                className="w-full h-12 bg-red-500 hover:bg-red-400 disabled:bg-slate-800 disabled:text-slate-600 text-[#ffffff] font-bold rounded-xl transition-all active:scale-[0.98] shadow-lg shadow-red-500/10 flex items-center justify-center gap-2 mt-2"
+                className="w-full h-12 bg-red-500 hover:bg-red-400 disabled:bg-slate-800 disabled:text-slate-600 text-white font-bold rounded-xl transition-all active:scale-[0.98] shadow-lg shadow-red-500/10 flex items-center justify-center gap-2 mt-2"
               >
                 {authWorking ? (
                   <Loader2 className="w-5 h-5 animate-spin" />

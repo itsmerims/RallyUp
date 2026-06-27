@@ -1,127 +1,173 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { X, Smartphone, Monitor, Download, Apple } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import { motion } from 'motion/react';
+import { X, Download, Share2, Home } from 'lucide-react';
+import gsap from 'gsap';
 
-export default function InstallModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const [activeTab, setActiveTab] = useState<'ios' | 'android' | 'desktop'>('ios');
+type Platform = 'ios' | 'android' | 'desktop' | 'unknown';
+
+function detectPlatform(): Platform {
+  const ua = navigator.userAgent.toLowerCase();
+  if (/iphone|ipad|ipod/.test(ua)) return 'ios';
+  if (/android/.test(ua)) return 'android';
+  if (/windows|mac/.test(ua)) return 'desktop';
+  return 'unknown';
+}
+
+interface InstallModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  deferredPrompt: any;
+  isInstallable: boolean;
+}
+
+export default function InstallModal({ isOpen, onClose, deferredPrompt, isInstallable }: InstallModalProps) {
+  const platform = detectPlatform();
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen && cardRef.current) {
+      gsap.fromTo(cardRef.current, 
+        { y: 40, opacity: 0, scale: 0.96 },
+        { y: 0, opacity: 1, scale: 1, duration: 0.5, ease: 'back.out(1.7)' }
+      );
+    }
+  }, [isOpen]);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') onClose();
+  };
+
+  const handleClose = () => {
+    if (cardRef.current) {
+      gsap.to(cardRef.current, {
+        y: 40, opacity: 0, scale: 0.96, duration: 0.3, ease: 'power2.in',
+        onComplete: onClose,
+      });
+    } else {
+      onClose();
+    }
+  };
 
   if (!isOpen) return null;
 
   return (
-    <AnimatePresence>
-      <motion.div 
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={handleClose}>
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4"
-        onClick={onClose}
+        className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+      />
+      <div
+        ref={cardRef}
+        className="relative bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
       >
-        <motion.div 
-          initial={{ scale: 0.95, opacity: 0, y: 20 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.95, opacity: 0, y: 20 }}
-          className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="p-6 border-b border-slate-800 flex items-center justify-between">
-            <h2 className="text-2xl font-black text-white flex items-center gap-2">
-              <Download className="w-6 h-6 text-red-500" />
-              Install RallyUp
-            </h2>
-            <button 
-              onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 via-orange-500 to-red-500" />
+
+        <div className="p-6 pt-8 flex flex-col items-center text-center">
+          <div className="w-14 h-14 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center mb-4">
+            <Download className="w-7 h-7 text-red-400" />
+          </div>
+
+          <h2 className="text-2xl font-black text-white mb-2">Install RallyUp</h2>
+          <p className="text-slate-400 text-sm mb-6 max-w-xs">
+            Get the best experience with offline access, faster load times, and a dedicated app.
+          </p>
+
+          <button
+            onClick={handleClose}
+            className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          {isInstallable && deferredPrompt ? (
+            <button
+              onClick={handleInstall}
+              className="w-full h-14 bg-red-500 hover:bg-red-400 text-white font-black rounded-2xl transition-all shadow-lg shadow-red-500/20 active:scale-[0.98] flex items-center justify-center gap-3 text-lg"
             >
-              <X className="w-5 h-5" />
+              <Download className="w-5 h-5" />
+              Install Now
             </button>
-          </div>
-
-          <div className="p-6">
-            <p className="text-slate-400 mb-6">Install RallyUp on your device for the best experience, faster load times, and offline access.</p>
-
-            <div className="flex bg-slate-950 p-1 rounded-xl mb-6">
-              <button
-                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'ios' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:text-slate-300'}`}
-                onClick={() => setActiveTab('ios')}
-              >
-                <Apple className="w-4 h-4" /> iOS
-              </button>
-              <button
-                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'android' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:text-slate-300'}`}
-                onClick={() => setActiveTab('android')}
-              >
-                <Smartphone className="w-4 h-4" /> Android
-              </button>
-              <button
-                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'desktop' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:text-slate-300'}`}
-                onClick={() => setActiveTab('desktop')}
-              >
-                <Monitor className="w-4 h-4" /> Desktop
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {activeTab === 'ios' && (
-                <div className="text-slate-300 space-y-4">
-                  <div className="flex gap-4 items-start">
-                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center font-bold text-red-500 shrink-0">1</div>
-                    <p>Open Safari and navigate to RallyUp.</p>
-                  </div>
-                  <div className="flex gap-4 items-start">
-                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center font-bold text-red-500 shrink-0">2</div>
-                    <p>Tap the <strong>Share</strong> button at the bottom of the screen.</p>
-                  </div>
-                  <div className="flex gap-4 items-start">
-                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center font-bold text-red-500 shrink-0">3</div>
-                    <p>Scroll down and tap <strong>Add to Home Screen</strong>.</p>
-                  </div>
+          ) : platform === 'ios' ? (
+            <div className="w-full space-y-4">
+              <div className="flex items-center gap-4 bg-slate-950/50 border border-slate-800 rounded-2xl p-4">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                  <Share2 className="w-5 h-5 text-blue-400" />
                 </div>
-              )}
-              {activeTab === 'android' && (
-                <div className="text-slate-300 space-y-4">
-                  <div className="flex gap-4 items-start">
-                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center font-bold text-red-500 shrink-0">1</div>
-                    <p>Open Chrome and navigate to RallyUp.</p>
-                  </div>
-                  <div className="flex gap-4 items-start">
-                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center font-bold text-red-500 shrink-0">2</div>
-                    <p>Tap the <strong>menu icon</strong> (3 dots in upper right-hand corner).</p>
-                  </div>
-                  <div className="flex gap-4 items-start">
-                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center font-bold text-red-500 shrink-0">3</div>
-                    <p>Tap <strong>Install app</strong> or <strong>Add to Home screen</strong>.</p>
-                  </div>
+                <div className="text-left">
+                  <p className="text-sm font-bold text-white">Tap Share</p>
+                  <p className="text-xs text-slate-400">in the Safari toolbar</p>
                 </div>
-              )}
-              {activeTab === 'desktop' && (
-                <div className="text-slate-300 space-y-4">
-                  <div className="flex gap-4 items-start">
-                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center font-bold text-red-500 shrink-0">1</div>
-                    <p>Open Chrome or Edge and navigate to RallyUp.</p>
-                  </div>
-                  <div className="flex gap-4 items-start">
-                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center font-bold text-red-500 shrink-0">2</div>
-                    <p>Click the <strong>Install</strong> icon in the right side of the address bar.</p>
-                  </div>
-                  <div className="flex gap-4 items-start">
-                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center font-bold text-red-500 shrink-0">3</div>
-                    <p>Click <strong>Install</strong> to confirm.</p>
-                  </div>
+              </div>
+              <div className="flex items-center gap-4 bg-slate-950/50 border border-slate-800 rounded-2xl p-4">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                  <Home className="w-5 h-5 text-emerald-400" />
                 </div>
-              )}
+                <div className="text-left">
+                  <p className="text-sm font-bold text-white">Add to Home Screen</p>
+                  <p className="text-xs text-slate-400">Scroll down and tap</p>
+                </div>
+              </div>
+              <p className="text-xs text-slate-500 mt-2">
+                You must use Safari browser on iOS to install PWAs.
+              </p>
             </div>
-            
-            <div className="mt-8 pt-6 border-t border-slate-800 text-center">
-              <button 
-                onClick={onClose}
-                className="px-6 py-3 bg-red-500 hover:bg-red-400 text-white font-bold rounded-xl transition-all shadow-lg shadow-red-500/20"
-              >
-                Got it, thanks!
-              </button>
+          ) : platform === 'android' ? (
+            <div className="w-full space-y-4">
+              <div className="flex items-center gap-4 bg-slate-950/50 border border-slate-800 rounded-2xl p-4">
+                <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center shrink-0">
+                  <span className="text-lg font-black text-slate-400">&#8942;</span>
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-bold text-white">Tap the menu</p>
+                  <p className="text-xs text-slate-400">3 dots in the top-right corner</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 bg-slate-950/50 border border-slate-800 rounded-2xl p-4">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                  <Download className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-bold text-white">Install App</p>
+                  <p className="text-xs text-slate-400">or Add to Home screen</p>
+                </div>
+              </div>
             </div>
-          </div>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+          ) : (
+            <div className="w-full space-y-4">
+              <div className="flex items-center gap-4 bg-slate-950/50 border border-slate-800 rounded-2xl p-4">
+                <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center shrink-0">
+                  <span className="text-lg font-black text-slate-400">&#x2395;</span>
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-bold text-white">Install icon</p>
+                  <p className="text-xs text-slate-400">in the address bar</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 bg-slate-950/50 border border-slate-800 rounded-2xl p-4">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                  <Download className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-bold text-white">Click Install</p>
+                  <p className="text-xs text-slate-400">to confirm</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={handleClose}
+            className="mt-6 text-sm text-slate-500 hover:text-slate-300 font-medium transition-colors"
+          >
+            Maybe later
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

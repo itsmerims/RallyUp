@@ -1,8 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Download, Bell, ArrowRight, Activity, MapPin, Award, Users, ChevronRight, Zap, Shield, CheckCircle2 } from 'lucide-react';
+import { Download, ArrowRight, Activity, MapPin, Award, Users, ChevronRight, Zap, Shield, CheckCircle2 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import InstallModal from './InstallModal';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
 
 interface LandingPageProps {
   onGetStarted: () => void;
@@ -16,12 +20,14 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
   const [isInstallable, setIsInstallable] = useState(false);
   const [activePage, setActivePage] = useState<PageState>('home');
   const [showInstallModal, setShowInstallModal] = useState(false);
+  const logoRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<HTMLDivElement>(null);
+  const counterRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Check if first time user to show modal
     const hasVisited = localStorage.getItem('rallyup_has_visited');
     if (!hasVisited) {
-      // Delay modal slightly for better UX
       const timer = setTimeout(() => {
         setShowInstallModal(true);
         localStorage.setItem('rallyup_has_visited', 'true');
@@ -44,27 +50,54 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
     };
   }, []);
 
-  const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      console.log('User accepted the install prompt');
+  useEffect(() => {
+    if (logoRef.current) {
+      gsap.to(logoRef.current, {
+        y: -6, duration: 2, ease: 'sine.inOut', yoyo: true, repeat: -1,
+      });
     }
-    setDeferredPrompt(null);
-    setIsInstallable(false);
+  }, []);
+
+  useEffect(() => {
+    if (chartRef.current) {
+      const bars = chartRef.current.querySelectorAll('.stat-bar');
+      gsap.fromTo(bars,
+        { height: '0%' },
+        {
+          height: (i) => `${[40, 70, 45, 90, 65, 85, 100][i]}%`,
+          duration: 1.2, stagger: 0.08, ease: 'back.out(1)',
+          scrollTrigger: { trigger: chartRef.current, start: 'top 85%' },
+        }
+      );
+    }
+  }, [activePage]);
+
+  useEffect(() => {
+    if (counterRef.current) {
+      const counters = counterRef.current.querySelectorAll('.num-counter');
+      gsap.fromTo(counters,
+        { textContent: 0 },
+        {
+          textContent: (i) => [68, 124, 12, 3400][i],
+          duration: 2, ease: 'power2.out', snap: { textContent: 1 },
+          scrollTrigger: { trigger: counterRef.current, start: 'top 85%' },
+        }
+      );
+    }
+  }, [activePage]);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') return;
+      setDeferredPrompt(null);
+      setIsInstallable(false);
+    }
+    setShowInstallModal(true);
   };
 
-  const handleNotificationRequest = async () => {
-    if ('Notification' in window) {
-      const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
-        new Notification('RallyUp', {
-          body: 'Notifications enabled! You will be alerted for upcoming matches.',
-        });
-      }
-    }
-  };
+
 
   const renderContent = () => {
     switch (activePage) {
@@ -146,6 +179,7 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="flex items-center gap-3 mb-6"
+                  ref={logoRef}
                 >
                   <div className="w-12 h-12 bg-red-500 rounded-xl flex items-center justify-center shadow-lg shadow-red-500/20">
                     <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -186,28 +220,22 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
                     Open App <ArrowRight className="w-5 h-5" />
                   </button>
                   
-                  {isInstallable && (
-                    <button 
-                      onClick={handleInstallClick}
-                      className="px-8 py-4 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-white font-bold rounded-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-lg"
-                    >
-                      <Download className="w-5 h-5" /> Install App
-                    </button>
-                  )}
+                  <button 
+                    onClick={handleInstallClick}
+                    className="px-8 py-4 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-white font-bold rounded-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-lg shadow-xl"
+                  >
+                    <Download className="w-5 h-5" /> Install App
+                  </button>
                 </motion.div>
                 
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.5 }}
-                  className="mt-8 flex items-center justify-center gap-4 text-sm text-slate-500 font-mono"
+                  className="mt-8 flex items-center justify-center gap-6 text-xs text-slate-500 font-mono"
                 >
-                  <button 
-                    onClick={handleNotificationRequest}
-                    className="flex items-center gap-2 hover:text-slate-300 transition-colors"
-                  >
-                    <Bell className="w-4 h-4" /> Enable Notifications
-                  </button>
+                  <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> No account required</span>
+                  <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> Free to use</span>
                 </motion.div>
               </div>
 
@@ -218,7 +246,7 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
                 viewport={{ once: true }}
                 className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl mb-32"
               >
-                <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-8 backdrop-blur-sm">
+                <motion.div whileHover={{ y: -4 }} className="bg-slate-900/50 border border-slate-800 rounded-3xl p-8 backdrop-blur-sm transition-shadow duration-300 hover:shadow-xl hover:shadow-emerald-500/5">
                   <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-6 border border-emerald-500/20">
                     <Activity className="w-6 h-6 text-emerald-400" />
                   </div>
@@ -226,9 +254,9 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
                   <p className="text-slate-400 leading-relaxed">
                     Real-time court management. See exactly who's playing, who's next, and estimated wait times.
                   </p>
-                </div>
+                </motion.div>
 
-                <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-8 backdrop-blur-sm">
+                <motion.div whileHover={{ y: -4 }} className="bg-slate-900/50 border border-slate-800 rounded-3xl p-8 backdrop-blur-sm transition-shadow duration-300 hover:shadow-xl hover:shadow-blue-500/5">
                   <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-6 border border-blue-500/20">
                     <Users className="w-6 h-6 text-blue-400" />
                   </div>
@@ -236,9 +264,9 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
                   <p className="text-slate-400 leading-relaxed">
                     Find players at your level. From beginners to advanced, enjoy competitive and balanced games.
                   </p>
-                </div>
+                </motion.div>
 
-                <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-8 backdrop-blur-sm">
+                <motion.div whileHover={{ y: -4 }} className="bg-slate-900/50 border border-slate-800 rounded-3xl p-8 backdrop-blur-sm transition-shadow duration-300 hover:shadow-xl hover:shadow-purple-500/5">
                   <div className="w-12 h-12 bg-purple-500/10 rounded-2xl flex items-center justify-center mb-6 border border-purple-500/20">
                     <MapPin className="w-6 h-6 text-purple-400" />
                   </div>
@@ -246,7 +274,7 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
                   <p className="text-slate-400 leading-relaxed">
                     Discover and join badminton communities in your area. Participate in regular club sessions.
                   </p>
-                </div>
+                </motion.div>
               </motion.div>
 
               {/* Find Your Tribe Section */}
@@ -300,24 +328,37 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
                     View Global Rankings <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
-                <div className="flex-1 bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
+                <div ref={counterRef} className="flex-1 bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
                   <div className="flex justify-between items-end mb-8">
                     <div>
                       <div className="text-sm text-slate-500 font-bold uppercase tracking-wider mb-1">Win Rate</div>
-                      <div className="text-4xl font-black text-white">68%</div>
+                      <div className="text-4xl font-black text-white"><span className="num-counter">0</span>%</div>
                     </div>
                     <div className="text-right">
                       <div className="text-sm text-slate-500 font-bold uppercase tracking-wider mb-1">Matches</div>
-                      <div className="text-4xl font-black text-white">124</div>
+                      <div className="text-4xl font-black text-white"><span className="num-counter">0</span></div>
                     </div>
                   </div>
-                  <div className="flex items-end gap-2 h-32">
+                  <div className="grid grid-cols-2 gap-6 mb-6">
+                    <div className="bg-slate-950/60 rounded-2xl p-4 border border-slate-800">
+                      <div className="text-xs text-slate-500 uppercase tracking-wider font-bold mb-1">Active Clubs</div>
+                      <div className="text-3xl font-black text-white"><span className="num-counter">0</span>+</div>
+                    </div>
+                    <div className="bg-slate-950/60 rounded-2xl p-4 border border-slate-800">
+                      <div className="text-xs text-slate-500 uppercase tracking-wider font-bold mb-1">Matches Tracked</div>
+                      <div className="text-3xl font-black text-white"><span className="num-counter">0</span>+</div>
+                    </div>
+                  </div>
+                  <div ref={chartRef} className="flex items-end gap-2 h-32 border-b border-slate-800 pb-1">
                     {[40, 70, 45, 90, 65, 85, 100].map((h, i) => (
                       <div key={i} className="flex-1 bg-red-500/20 rounded-t-sm relative group">
                         <div 
-                          className="absolute bottom-0 left-0 w-full bg-red-500 rounded-t-sm transition-all duration-500" 
-                          style={{ height: `${h}%` }}
-                        ></div>
+                          className="stat-bar absolute bottom-0 left-0 w-full bg-gradient-to-t from-red-500 to-orange-500 rounded-t-sm transition-all duration-500" 
+                          style={{ height: '0%' }}
+                        />
+                        <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] text-slate-500 font-mono opacity-0 group-hover:opacity-100 transition-opacity">
+                          {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i]}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -341,22 +382,28 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
               {/* Testimonials */}
               <div className="w-full max-w-5xl mb-32">
                 <h2 className="text-3xl font-black text-center mb-12">What clubs & players are saying</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <motion.div whileHover={{ y: -4 }} className="bg-slate-900 border border-slate-800 p-6 rounded-2xl transition-shadow hover:shadow-xl hover:shadow-red-500/5">
                     <div className="flex text-yellow-500 mb-4">
-                      {/* stars */}
                       {[1,2,3,4,5].map(i => <svg key={i} className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>)}
                     </div>
                     <p className="text-slate-300 mb-4">"RallyUp completely transformed how we run our Wednesday night sessions. What used to be 2 hours of me shouting names is now fully automated."</p>
                     <p className="font-bold text-white">— David L., Club Organizer</p>
-                  </div>
-                  <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+                  </motion.div>
+                  <motion.div whileHover={{ y: -4 }} className="bg-slate-900 border border-slate-800 p-6 rounded-2xl transition-shadow hover:shadow-xl hover:shadow-red-500/5">
                     <div className="flex text-yellow-500 mb-4">
                       {[1,2,3,4,5].map(i => <svg key={i} className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>)}
                     </div>
                     <p className="text-slate-300 mb-4">"Finally I can see how long the wait is before I leave my house. The skill matching is incredibly accurate too."</p>
                     <p className="font-bold text-white">— Sarah T., Intermediate Player</p>
-                  </div>
+                  </motion.div>
+                  <motion.div whileHover={{ y: -4 }} className="bg-slate-900 border border-slate-800 p-6 rounded-2xl transition-shadow hover:shadow-xl hover:shadow-red-500/5">
+                    <div className="flex text-yellow-500 mb-4">
+                      {[1,2,3,4,5].map(i => <svg key={i} className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>)}
+                    </div>
+                    <p className="text-slate-300 mb-4">"I went from dreading queue management to actually enjoying club nights. The auto-matchmaker is a lifesaver for our 40-person sessions."</p>
+                    <p className="font-bold text-white">— Mike R., Session Organizer</p>
+                  </motion.div>
                 </div>
               </div>
 
@@ -420,7 +467,37 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
         </div>
       </div>
       
-      <InstallModal isOpen={showInstallModal} onClose={() => setShowInstallModal(false)} />
+      <InstallModal isOpen={showInstallModal} onClose={() => setShowInstallModal(false)} deferredPrompt={deferredPrompt} isInstallable={isInstallable} />
+      
+      {/* Sticky Install Banner for mobile */}
+      <AnimatePresence>
+        {!showInstallModal && (
+          <motion.div
+            initial={{ y: 100 }}
+            animate={{ y: 0 }}
+            exit={{ y: 100 }}
+            className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 px-4 py-3 flex items-center justify-between gap-3"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 bg-red-500 rounded-xl flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-white truncate">Install RallyUp</p>
+                <p className="text-[10px] text-slate-400 truncate">Get the app for the best experience</p>
+              </div>
+            </div>
+            <button
+              onClick={handleInstallClick}
+              className="px-5 py-2.5 bg-red-500 hover:bg-red-400 text-white font-bold rounded-xl text-sm shrink-0 transition-all active:scale-95"
+            >
+              Install
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       <div className="flex-1 w-full relative z-10">
         <AnimatePresence mode="wait">

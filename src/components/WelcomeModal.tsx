@@ -1,17 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Shield, Sparkles, User, Timer } from 'lucide-react';
+import gsap from 'gsap';
 
 export default function WelcomeModal() {
   const { userProfile, updateProfile } = useAuth();
   const [countdown, setCountdown] = useState(10);
   const [isOpen, setIsOpen] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (userProfile && !userProfile.hasSeenWelcomeModal) {
       setIsOpen(true);
+      setVisible(true);
     }
   }, [userProfile]);
+
+  useEffect(() => {
+    if (isOpen && cardRef.current && overlayRef.current) {
+      gsap.fromTo(cardRef.current, 
+        { y: 40, opacity: 0, scale: 0.95 },
+        { y: 0, opacity: 1, scale: 1, duration: 0.5, ease: 'back.out(1.7)' }
+      );
+      gsap.fromTo(overlayRef.current,
+        { opacity: 0 },
+        { opacity: 1, duration: 0.3 }
+      );
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -24,13 +42,23 @@ export default function WelcomeModal() {
     return () => clearInterval(interval);
   }, [isOpen, countdown]);
 
-  if (!isOpen || !userProfile) return null;
+  if (!visible || !userProfile) return null;
 
   const handleAcknowledge = async () => {
     if (countdown > 0) return;
     try {
       await updateProfile({ hasSeenWelcomeModal: true });
-      setIsOpen(false);
+      if (cardRef.current) {
+        gsap.to(cardRef.current, {
+          y: 40, opacity: 0, scale: 0.95, duration: 0.25, ease: 'power2.in',
+        });
+      }
+      if (overlayRef.current) {
+        gsap.to(overlayRef.current, {
+          opacity: 0, duration: 0.2,
+          onComplete: () => setVisible(false),
+        });
+      }
     } catch (err) {
       console.error('Failed to update welcome modal status', err);
     }
@@ -41,10 +69,10 @@ export default function WelcomeModal() {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
       {/* Dark backdrop */}
-      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md" />
+      <div ref={overlayRef} className="absolute inset-0 bg-slate-950/80 backdrop-blur-md" />
       
       {/* Modal card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-6 md:p-8 relative z-10 shadow-2xl text-center text-slate-100 flex flex-col items-center">
+      <div ref={cardRef} className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-6 md:p-8 relative z-10 shadow-2xl text-center text-slate-100 flex flex-col items-center">
         {/* Animated Accent glow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-1 bg-gradient-to-r from-red-500 via-teal-500 to-red-500 rounded-full blur-sm" />
         

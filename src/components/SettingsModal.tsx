@@ -14,6 +14,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { user } = useAuth();
   const { financialConfig, updateFinancialConfig } = useAppStore();
   const [config, setConfig] = useState<FinancialConfig>(financialConfig);
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     setConfig(financialConfig);
@@ -21,33 +22,57 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   useEffect(() => {
     if (isOpen) {
-      gsap.fromTo('.settings-modal', 
-        { y: 50, opacity: 0, scale: 0.95 },
-        { y: 0, opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(1.5)' }
-      );
-      gsap.fromTo('.settings-overlay',
-        { opacity: 0 },
-        { opacity: 1, duration: 0.3 }
-      );
+      setVisible(true);
+      requestAnimationFrame(() => {
+        gsap.fromTo('.settings-modal', 
+          { y: 50, opacity: 0, scale: 0.95 },
+          { y: 0, opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(1.5)' }
+        );
+        gsap.fromTo('.settings-overlay',
+          { opacity: 0 },
+          { opacity: 1, duration: 0.3 }
+        );
+      });
+    } else if (visible) {
+      gsap.to('.settings-modal', {
+        y: 50, opacity: 0, scale: 0.95, duration: 0.25, ease: 'power2.in',
+      });
+      gsap.to('.settings-overlay', {
+        opacity: 0, duration: 0.2,
+        onComplete: () => setVisible(false),
+      });
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!visible) return null;
+
+  const handleClose = () => {
+    gsap.to('.settings-modal', {
+      y: 50, opacity: 0, scale: 0.95, duration: 0.25, ease: 'power2.in',
+    });
+    gsap.to('.settings-overlay', {
+      opacity: 0, duration: 0.2,
+      onComplete: () => {
+        setVisible(false);
+        onClose();
+      },
+    });
+  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (user) {
       updateFinancialConfig(user.uid, config);
     }
-    onClose();
+    handleClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm settings-overlay" onClick={onClose} />
+      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm settings-overlay" onClick={handleClose} />
       
       <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md p-6 relative z-10 shadow-2xl settings-modal">
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors">
+        <button onClick={handleClose} className="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors">
           <X className="w-6 h-6" />
         </button>
         
