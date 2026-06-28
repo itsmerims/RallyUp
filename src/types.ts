@@ -32,6 +32,7 @@ export interface Player {
   hasPaid: boolean;
   userId?: string;
   fcmTokens?: string[];
+  sessionId?: string;
   stats: {
     gamesPlayed: number;
     wins: number;

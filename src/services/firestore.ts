@@ -40,9 +40,12 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 }
 
 // Subscriptions
-export const subscribeToPlayers = (userId: string, callback: (players: Player[]) => void) => {
+export const subscribeToPlayers = (userId: string, callback: (players: Player[]) => void, sessionId?: string) => {
   const path = `users/${userId}/players`;
-  return onSnapshot(collection(db, path), (snapshot) => {
+  const ref = sessionId
+    ? query(collection(db, path), where('sessionId', '==', sessionId))
+    : collection(db, path);
+  return onSnapshot(ref, (snapshot) => {
     const players: Player[] = [];
     snapshot.forEach(doc => {
       const data = doc.data();
@@ -56,6 +59,7 @@ export const subscribeToPlayers = (userId: string, callback: (players: Player[])
         status: data.status,
         stats: data.stats,
         fcmTokens: data.fcmTokens || [],
+        sessionId: data.sessionId,
       } as Player);
     });
     callback(players);

@@ -57,6 +57,7 @@ export default function SessionModal({ isOpen, onClose, user, currentSessionId, 
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       const matchSessionId = currentSessionId || 'sess_' + Math.random().toString(36).substring(2, 10);
       if (!currentSessionId) setCurrentSessionId(matchSessionId);
+      localStorage.removeItem('rallyup_is_temporary');
       await firestoreService.saveSessionMapping(code, user.uid, true, matchSessionId);
       localStorage.setItem(`rallyup_session_${user.uid}`, code);
       setSessionCode(code);
@@ -75,6 +76,7 @@ export default function SessionModal({ isOpen, onClose, user, currentSessionId, 
       await firestoreService.saveSessionMapping(sessionCode, user.uid, false);
       localStorage.removeItem(`rallyup_session_${user.uid}`);
       localStorage.removeItem('rallyup_current_session_id');
+      localStorage.removeItem('rallyup_is_temporary');
       setCurrentSessionId('');
       setSessionCode('');
       setStep('start');

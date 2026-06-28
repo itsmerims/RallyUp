@@ -24,6 +24,7 @@ import { requestNotificationPermission, setupMessageListener } from '../services
 import gsap from 'gsap';
 import PlayerInfoModal from './PlayerInfoModal';
 import SessionModal from './SessionModal';
+import SessionChoiceModal from './SessionChoiceModal';
 
 export default function Dashboard() {
   const { user, userProfile, logout } = useAuth();
@@ -173,6 +174,7 @@ export default function Dashboard() {
 
   // Session modal
   const [showSessionModal, setShowSessionModal] = useState(false);
+  const [showSessionChoice, setShowSessionChoice] = useState(false);
 
   // Connection management for player role
   const [joinedQmUserId, setJoinedQmUserId] = useState<string | null>(() => {
@@ -192,6 +194,7 @@ export default function Dashboard() {
     localStorage.removeItem('rallyup_joined_qm');
     localStorage.removeItem('rallyup_joined_code');
     localStorage.removeItem('rallyup_current_session_id');
+    localStorage.removeItem('rallyup_is_temporary');
     setCurrentSessionId('');
     setPlayers([]);
     setCourts([]);
@@ -209,10 +212,6 @@ export default function Dashboard() {
 
     let isInitialLoad = true;
     
-    const unsubPlayers = firestoreService.subscribeToPlayers(targetUserId, (playersData) => {
-      setPlayers(playersData);
-    });
-    
     const unsubCourts = firestoreService.subscribeToCourts(targetUserId, (courtsData) => {
       if (courtsData.length === 0 && isInitialLoad && userProfile.role === 'QUEUE_MASTER') {
         initializeCourts(user.uid);
@@ -222,10 +221,14 @@ export default function Dashboard() {
     });
     
     const sessionFilter = currentSessionId || undefined;
+    const unsubPlayers = firestoreService.subscribeToPlayers(targetUserId, (playersData) => {
+      setPlayers(playersData);
+    }, sessionFilter);
+
     const unsubMatches = firestoreService.subscribeToMatches(targetUserId, (matchesData) => {
       setMatches(matchesData);
     }, sessionFilter);
-    
+
     const unsubConfig = firestoreService.subscribeToFinancialConfig(targetUserId, (configData) => {
       if (configData) setFinancialConfig(configData);
     });
@@ -243,6 +246,23 @@ export default function Dashboard() {
       clearTimeout(timer);
     };
   }, [user, userProfile, joinedQmUserId, currentSessionId, setPlayers, setCourts, setMatches, setFinancialConfig, setDataLoaded, initializeCourts]);
+
+  // Show session choice modal for QMs without an active session
+  useEffect(() => {
+    if (dataLoaded && isQM && !currentSessionId && !localStorage.getItem('rallyup_is_temporary')) {
+      setShowSessionChoice(true);
+    }
+  }, [dataLoaded, isQM, currentSessionId]);
+
+  const handleStartSessionChoice = async () => {
+    setShowSessionChoice(false);
+    setShowSessionModal(true);
+  };
+
+  const handleTemporarySessionChoice = () => {
+    localStorage.setItem('rallyup_is_temporary', 'true');
+    setShowSessionChoice(false);
+  };
 
   if (isLoading) {
     return (
@@ -465,7 +485,11 @@ export default function Dashboard() {
               </button>
               <div className="absolute top-full right-0 mt-1.5 bg-slate-900 border border-slate-800 rounded-xl p-2 shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
                 <span className="text-[10px] font-bold text-slate-400">
-                  {currentSessionId ? 'View session details' : 'Start new session'}
+                  {currentSessionId
+                    ? 'View session details'
+                    : localStorage.getItem('rallyup_is_temporary')
+                      ? 'Temporary session — start a real session?'
+                      : 'Start new session'}
                 </span>
               </div>
             </div>
@@ -1149,6 +1173,11 @@ export default function Dashboard() {
         user={user}
         currentSessionId={currentSessionId}
         setCurrentSessionId={setCurrentSessionId}
+      />
+      <SessionChoiceModal
+        isOpen={showSessionChoice}
+        onStartSession={handleStartSessionChoice}
+        onTemporarySession={handleTemporarySessionChoice}
       />
     </div>
   );
