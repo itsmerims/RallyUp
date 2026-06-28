@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAppStore } from '../store';
 import * as firestoreService from '../services/firestore';
-import { Settings, Shield, User, Globe, MapPin, Save, Plus, Trash2, Key, HelpCircle, Check, Loader2, RefreshCw, Info, ChevronDown, MoreVertical, Link, Copy, QrCode } from 'lucide-react';
+import { Settings, Shield, User, Globe, MapPin, Save, Plus, Trash2, Key, HelpCircle, Check, Loader2, RefreshCw, Info, ChevronDown, MoreVertical, Link, Copy, QrCode, Monitor, MonitorOff } from 'lucide-react';
 import { SkillTier } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -14,7 +14,7 @@ interface SettingsPageProps {
 
 export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessionLeft }: SettingsPageProps) {
   const { user, userProfile, updateProfile } = useAuth();
-  const { courts, addCourt, deleteCourt } = useAppStore();
+  const { courts, addCourt, deleteCourt, currentSessionId, setCurrentSessionId } = useAppStore();
 
   // Collapsible States
   const [openSections, setOpenSections] = useState({
@@ -120,7 +120,10 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
     setSessionGenerating(true);
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     try {
-      await firestoreService.saveSessionMapping(code, user.uid, true);
+      // Auto-start a match session for per-session match isolation
+      const matchSessionId = currentSessionId || 'sess_' + Math.random().toString(36).substring(2, 10);
+      if (!currentSessionId) setCurrentSessionId(matchSessionId);
+      await firestoreService.saveSessionMapping(code, user.uid, true, matchSessionId);
       localStorage.setItem(`rallyup_session_${user.uid}`, code);
       setSessionId(code);
       setIsSessionActive(true);
@@ -137,6 +140,9 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
     try {
       await firestoreService.saveSessionMapping(sessionId, user.uid, false);
       localStorage.removeItem(`rallyup_session_${user.uid}`);
+      // Also end the match session
+      localStorage.removeItem('rallyup_current_session_id');
+      setCurrentSessionId('');
       setSessionId('');
       setIsSessionActive(false);
     } catch (err) {
@@ -156,12 +162,15 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
     }
     setJoinLoading(true);
     try {
-      const qmId = await firestoreService.getSessionMapping(joiningCode.trim());
-      if (qmId) {
+      const result = await firestoreService.getSessionMapping(joiningCode.trim());
+      if (result) {
         if (onSessionJoined) {
-          onSessionJoined(qmId);
-          localStorage.setItem('rallyup_joined_qm', qmId);
+          onSessionJoined(result.qmUserId);
+          localStorage.setItem('rallyup_joined_qm', result.qmUserId);
           localStorage.setItem('rallyup_joined_code', joiningCode.trim());
+          if (result.matchSessionId) {
+            localStorage.setItem('rallyup_current_session_id', result.matchSessionId);
+          }
         }
       } else {
         setJoinError('Active Session ID not found or expired.');
@@ -353,6 +362,18 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
                               <span className="text-4xl font-black text-white font-mono tracking-widest bg-slate-900 px-6 py-2 rounded-xl border border-slate-800">
                                 {sessionId}
                               </span>
+
+                              {/* Match session indicator integrated here */}
+                              <div className="flex items-center gap-2">
+                                <Monitor className={`w-3.5 h-3.5 ${currentSessionId ? 'text-emerald-400' : 'text-slate-600'}`} />
+                                <span className={`text-[9px] font-bold uppercase tracking-wider ${currentSessionId ? 'text-emerald-400' : 'text-slate-600'}`}>
+                                  Match Session: {currentSessionId ? 'Active' : 'Inactive'}
+                                </span>
+                                {currentSessionId && (
+                                  <span className="text-[8px] font-mono text-slate-500">({currentSessionId})</span>
+                                )}
+                              </div>
+
                               <div className="flex gap-2 mt-1">
                                 <button
                                   onClick={() => {

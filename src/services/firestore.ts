@@ -84,9 +84,12 @@ export const subscribeToCourts = (userId: string, callback: (courts: Court[]) =>
   });
 };
 
-export const subscribeToMatches = (userId: string, callback: (matches: Match[]) => void) => {
+export const subscribeToMatches = (userId: string, callback: (matches: Match[]) => void, sessionId?: string) => {
   const path = `users/${userId}/matches`;
-  return onSnapshot(collection(db, path), (snapshot) => {
+  const ref = sessionId
+    ? query(collection(db, path), where('sessionId', '==', sessionId))
+    : collection(db, path);
+  return onSnapshot(ref, (snapshot) => {
     const matches: Match[] = [];
     snapshot.forEach(doc => {
       const data = doc.data();
@@ -100,6 +103,7 @@ export const subscribeToMatches = (userId: string, callback: (matches: Match[]) 
         scoreA: data.scoreA,
         scoreB: data.scoreB,
         shuttlecocksUsed: data.shuttlecocksUsed,
+        sessionId: data.sessionId,
       } as Match);
     });
     callback(matches);
@@ -308,21 +312,21 @@ export const subscribeToGlobalProfiles = (callback: (profiles: any[]) => void) =
 };
 
 // Session mapping operations (6-digit code mapping to QM's userId)
-export const saveSessionMapping = async (sessionId: string, qmUserId: string, active: boolean) => {
+export const saveSessionMapping = async (sessionId: string, qmUserId: string, active: boolean, matchSessionId?: string) => {
   const path = `sessions/${sessionId}`;
   try {
-    await setDoc(doc(db, 'sessions', sessionId), { qmUserId, active });
+    await setDoc(doc(db, 'sessions', sessionId), { qmUserId, active, matchSessionId });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 };
 
-export const getSessionMapping = async (sessionId: string): Promise<string | null> => {
+export const getSessionMapping = async (sessionId: string): Promise<{ qmUserId: string; matchSessionId?: string } | null> => {
   const path = `sessions/${sessionId}`;
   try {
     const docSnap = await getDoc(doc(db, 'sessions', sessionId));
     if (docSnap.exists() && docSnap.data().active) {
-      return docSnap.data().qmUserId;
+      return { qmUserId: docSnap.data().qmUserId, matchSessionId: docSnap.data().matchSessionId };
     }
     return null;
   } catch (error) {

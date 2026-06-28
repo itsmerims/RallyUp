@@ -27,8 +27,8 @@ import PlayerInfoModal from './PlayerInfoModal';
 export default function Dashboard() {
   const { user, userProfile, logout } = useAuth();
   const { 
-    players, courts, matches, isLoading, dataLoaded,
-    setPlayers, setCourts, setMatches, setFinancialConfig, setDataLoaded, initializeCourts,
+    players, courts, matches, isLoading, dataLoaded, currentSessionId,
+    setPlayers, setCourts, setMatches, setFinancialConfig, setDataLoaded, setCurrentSessionId, initializeCourts,
     togglePlayerPaid, completeMatch, deletePlayer, addCourt, deleteCourt
   } = useAppStore();
   
@@ -156,11 +156,14 @@ export default function Dashboard() {
     const params = new URLSearchParams(window.location.search);
     const joinCode = params.get('join');
     if (joinCode && !localStorage.getItem('rallyup_joined_qm')) {
-      firestoreService.getSessionMapping(joinCode).then((qmId) => {
-        if (qmId) {
-          setJoinedQmUserId(qmId);
-          localStorage.setItem('rallyup_joined_qm', qmId);
+      firestoreService.getSessionMapping(joinCode).then((result) => {
+        if (result) {
+          setJoinedQmUserId(result.qmUserId);
+          localStorage.setItem('rallyup_joined_qm', result.qmUserId);
           localStorage.setItem('rallyup_joined_code', joinCode);
+          if (result.matchSessionId) {
+            localStorage.setItem('rallyup_current_session_id', result.matchSessionId);
+          }
           window.history.replaceState({}, '', window.location.pathname);
         }
       });
@@ -175,6 +178,8 @@ export default function Dashboard() {
   const handleSessionJoined = (qmUserId: string) => {
     setJoinedQmUserId(qmUserId);
     localStorage.setItem('rallyup_joined_qm', qmUserId);
+    const storedSessionId = localStorage.getItem('rallyup_current_session_id');
+    if (storedSessionId) setCurrentSessionId(storedSessionId);
     setActiveTab('courts');
   };
 
@@ -182,6 +187,8 @@ export default function Dashboard() {
     setJoinedQmUserId(null);
     localStorage.removeItem('rallyup_joined_qm');
     localStorage.removeItem('rallyup_joined_code');
+    localStorage.removeItem('rallyup_current_session_id');
+    setCurrentSessionId('');
     setPlayers([]);
     setCourts([]);
     setMatches([]);
@@ -210,9 +217,10 @@ export default function Dashboard() {
       }
     });
     
+    const sessionFilter = currentSessionId || undefined;
     const unsubMatches = firestoreService.subscribeToMatches(targetUserId, (matchesData) => {
       setMatches(matchesData);
-    });
+    }, sessionFilter);
     
     const unsubConfig = firestoreService.subscribeToFinancialConfig(targetUserId, (configData) => {
       if (configData) setFinancialConfig(configData);
@@ -230,7 +238,7 @@ export default function Dashboard() {
       unsubConfig();
       clearTimeout(timer);
     };
-  }, [user, userProfile, joinedQmUserId, setPlayers, setCourts, setMatches, setFinancialConfig, setDataLoaded, initializeCourts]);
+  }, [user, userProfile, joinedQmUserId, currentSessionId, setPlayers, setCourts, setMatches, setFinancialConfig, setDataLoaded, initializeCourts]);
 
   if (isLoading) {
     return (
@@ -369,6 +377,11 @@ export default function Dashboard() {
           <h1 className="text-xl md:text-2xl font-black tracking-tighter uppercase italic text-white flex items-center gap-2">
             RallyUp
             <span className="hidden sm:inline-block text-[9px] font-black uppercase tracking-widest bg-slate-850 text-slate-400 border border-slate-800 px-2.5 py-0.5 rounded">PH</span>
+            {currentSessionId && (
+              <span className="text-[8px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                Session
+              </span>
+            )}
           </h1>
         </div>
 
@@ -433,6 +446,35 @@ export default function Dashboard() {
 
         {/* Right header buttons */}
         <div className="flex items-center gap-3">
+          {isQM && (
+            <div className="relative group">
+              <button
+                onClick={() => {
+                  if (currentSessionId) {
+                    setCurrentSessionId('');
+                    setMatches([]);
+                  } else {
+                    const newId = 'sess_' + Math.random().toString(36).substring(2, 10);
+                    setCurrentSessionId(newId);
+                  }
+                }}
+                className={`flex items-center justify-center w-9 h-9 rounded-xl border transition-colors ${
+                  currentSessionId
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
+                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+                title={currentSessionId ? 'End Session' : 'Start New Session'}
+              >
+                {currentSessionId ? <Monitor className="w-4.5 h-4.5" /> : <MonitorOff className="w-4.5 h-4.5" />}
+              </button>
+              <div className="absolute top-full right-0 mt-1.5 bg-slate-900 border border-slate-800 rounded-xl p-2 shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                <span className="text-[10px] font-bold text-slate-400">
+                  {currentSessionId ? 'End current session' : 'Start new session'}
+                </span>
+              </div>
+            </div>
+          )}
+
           <ThemeToggle />
           
           <button 

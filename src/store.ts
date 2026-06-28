@@ -10,6 +10,7 @@ interface AppState {
   financialConfig: FinancialConfig;
   isLoading: boolean;
   dataLoaded: boolean;
+  currentSessionId: string;
   
   // Internal setters for syncing
   setPlayers: (players: Player[]) => void;
@@ -17,6 +18,7 @@ interface AppState {
   setMatches: (matches: Match[]) => void;
   setFinancialConfig: (config: FinancialConfig) => void;
   setDataLoaded: (loaded: boolean) => void;
+  setCurrentSessionId: (id: string) => void;
 
   // Actions
   addPlayer: (userId: string, player: Omit<Player, 'id' | 'hasPaid' | 'ratingScore' | 'joinedAt' | 'stats' | 'status'>) => void;
@@ -56,12 +58,21 @@ export const useAppStore = create<AppState>()(
     },
     isLoading: true,
     dataLoaded: false,
+    currentSessionId: localStorage.getItem('rallyup_current_session_id') || '',
     
     setPlayers: (players) => set({ players }),
     setCourts: (courts) => set({ courts }),
     setMatches: (matches) => set({ matches }),
     setFinancialConfig: (config) => set({ financialConfig: config }),
     setDataLoaded: (loaded) => set({ dataLoaded: loaded, isLoading: !loaded }),
+    setCurrentSessionId: (id) => {
+      if (id) {
+        localStorage.setItem('rallyup_current_session_id', id);
+      } else {
+        localStorage.removeItem('rallyup_current_session_id');
+      }
+      set({ currentSessionId: id });
+    },
     
     addPlayer: async (userId, playerData) => {
       const newPlayer: Player = {
@@ -107,6 +118,7 @@ export const useAppStore = create<AppState>()(
         startTime: court.status === 'Available' ? Date.now() : null,
         status: court.status === 'Available' ? 'Active' : 'Waiting',
         shuttlecocksUsed: 0,
+        sessionId: get().currentSessionId || undefined,
       };
 
       await firestoreService.saveMatch(userId, newMatch);

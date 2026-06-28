@@ -50,6 +50,7 @@ export interface Match {
   shuttlecocksUsed: number;
   scoreA?: number;
   scoreB?: number;
+  sessionId?: string;
 }
 
 export interface Court {
