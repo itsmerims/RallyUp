@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '../store';
 import { useAuth } from '../contexts/AuthContext';
-import { Activity, Users, Trophy, Award, MapPin, Key, Shield, RefreshCw, Sparkles, AlertCircle, HelpCircle, Bell, BellRing } from 'lucide-react';
+import { Activity, Users, Trophy, Award, MapPin, Key, Shield, RefreshCw, Sparkles, AlertCircle, HelpCircle, Bell, BellRing, Loader2 } from 'lucide-react';
 import CourtScene from './CourtScene';
 import { SkillTier } from '../types';
 import { requestPlayerNotificationPermission } from '../services/notifications';
