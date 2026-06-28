@@ -165,6 +165,7 @@ export default function Dashboard() {
           localStorage.setItem('rallyup_joined_code', joinCode);
           if (result.matchSessionId) {
             localStorage.setItem('rallyup_current_session_id', result.matchSessionId);
+            setCurrentSessionId(result.matchSessionId);
           }
           window.history.replaceState({}, '', window.location.pathname);
         }
@@ -181,11 +182,10 @@ export default function Dashboard() {
     return localStorage.getItem('rallyup_joined_qm');
   });
 
-  const handleSessionJoined = (qmUserId: string) => {
+  const handleSessionJoined = (qmUserId: string, matchSessionId?: string) => {
     setJoinedQmUserId(qmUserId);
     localStorage.setItem('rallyup_joined_qm', qmUserId);
-    const storedSessionId = localStorage.getItem('rallyup_current_session_id');
-    if (storedSessionId) setCurrentSessionId(storedSessionId);
+    if (matchSessionId) setCurrentSessionId(matchSessionId);
     setActiveTab('courts');
   };
 

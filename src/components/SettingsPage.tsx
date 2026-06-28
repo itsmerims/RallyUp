@@ -7,7 +7,7 @@ import { SkillTier } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface SettingsPageProps {
-  onSessionJoined?: (qmUserId: string) => void;
+  onSessionJoined?: (qmUserId: string, matchSessionId?: string) => void;
   joinedQmUserId: string | null;
   onSessionLeft?: () => void;
 }
@@ -168,13 +168,13 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
     try {
       const result = await firestoreService.getSessionMapping(joiningCode.trim());
       if (result) {
+        localStorage.setItem('rallyup_joined_qm', result.qmUserId);
+        localStorage.setItem('rallyup_joined_code', joiningCode.trim());
+        if (result.matchSessionId) {
+          localStorage.setItem('rallyup_current_session_id', result.matchSessionId);
+        }
         if (onSessionJoined) {
-          onSessionJoined(result.qmUserId);
-          localStorage.setItem('rallyup_joined_qm', result.qmUserId);
-          localStorage.setItem('rallyup_joined_code', joiningCode.trim());
-          if (result.matchSessionId) {
-            localStorage.setItem('rallyup_current_session_id', result.matchSessionId);
-          }
+          onSessionJoined(result.qmUserId, result.matchSessionId);
         }
       } else {
         setJoinError('Active Session ID not found or expired.');
