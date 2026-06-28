@@ -25,11 +25,17 @@ export default function SessionModal({ isOpen, onClose, user, currentSessionId, 
   const [showQR, setShowQR] = useState(false);
 
   useEffect(() => {
-    if (isOpen && cardRef.current) {
-      gsap.fromTo(cardRef.current,
-        { y: 40, opacity: 0, scale: 0.92 },
-        { y: 0, opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(1.7)' }
-      );
+    if (isOpen) {
+      setStep(currentSessionId ? 'done' : 'start');
+      if (user) setSessionCode(localStorage.getItem(`rallyup_session_${user.uid}`) || '');
+      setShowQR(false);
+      setCopySuccess(false);
+      if (cardRef.current) {
+        gsap.fromTo(cardRef.current,
+          { y: 40, opacity: 0, scale: 0.92 },
+          { y: 0, opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(1.7)' }
+        );
+      }
     }
   }, [isOpen]);
 
@@ -71,7 +77,9 @@ export default function SessionModal({ isOpen, onClose, user, currentSessionId, 
       localStorage.removeItem('rallyup_current_session_id');
       setCurrentSessionId('');
       setSessionCode('');
+      setStep('start');
       setShowQR(false);
+      setCopySuccess(false);
       handleClose();
     } catch (err) {
       console.error(err);
