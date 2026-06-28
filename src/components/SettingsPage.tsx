@@ -98,6 +98,10 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
         country,
         role,
       });
+      // Sync tier and name to player docs in QM rosters
+      if (user) {
+        firestoreService.syncProfileToPlayerRosters(user.uid, name, skillTier);
+      }
       setSaveSuccess(true);
       if (roleChanged) {
         await new Promise(resolve => setTimeout(resolve, 500));

@@ -260,6 +260,21 @@ export const initializeDefaultCourts = async (userId: string) => {
   }
 };
 
+// Sync profile changes (name, tier) to player docs in QM rosters
+export const syncProfileToPlayerRosters = async (userId: string, name: string, tier: SkillTier) => {
+  const qmUserId = localStorage.getItem('rallyup_joined_qm');
+  if (!qmUserId) return;
+  const path = `users/${qmUserId}/players/${userId}`;
+  try {
+    await updateDoc(doc(db, path), { name, tier });
+  } catch (error) {
+    // Doc may not exist yet; silently ignore
+    if (error instanceof Error && !error.message.includes('document does not exist')) {
+      handleFirestoreError(error, OperationType.UPDATE, path);
+    }
+  }
+};
+
 // Auto-register a player into a QM's roster when they join a session
 export const autoRegisterPlayer = async (qmUserId: string, playerId: string, name: string, tier: SkillTier, sessionId: string) => {
   const path = `users/${qmUserId}/players/${playerId}`;
