@@ -23,6 +23,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { requestNotificationPermission, setupMessageListener } from '../services/notifications';
 import gsap from 'gsap';
 import PlayerInfoModal from './PlayerInfoModal';
+import SessionModal from './SessionModal';
 
 export default function Dashboard() {
   const { user, userProfile, logout } = useAuth();
@@ -169,6 +170,9 @@ export default function Dashboard() {
       });
     }
   }, []);
+
+  // Session modal
+  const [showSessionModal, setShowSessionModal] = useState(false);
 
   // Connection management for player role
   const [joinedQmUserId, setJoinedQmUserId] = useState<string | null>(() => {
@@ -449,27 +453,19 @@ export default function Dashboard() {
           {isQM && (
             <div className="relative group">
               <button
-                onClick={() => {
-                  if (currentSessionId) {
-                    setCurrentSessionId('');
-                    setMatches([]);
-                  } else {
-                    const newId = 'sess_' + Math.random().toString(36).substring(2, 10);
-                    setCurrentSessionId(newId);
-                  }
-                }}
+                onClick={() => setShowSessionModal(true)}
                 className={`flex items-center justify-center w-9 h-9 rounded-xl border transition-colors ${
                   currentSessionId
                     ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
                     : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
-                title={currentSessionId ? 'End Session' : 'Start New Session'}
+                title={currentSessionId ? 'View Session' : 'Start New Session'}
               >
                 {currentSessionId ? <Monitor className="w-4.5 h-4.5" /> : <MonitorOff className="w-4.5 h-4.5" />}
               </button>
               <div className="absolute top-full right-0 mt-1.5 bg-slate-900 border border-slate-800 rounded-xl p-2 shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
                 <span className="text-[10px] font-bold text-slate-400">
-                  {currentSessionId ? 'End current session' : 'Start new session'}
+                  {currentSessionId ? 'View session details' : 'Start new session'}
                 </span>
               </div>
             </div>
@@ -1147,6 +1143,13 @@ export default function Dashboard() {
       <AddPlayerModal isOpen={isAddPlayerModalOpen} onClose={() => setIsAddPlayerModalOpen(false)} />
       <NotificationToast toasts={toasts} onDismiss={dismissToast} />
       <PlayerInfoModal isOpen={!!detailPlayer} player={detailPlayer} players={players} matches={matches} onClose={() => setDetailPlayer(null)} />
+      <SessionModal
+        isOpen={showSessionModal}
+        onClose={() => setShowSessionModal(false)}
+        user={user}
+        currentSessionId={currentSessionId}
+        setCurrentSessionId={setCurrentSessionId}
+      />
     </div>
   );
 }
