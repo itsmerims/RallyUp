@@ -20,6 +20,7 @@ export interface UserProfile {
     currentStreak: number;
   };
   fcmTokens?: string[];
+  clubIds?: string[];
 }
 
 export interface Player {
@@ -67,6 +68,25 @@ export interface FinancialConfig {
   courtFee: number;
   shuttleFee: number;
   fixedRate: number;
+}
+
+export interface Club {
+  id: string;
+  name: string;
+  description: string;
+  ownerId: string;
+  ownerName: string;
+  createdAt: number;
+  joinCode: string;
+  memberCount: number;
+}
+
+export interface ClubMember {
+  id: string;
+  role: 'owner' | 'member';
+  joinedAt: number;
+  name: string;
+  fcmTokens?: string[];
 }
 
 export type NotificationType = 'NEXT_UP' | 'COURT_READY';

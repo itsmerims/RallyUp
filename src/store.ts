@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Player, Court, Match, FinancialConfig, SkillTier } from './types';
+import { Player, Court, Match, FinancialConfig, SkillTier, Club, ClubMember } from './types';
 import * as firestoreService from './services/firestore';
 import { sendMatchNotification } from './services/notifications';
 
@@ -8,6 +8,8 @@ interface AppState {
   courts: Court[];
   matches: Match[];
   financialConfig: FinancialConfig;
+  clubs: Club[];
+  clubMembers: ClubMember[];
   isLoading: boolean;
   dataLoaded: boolean;
   currentSessionId: string;
@@ -17,6 +19,8 @@ interface AppState {
   setCourts: (courts: Court[]) => void;
   setMatches: (matches: Match[]) => void;
   setFinancialConfig: (config: FinancialConfig) => void;
+  setClubs: (clubs: Club[]) => void;
+  setClubMembers: (members: ClubMember[]) => void;
   setDataLoaded: (loaded: boolean) => void;
   setCurrentSessionId: (id: string) => void;
 
@@ -50,6 +54,8 @@ export const useAppStore = create<AppState>()(
     players: [],
     courts: [],
     matches: [],
+    clubs: [],
+    clubMembers: [],
     financialConfig: {
       mode: 'Breakdown',
       courtFee: 0,
@@ -64,6 +70,8 @@ export const useAppStore = create<AppState>()(
     setCourts: (courts) => set({ courts }),
     setMatches: (matches) => set({ matches }),
     setFinancialConfig: (config) => set({ financialConfig: config }),
+    setClubs: (clubs) => set({ clubs }),
+    setClubMembers: (members) => set({ clubMembers: members }),
     setDataLoaded: (loaded) => set({ dataLoaded: loaded, isLoading: !loaded }),
     setCurrentSessionId: (id) => {
       if (id) {

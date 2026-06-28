@@ -125,5 +125,44 @@ service cloud.firestore {
       allow create, update: if isSignedIn();
       allow delete: if isSignedIn();
     }
+
+    function isValidClub(data) {
+      return data.keys().hasAll(['name', 'description', 'ownerId', 'ownerName', 'createdAt', 'joinCode', 'memberCount'])
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.description is string && data.description.size() <= 500
+        && data.ownerId == request.auth.uid
+        && data.ownerName is string && data.ownerName.size() > 0
+        && data.createdAt is number
+        && data.joinCode is string && data.joinCode.size() >= 4 && data.joinCode.size() <= 10
+        && data.memberCount is number && data.memberCount >= 1;
+    }
+
+    function isValidClubMember(data, userId) {
+      return data.keys().hasAll(['role', 'joinedAt', 'name'])
+        && data.role in ['owner', 'member']
+        && data.joinedAt is number
+        && data.name is string && data.name.size() > 0;
+    }
+
+    match /clubs/{clubId} {
+      allow read: if isSignedIn() && isValidId(clubId);
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(clubId) && isValidClub(incoming());
+      allow update: if isOwner(incoming().ownerId) && isValidId(clubId);
+      // Allow memberCount updates from member create/delete
+      allow update: if isSignedIn() && isValidId(clubId)
+        && incoming().keys().hasOnly(['memberCount'])
+        && incoming().memberCount is number;
+      allow delete: if isOwner(get(/databases/$(database)/documents/clubs/$(clubId)).data.ownerId);
+    }
+
+    match /clubs/{clubId}/members/{userId} {
+      allow read: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidClubMember(incoming(), userId);
+      allow update: if request.auth.uid == userId && isValidClubMember(incoming(), userId);
+      allow delete: if request.auth.uid == userId
+        || request.auth.uid == get(/databases/$(database)/documents/clubs/$(clubId)).data.ownerId;
+    }
   }
 }

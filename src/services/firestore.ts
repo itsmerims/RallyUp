@@ -1,9 +1,9 @@
 import { db, auth } from '../firebase';
 import { 
   collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, 
-  onSnapshot, query, where, writeBatch 
+  onSnapshot, query, where, writeBatch, arrayUnion, arrayRemove, increment
 } from 'firebase/firestore';
-import { Player, Court, Match, FinancialConfig, SkillTier } from '../types';
+import { Player, Court, Match, FinancialConfig, SkillTier, Club, ClubMember } from '../types';
 
 enum OperationType {
   CREATE = 'create',
@@ -384,6 +384,133 @@ export const deleteAllPlayers = async (userId: string) => {
     await batch.commit();
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
+  }
+};
+
+// --- Club operations ---
+
+export const subscribeToClub = (clubId: string, callback: (club: Club | null) => void) => {
+  const path = `clubs/${clubId}`;
+  return onSnapshot(doc(db, path), (docSnap) => {
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      callback({ id: docSnap.id, ...data } as Club);
+    } else {
+      callback(null);
+    }
+  }, (error) => {
+    handleFirestoreError(error, OperationType.GET, path);
+    callback(null);
+  });
+};
+
+export const subscribeToClubMembers = (clubId: string, callback: (members: ClubMember[]) => void) => {
+  const path = `clubs/${clubId}/members`;
+  return onSnapshot(collection(db, path), (snapshot) => {
+    const members: ClubMember[] = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      members.push({ id: doc.id, ...data } as ClubMember);
+    });
+    callback(members);
+  }, (error) => {
+    handleFirestoreError(error, OperationType.LIST, path);
+  });
+};
+
+export const createClub = async (ownerId: string, name: string, description: string, ownerName: string): Promise<string | null> => {
+  const clubId = 'club_' + Math.random().toString(36).substring(7);
+  const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const path = `clubs/${clubId}`;
+  try {
+    await setDoc(doc(db, path), {
+      name,
+      description,
+      ownerId,
+      ownerName,
+      createdAt: Date.now(),
+      joinCode,
+      memberCount: 1,
+    });
+    // Add owner as first member
+    await setDoc(doc(db, `clubs/${clubId}/members`, ownerId), {
+      role: 'owner',
+      joinedAt: Date.now(),
+      name: ownerName,
+    });
+    // Add clubId to owner's profile
+    await updateDoc(doc(db, 'profiles', ownerId), {
+      clubIds: arrayUnion(clubId),
+    });
+    return clubId;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+    return null;
+  }
+};
+
+export const getClubByJoinCode = async (joinCode: string): Promise<Club | null> => {
+  const path = 'clubs';
+  try {
+    const q = query(collection(db, path), where('joinCode', '==', joinCode.toUpperCase()));
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+      const docSnap = snapshot.docs[0];
+      return { id: docSnap.id, ...docSnap.data() } as Club;
+    }
+    return null;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, path);
+    return null;
+  }
+};
+
+export const joinClub = async (clubId: string, userId: string, userName: string): Promise<boolean> => {
+  const memberPath = `clubs/${clubId}/members/${userId}`;
+  const clubPath = `clubs/${clubId}`;
+  try {
+    // Check if already a member
+    const existingMember = await getDoc(doc(db, memberPath));
+    if (existingMember.exists()) return true;
+
+    await setDoc(doc(db, memberPath), {
+      role: 'member',
+      joinedAt: Date.now(),
+      name: userName,
+    });
+
+    // Increment member count
+    await updateDoc(doc(db, clubPath), {
+      memberCount: increment(1),
+    });
+
+    // Add clubId to user's profile
+    await updateDoc(doc(db, 'profiles', userId), {
+      clubIds: arrayUnion(clubId),
+    });
+
+    return true;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, memberPath);
+    return false;
+  }
+};
+
+export const leaveClub = async (clubId: string, userId: string): Promise<boolean> => {
+  const memberPath = `clubs/${clubId}/members/${userId}`;
+  const clubPath = `clubs/${clubId}`;
+  try {
+    await deleteDoc(doc(db, memberPath));
+    await updateDoc(doc(db, clubPath), {
+      memberCount: increment(-1),
+    });
+    await updateDoc(doc(db, 'profiles', userId), {
+      clubIds: arrayRemove(clubId),
+    });
+    return true;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, memberPath);
+    return false;
   }
 };
 

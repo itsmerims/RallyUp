@@ -25,12 +25,15 @@ import gsap from 'gsap';
 import PlayerInfoModal from './PlayerInfoModal';
 import SessionModal from './SessionModal';
 import SessionChoiceModal from './SessionChoiceModal';
+import ClubDashboard from './ClubDashboard';
 
 export default function Dashboard() {
   const { user, userProfile, logout } = useAuth();
   const { 
-    players, courts, matches, isLoading, dataLoaded, currentSessionId,
+    players, courts, matches, clubs, clubMembers,
+    isLoading, dataLoaded, currentSessionId,
     setPlayers, setCourts, setMatches, setFinancialConfig, setDataLoaded, setCurrentSessionId, initializeCourts,
+    setClubs, setClubMembers,
     togglePlayerPaid, completeMatch, deletePlayer, addCourt, deleteCourt
   } = useAppStore();
   
@@ -39,7 +42,7 @@ export default function Dashboard() {
   const [isAddPlayerModalOpen, setIsAddPlayerModalOpen] = useState(false);
   
   // Custom navigation tabs
-  const [activeTab, setActiveTab] = useState<'courts' | 'players' | 'stats' | 'finance' | 'rankings' | 'settings'>('courts');
+  const [activeTab, setActiveTab] = useState<'courts' | 'players' | 'stats' | 'finance' | 'rankings' | 'clubs' | 'settings'>('courts');
   const [is3DViewCollapsed, setIs3DViewCollapsed] = useState(false);
   const [isRosterCollapsed, setIsRosterCollapsed] = useState(false);
 
@@ -246,6 +249,33 @@ export default function Dashboard() {
       if (configData) setFinancialConfig(configData);
     });
 
+    // Club subscriptions
+    const unsubClubs: (() => void)[] = [];
+    const clubIds = userProfile.clubIds || [];
+    const clubData: any[] = [];
+    const memberData: any[] = [];
+
+    clubIds.forEach((clubId) => {
+      const unsubClub = firestoreService.subscribeToClub(clubId, (club) => {
+        if (club) {
+          const idx = clubData.findIndex(c => c.id === club.id);
+          if (idx >= 0) clubData[idx] = club;
+          else clubData.push(club);
+        }
+        setClubs([...clubData]);
+      });
+      unsubClubs.push(unsubClub);
+
+      const unsubMembers = firestoreService.subscribeToClubMembers(clubId, (members) => {
+        const otherMembers = memberData.filter(m => m.clubId !== clubId);
+        const updated = [...otherMembers, ...members.map(m => ({ ...m, clubId }))];
+        memberData.length = 0;
+        memberData.push(...updated);
+        setClubMembers([...memberData]);
+      });
+      unsubClubs.push(unsubMembers);
+    });
+
     const timer = setTimeout(() => {
       isInitialLoad = false;
       setDataLoaded(true);
@@ -256,9 +286,10 @@ export default function Dashboard() {
       unsubCourts();
       unsubMatches();
       unsubConfig();
+      unsubClubs.forEach(u => u());
       clearTimeout(timer);
     };
-  }, [user, userProfile, joinedQmUserId, currentSessionId, setPlayers, setCourts, setMatches, setFinancialConfig, setDataLoaded, initializeCourts]);
+  }, [user, userProfile, joinedQmUserId, currentSessionId, setPlayers, setCourts, setMatches, setFinancialConfig, setClubs, setClubMembers, setDataLoaded, initializeCourts]);
 
   // Show session choice modal for QMs without an active session
   useEffect(() => {
@@ -459,6 +490,16 @@ export default function Dashboard() {
           )}
 
           <button
+            onClick={() => setActiveTab('clubs')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === 'clubs' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            Clubs
+          </button>
+
+          <button
             onClick={() => setActiveTab('rankings')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
               activeTab === 'rankings' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-white'
@@ -617,6 +658,16 @@ export default function Dashboard() {
                       Finance
                     </button>
                   )}
+
+                  <button
+                    onClick={() => { setActiveTab('clubs'); setIsSidebarOpen(false); }}
+                    className={`h-12 rounded-xl text-left px-4 font-bold text-sm flex items-center gap-3 transition-colors ${
+                      activeTab === 'clubs' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:bg-slate-850/50 hover:text-white'
+                    }`}
+                  >
+                    <Users className="w-5 h-5" />
+                    Clubs
+                  </button>
 
                   <button
                     onClick={() => { setActiveTab('rankings'); setIsSidebarOpen(false); }}
@@ -1085,7 +1136,14 @@ export default function Dashboard() {
           <FinancePage />
         )}
 
-        {/* 4. RANKINGS PAGE (LOCAL & GLOBAL LEADERBOARDS) */}
+        {/* 4. CLUBS PAGE */}
+        {activeTab === 'clubs' && (
+          <section className="flex-1 bg-slate-950 relative overflow-y-auto p-4 md:p-8 custom-scrollbar">
+            <ClubDashboard />
+          </section>
+        )}
+
+        {/* 5. RANKINGS PAGE (LOCAL & GLOBAL LEADERBOARDS) */}
         {activeTab === 'rankings' && (
           <LocalGlobalRankings />
         )}
