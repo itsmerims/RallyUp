@@ -3,8 +3,8 @@ import { useAppStore } from '../store';
 import { useAuth } from '../contexts/AuthContext';
 import * as firestoreService from '../services/firestore';
 import CourtScene from './CourtScene';
-import MatchMakerModal from './MatchMakerModal';
-import AddPlayerModal from './AddPlayerModal';
+import { getTierFromShortcut, getTierLabel } from '../utils/tiers';
+import { generateOptimalMatch } from '../utils/matchmaker';
 import WelcomeModal from './WelcomeModal';
 import LocalGlobalRankings from './LocalGlobalRankings';
 import FinancePage from './FinancePage';
@@ -16,7 +16,7 @@ import type { ToastItem } from './NotificationToast';
 import { 
   Plus, Check, Trophy, Settings, Trash2, LayoutGrid, Users, 
   Activity, Menu, X, Loader2, LogOut, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
-  Monitor, MonitorOff, Coins, Info, ShieldAlert, Sparkles, Bell 
+  Monitor, MonitorOff, Coins, Info, ShieldAlert, Sparkles, Bell, SkipForward, RotateCcw
 } from 'lucide-react';
 import { Player, SkillTier } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -38,9 +38,15 @@ export default function Dashboard() {
     togglePlayerPaid, completeMatch, deletePlayer, addCourt, deleteCourt
   } = useAppStore();
   
-  const [isMatchMakerOpen, setMatchMakerOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isAddPlayerModalOpen, setIsAddPlayerModalOpen] = useState(false);
+  // Inline player add form state
+  const [addMode, setAddMode] = useState<'single' | 'bulk'>('single');
+  const [playerInput, setPlayerInput] = useState('');
+  // Drag-and-drop state
+  const [dropTargetCourt, setDropTargetCourt] = useState<string | null>(null);
+  const [dropTargetPlayerId, setDropTargetPlayerId] = useState<string | null>(null);
+  // Start match on a specific court
+  const [startMatchCourt, setStartMatchCourt] = useState<string | null>(null);
   
   // Custom navigation tabs
   const [activeTab, setActiveTab] = useState<'courts' | 'players' | 'stats' | 'finance' | 'rankings' | 'clubs' | 'settings'>('courts');
@@ -119,15 +125,157 @@ export default function Dashboard() {
 
   const isQM = userProfile?.role === 'QUEUE_MASTER';
 
+  const handleAutoMatch = async () => {
+    if (!user || !isQM) return;
+    const waiting = players.filter(p => p.status === 'waiting');
+    if (waiting.length < 4) {
+      showToast('Auto Match', 'Need at least 4 waiting players.');
+      return;
+    }
+    const match = generateOptimalMatch(players);
+    if (!match || match.length < 4) return;
+    const freeCourt = courts.find(c => c.status === 'Available');
+    if (!freeCourt) {
+      showToast('Auto Match', 'No available court.');
+      return;
+    }
+
+    // Smart check: warn if this pairing played together recently
+    const recentPairs = new Set<string>();
+    for (const m of matches) {
+      if (m.status === 'Completed' && m.startTime && Date.now() - m.startTime < 30 * 60 * 1000) {
+        const pairA = [m.teamA[0], m.teamA[1]].sort().join(':');
+        const pairB = [m.teamB[0], m.teamB[1]].sort().join(':');
+        recentPairs.add(pairA);
+        recentPairs.add(pairB);
+      }
+    }
+    const newPairA = [match[0].id, match[1].id].sort().join(':');
+    const newPairB = [match[2].id, match[3].id].sort().join(':');
+    const repeatA = recentPairs.has(newPairA);
+    const repeatB = recentPairs.has(newPairB);
+
+    if (repeatA || repeatB) {
+      const names = [
+        repeatA ? `${match[0].name} & ${match[1].name}` : '',
+        repeatB ? `${match[2].name} & ${match[3].name}` : '',
+      ].filter(Boolean).join(' and ');
+      if (!window.confirm(`⚠️ ${names} played together recently. Still match them?`)) return;
+    }
+
+    await useAppStore.getState().addMatch(user.uid, {
+      courtId: freeCourt.id,
+      teamA: [match[0].id, match[1].id],
+      teamB: [match[2].id, match[3].id],
+    });
+    showToast('Match Created!', `${match[0].name} & ${match[1].name} vs ${match[2].name} & ${match[3].name}`, 6000);
+  };
+
+  const showToast = (title: string, body: string, duration = 4000) => {
+    const toast = createToast({ title, body, icon: '/icon-192x192.png', click_action: '/' });
+    setToasts(prev => [...prev, toast]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== toast.id)), duration);
+  };
+
+  const handleAddPlayerFromInput = async () => {
+    if (!user || !userProfile || !playerInput.trim()) return;
+    if (addMode === 'single') {
+      const parsed = parsePlayerInput(playerInput.trim());
+      if (parsed) {
+        await useAppStore.getState().addPlayer(user.uid, { name: parsed.name, tier: parsed.tier });
+        setPlayerInput('');
+      }
+    } else {
+      const lines = playerInput.split('\n').map(l => l.trim()).filter(Boolean);
+      for (const line of lines) {
+        const parsed = parsePlayerInput(line);
+        if (parsed) {
+          await useAppStore.getState().addPlayer(user.uid, { name: parsed.name, tier: parsed.tier });
+        }
+      }
+      setPlayerInput('');
+    }
+  };
+
+  const parsePlayerInput = (input: string): { name: string; tier: SkillTier } | null => {
+    const dashMatch = input.match(/^(.+?)\s*[-–]\s*(\d+)$/);
+    if (dashMatch) {
+      const name = dashMatch[1].trim();
+      const num = dashMatch[2];
+      const tier = getTierFromShortcut(num);
+      if (tier && name.length > 0) return { name, tier };
+    }
+    // Try just the number at the end
+    const numMatch = input.match(/^(.+?)\s+(\d+)$/);
+    if (numMatch) {
+      const name = numMatch[1].trim();
+      const tier = getTierFromShortcut(numMatch[2]);
+      if (tier && name.length > 0) return { name, tier };
+    }
+    // Fallback: use name with default tier
+    if (input.length > 0) return { name: input, tier: 'BEG' };
+    return null;
+  };
+
+  // Handle starting a match on a specific court
+  useEffect(() => {
+    if (!startMatchCourt || !user || !isQM) return;
+    const court = courts.find(c => c.id === startMatchCourt);
+    if (!court || court.status !== 'Available') { setStartMatchCourt(null); return; }
+    const waiting = players.filter(p => p.status === 'waiting').slice(0, 4);
+    if (waiting.length < 4) {
+      showToast('Start Match', 'Need at least 4 waiting players to start a match.');
+      setStartMatchCourt(null);
+      return;
+    }
+    const names = waiting.map(p => p.name).join(', ');
+    if (window.confirm(`Start match on ${court.name} with:\n${names}?`)) {
+      const match = generateOptimalMatch(players);
+      if (match && match.length >= 4) {
+        runOp(`start-${court.id}`, () => useAppStore.getState().addMatch(user.uid, {
+          courtId: court.id,
+          teamA: [match[0].id, match[1].id],
+          teamB: [match[2].id, match[3].id],
+        }));
+      }
+    }
+    setStartMatchCourt(null);
+  }, [startMatchCourt]);
+
+  // Handle drag-drop: add player to court queue
+  useEffect(() => {
+    if (!dropTargetCourt || !dropTargetPlayerId || !user) { setDropTargetCourt(null); setDropTargetPlayerId(null); return; }
+    const court = courts.find(c => c.id === dropTargetCourt);
+    if (!court || court.status !== 'Available') { setDropTargetCourt(null); setDropTargetPlayerId(null); return; }
+    const p = players.find(pl => pl.id === dropTargetPlayerId);
+    if (!p) { setDropTargetCourt(null); setDropTargetPlayerId(null); return; }
+    const newQueue = [...court.queue, dropTargetPlayerId];
+    runOp(`drop-${court.id}`, () => firestoreService.updateCourt(user.uid, court.id, { queue: newQueue }));
+    showToast('Added to Queue', `${p.name} added to ${court.name} queue.`);
+    setDropTargetCourt(null);
+    setDropTargetPlayerId(null);
+  }, [dropTargetCourt, dropTargetPlayerId]);
+
+  // Tab order for keyboard navigation
+  const tabOrder = ['courts', 'players', 'finance', 'clubs', 'rankings', 'stats', 'settings'];
+
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-      if (e.key === 'a' || e.key === 'A') { if (isQM) setIsAddPlayerModalOpen(true); }
-      if (e.key === 'm' || e.key === 'M') { if (isQM) setMatchMakerOpen(true); }
+      if (e.key === 'a' || e.key === 'A') { if (isQM) document.getElementById('player-input')?.focus(); }
+      if (e.key === 'm' || e.key === 'M') { if (isQM) handleAutoMatch(); }
       if (e.key >= '1' && e.key <= '9') {
         const idx = parseInt(e.key) - 1;
+        if (e.shiftKey && idx < 7) {
+          const tab = tabOrder[idx];
+          if (tab === 'players' && !isQM) return;
+          if (tab === 'finance' && !isQM) return;
+          if (tab === 'stats' && !isQM) return;
+          setActiveTab(tab as any);
+          return;
+        }
         const activeOnCourt = matches.find(m => m.status === 'Active');
         if (activeOnCourt && isQM) {
           setCompletingMatchId(activeOnCourt.id);
@@ -137,7 +285,7 @@ export default function Dashboard() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [isQM, matches]);
+  }, [isQM, matches, handleAutoMatch]);
 
   // Loading state for async operations
   const [pendingOps, setPendingOps] = useState<Set<string>>(new Set());
@@ -482,6 +630,7 @@ export default function Dashboard() {
           >
             <LayoutGrid className="w-4 h-4" />
             {isQM ? 'Courts & Queues' : 'Dashboard'}
+            <kbd className="text-[8px] text-slate-600 bg-slate-900 px-1 rounded ml-0.5">⇧1</kbd>
           </button>
           
           {isQM && (
@@ -493,6 +642,7 @@ export default function Dashboard() {
             >
               <Users className="w-4 h-4" />
               Roster
+              <kbd className="text-[8px] text-slate-600 bg-slate-900 px-1 rounded ml-0.5">⇧2</kbd>
             </button>
           )}
 
@@ -505,6 +655,7 @@ export default function Dashboard() {
             >
               <Coins className="w-4 h-4" />
               Finance
+              <kbd className="text-[8px] text-slate-600 bg-slate-900 px-1 rounded ml-0.5">⇧3</kbd>
             </button>
           )}
 
@@ -516,6 +667,7 @@ export default function Dashboard() {
           >
             <Users className="w-4 h-4" />
             Clubs
+            <kbd className="text-[8px] text-slate-600 bg-slate-900 px-1 rounded ml-0.5">⇧4</kbd>
           </button>
 
           <button
@@ -526,6 +678,7 @@ export default function Dashboard() {
           >
             <Trophy className="w-4 h-4" />
             Rankings
+            <kbd className="text-[8px] text-slate-600 bg-slate-900 px-1 rounded ml-0.5">⇧5</kbd>
           </button>
 
           {isQM && (
@@ -537,6 +690,7 @@ export default function Dashboard() {
             >
               <Activity className="w-4 h-4" />
               History
+              <kbd className="text-[8px] text-slate-600 bg-slate-900 px-1 rounded ml-0.5">⇧6</kbd>
             </button>
           )}
         </div>
@@ -567,6 +721,29 @@ export default function Dashboard() {
               </div>
             </div>
           )}
+
+          {/* Shortcuts help */}
+          <div className="relative group">
+            <button className="flex items-center justify-center w-9 h-9 rounded-xl border bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+              <span className="text-xs font-black">⌘</span>
+            </button>
+            <div className="absolute top-full right-0 mt-1.5 bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 w-56">
+              <div className="space-y-1.5">
+                {[
+                  { keys: '⇧ + 1–7', label: 'Switch tabs' },
+                  { keys: 'A', label: 'Focus add player' },
+                  { keys: 'M', label: 'Auto match' },
+                  { keys: '1–9', label: 'Quick score (match active)' },
+                  { keys: '1–9', label: 'Tier shortcut (in name input)' },
+                ].map(item => (
+                  <div key={item.keys} className="flex items-center justify-between gap-3">
+                    <kbd className="text-[9px] font-bold text-slate-500 bg-slate-950 px-1.5 py-0.5 rounded">{item.keys}</kbd>
+                    <span className="text-[10px] text-slate-400">{item.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
 
           <ThemeToggle />
           
@@ -748,14 +925,56 @@ export default function Dashboard() {
                       <span className="text-[10px] bg-slate-900 border border-slate-800 text-slate-500 font-bold px-2 py-0.5 rounded-md uppercase whitespace-nowrap">Queue</span>
                     </div>
                     
-                    <div className="mb-4 w-full">
-                      <button 
-                        onClick={() => setIsAddPlayerModalOpen(true)}
-                        className="w-full h-12 bg-slate-800 hover:bg-slate-750 text-white rounded-xl transition-colors border border-slate-700 flex items-center justify-center gap-2 whitespace-nowrap"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span className="font-bold text-xs tracking-wider uppercase">Add Player</span>
-                      </button>
+                    {/* Inline Add Player Form */}
+                    <div className="mb-4 w-full space-y-2">
+                      <div className="flex items-center gap-1.5 bg-slate-900 rounded-lg p-0.5 border border-slate-800">
+                        <button
+                          onClick={() => setAddMode('single')}
+                          className={`flex-1 py-1.5 rounded text-[9px] font-bold uppercase tracking-wider transition-colors ${addMode === 'single' ? 'bg-slate-800 text-white shadow' : 'text-slate-500 hover:text-white'}`}
+                        >Single</button>
+                        <button
+                          onClick={() => setAddMode('bulk')}
+                          className={`flex-1 py-1.5 rounded text-[9px] font-bold uppercase tracking-wider transition-colors ${addMode === 'bulk' ? 'bg-slate-800 text-white shadow' : 'text-slate-500 hover:text-white'}`}
+                        >Bulk</button>
+                      </div>
+
+                      {addMode === 'single' ? (
+                        <div className="flex gap-2">
+                          <input
+                            id="player-input"
+                            type="text"
+                            value={playerInput}
+                            onChange={(e) => setPlayerInput(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddPlayerFromInput(); } }}
+                            placeholder="Name - 1"
+                            className="flex-1 h-10 bg-slate-950 border border-slate-800 text-white text-xs font-bold rounded-xl px-3 outline-none focus:border-emerald-500 placeholder:text-slate-600"
+                          />
+                          <button
+                            onClick={handleAddPlayerFromInput}
+                            className="h-10 w-10 bg-emerald-500 text-[#ffffff] rounded-xl flex items-center justify-center hover:bg-emerald-400 transition-colors shrink-0"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-2">
+                          <textarea
+                            value={playerInput}
+                            onChange={(e) => setPlayerInput(e.target.value)}
+                            placeholder="Juan - 1&#10;Maria - 3&#10;Pedro - 5"
+                            rows={3}
+                            className="w-full bg-slate-950 border border-slate-800 text-white text-xs font-bold rounded-xl p-3 outline-none focus:border-emerald-500 placeholder:text-slate-600 resize-none"
+                          />
+                          <button
+                            onClick={handleAddPlayerFromInput}
+                            className="h-10 bg-emerald-500 text-[#ffffff] rounded-xl text-[9px] font-black uppercase tracking-wider hover:bg-emerald-400 transition-colors flex items-center justify-center gap-1.5"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            Add All
+                          </button>
+                        </div>
+                      )}
+                      <p className="text-[8px] text-slate-600 font-bold uppercase tracking-wider px-1">Format: Name - Number (1-9)</p>
                     </div>
 
                     {/* Roster search & filter */}
@@ -784,7 +1003,10 @@ export default function Dashboard() {
 
                     <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 w-full">
                       {filteredPlayers.map((player, index) => (
-                        <div key={`${player.id}-${index}`} className={`p-3 border rounded-xl flex items-center justify-between group transition-colors cursor-pointer ${
+                        <div key={`${player.id}-${index}`} 
+                          draggable
+                          onDragStart={(e) => { e.dataTransfer.setData('text/plain', player.id); e.dataTransfer.effectAllowed = 'move'; }}
+                          className={`p-3 border rounded-xl flex items-center justify-between group transition-colors cursor-pointer ${
                           player.status === 'resting' ? 'bg-slate-900/40 border-slate-850 opacity-60' : 'bg-slate-900 border-slate-800'
                         }`} onClick={() => setDetailPlayer(player)}>
                           <div className="flex items-center gap-2.5">
@@ -933,12 +1155,26 @@ export default function Dashboard() {
                 </div>
 
                 {/* Grid of Courts for QM */}
-                <div ref={courtGridRef} className="flex-1 overflow-y-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 relative z-10 pb-24">
-                  {courts.map((court, index) => {
-                    const activeMatch = matches.find(m => m.id === court.activeMatchId);
-                    const elapsed = activeMatch?.startTime ? Math.floor((Date.now() - activeMatch.startTime) / 60000) : 0;
-                    return (
-                      <div key={`${court.id}-${index}`} className="court-card bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col justify-between h-56 relative group hover:border-slate-700 transition-all">
+                  <div ref={courtGridRef} className="flex-1 overflow-y-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 relative z-10 pb-24">
+                    {courts.map((court, index) => {
+                      const activeMatch = matches.find(m => m.id === court.activeMatchId);
+                      const elapsed = activeMatch?.startTime ? Math.floor((Date.now() - activeMatch.startTime) / 60000) : 0;
+                      return (
+                        <div 
+                          key={`${court.id}-${index}`} 
+                          className="court-card bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col justify-between h-56 relative group hover:border-slate-700 transition-all"
+                          onDragOver={(e) => { if (court.status === 'Available') { e.preventDefault(); e.currentTarget.classList.add('border-emerald-500'); } }}
+                          onDragLeave={(e) => { e.currentTarget.classList.remove('border-emerald-500'); }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            e.currentTarget.classList.remove('border-emerald-500');
+                            const data = e.dataTransfer.getData('text/plain');
+                            if (!data || !user || court.status !== 'Available') return;
+                            // If dropping a player ID, add to match queue
+                            setDropTargetCourt(court.id);
+                            setDropTargetPlayerId(data);
+                          }}
+                        >
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-black uppercase tracking-wider text-slate-400">{court.name}</span>
                           <div className="flex items-center gap-2">
@@ -1005,19 +1241,44 @@ export default function Dashboard() {
                         <div className="flex gap-2">
                           {activeMatch ? (
                             isQM ? (
-                              <button
-                                onClick={() => {
-                                  if (user) {
-                                    setCompletingMatchId(activeMatch.id);
-                                    setScoreA('21');
-                                    setScoreB('19');
-                                    setShuttlesUsed('1');
-                                  }
-                                }}
-                                className="flex-1 h-10 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold text-xs uppercase tracking-wider rounded-xl border border-emerald-500/15"
-                              >
-                                Complete Match
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => {
+                                    if (user) {
+                                      setCompletingMatchId(activeMatch.id);
+                                      setScoreA('21');
+                                      setScoreB('19');
+                                      setShuttlesUsed('1');
+                                    }
+                                  }}
+                                  className="flex-1 h-10 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold text-xs uppercase tracking-wider rounded-xl border border-emerald-500/15"
+                                >
+                                  Complete Match
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (!user) return;
+                                    if (window.confirm(`Scoreless complete for ${court.name}?`)) {
+                                      runOp(`complete-${activeMatch.id}`, () => completeMatch(user.uid, activeMatch.id, 21, 19, 1));
+                                    }
+                                  }}
+                                  className="h-10 w-10 bg-slate-800 hover:bg-slate-700 text-slate-400 font-bold rounded-xl border border-slate-700 flex items-center justify-center"
+                                  title="Scoreless complete"
+                                >
+                                  <SkipForward className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (!user) return;
+                                    // Reset match timer: update startTime to now
+                                    runOp(`reset-${activeMatch.id}`, () => firestoreService.updateMatch(user.uid, activeMatch.id, { startTime: Date.now() }));
+                                  }}
+                                  className="h-10 w-10 bg-slate-800 hover:bg-slate-700 text-slate-400 font-bold rounded-xl border border-slate-700 flex items-center justify-center"
+                                  title="Reset timer"
+                                >
+                                  <RotateCcw className="w-4 h-4" />
+                                </button>
+                              </>
                             ) : (
                               <div className="flex-1 h-10 bg-emerald-500/10 text-emerald-500 font-bold text-xs uppercase tracking-wider rounded-xl border border-emerald-500/15 flex items-center justify-center">
                                 Match in Progress
@@ -1025,10 +1286,10 @@ export default function Dashboard() {
                             )
                           ) : (
                             <button
-                              disabled
-                              className="flex-1 h-10 bg-slate-950 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl border border-slate-850 cursor-not-allowed"
+                              onClick={() => setStartMatchCourt(court.id)}
+                              className="flex-1 h-10 bg-emerald-500 hover:bg-emerald-400 text-[#ffffff] font-bold text-xs uppercase tracking-wider rounded-xl border border-emerald-400/30 transition-all"
                             >
-                              Ready for dispatch
+                              Start Match
                             </button>
                           )}
                         </div>
@@ -1049,14 +1310,14 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                {/* Floating Auto Matchmaker Button */}
+                {/* Floating Auto Match Button */}
                 {isQM && (
                   <button
-                    onClick={() => setMatchMakerOpen(true)}
+                    onClick={handleAutoMatch}
                     className="absolute bottom-6 right-6 h-14 bg-red-500 hover:bg-red-600 text-[#ffffff] font-black rounded-2xl text-xs uppercase tracking-widest px-6 transition-all shadow-xl shadow-red-500/20 active:scale-95 flex items-center gap-2 z-50 border border-red-400/50"
                   >
                     <Sparkles className="w-5 h-5" />
-                    AUTO MATCHMAKER
+                    AUTO MATCH
                   </button>
                 )}
               </section>
@@ -1081,10 +1342,10 @@ export default function Dashboard() {
                   <p className="text-sm text-slate-400 mt-1">Manage and audit court member lists and stats.</p>
                 </div>
                 <button
-                  onClick={() => setIsAddPlayerModalOpen(true)}
-                  className="h-12 bg-red-500 hover:bg-red-600 text-[#ffffff] font-black rounded-xl text-xs uppercase tracking-widest px-6 transition-all"
+                  onClick={() => { setActiveTab('courts'); setTimeout(() => document.getElementById('player-input')?.focus(), 100); }}
+                  className="h-12 bg-emerald-500 hover:bg-emerald-400 text-[#ffffff] font-black rounded-xl text-xs uppercase tracking-widest px-6 transition-all"
                 >
-                  Create New Player
+                  + Add Player
                 </button>
               </div>
 
@@ -1113,7 +1374,10 @@ export default function Dashboard() {
               {/* Roster profiles table / cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {filteredPlayers.map((player, index) => (
-                  <div key={`${player.id}-${index}`} className="bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col justify-between group cursor-pointer" onClick={() => setDetailPlayer(player)}>
+                  <div key={`${player.id}-${index}`} 
+                    draggable
+                    onDragStart={(e) => { e.dataTransfer.setData('text/plain', player.id); e.dataTransfer.effectAllowed = 'move'; }}
+                    className="bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col justify-between group cursor-pointer" onClick={() => setDetailPlayer(player)}>
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-sm font-black uppercase text-slate-300">
@@ -1270,8 +1534,6 @@ export default function Dashboard() {
         </div>
       </footer>
       
-      <MatchMakerModal isOpen={isMatchMakerOpen} onClose={() => setMatchMakerOpen(false)} />
-      <AddPlayerModal isOpen={isAddPlayerModalOpen} onClose={() => setIsAddPlayerModalOpen(false)} />
       <NotificationToast toasts={toasts} onDismiss={dismissToast} />
       <PlayerInfoModal isOpen={!!detailPlayer} player={detailPlayer} players={players} matches={matches} onClose={() => setDetailPlayer(null)} />
       <SessionModal

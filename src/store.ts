@@ -26,18 +26,18 @@ interface AppState {
   setCurrentSessionId: (id: string) => void;
 
   // Actions
-  addPlayer: (userId: string, player: Omit<Player, 'id' | 'hasPaid' | 'ratingScore' | 'joinedAt' | 'waitingSince' | 'stats' | 'status'>) => void;
-  updatePlayerStatus: (userId: string, id: string, status: Player['status']) => void;
-  togglePlayerPaid: (userId: string, id: string) => void;
-  deletePlayer: (userId: string, id: string) => void;
+  addPlayer: (userId: string, player: Omit<Player, 'id' | 'hasPaid' | 'ratingScore' | 'joinedAt' | 'waitingSince' | 'stats' | 'status'>) => Promise<void>;
+  updatePlayerStatus: (userId: string, id: string, status: Player['status']) => Promise<void>;
+  togglePlayerPaid: (userId: string, id: string) => Promise<void>;
+  deletePlayer: (userId: string, id: string) => Promise<void>;
   
-  addMatch: (userId: string, match: Omit<Match, 'id' | 'startTime' | 'status' | 'shuttlecocksUsed'>) => void;
-  completeMatch: (userId: string, matchId: string, teamAScore: number, teamBScore: number, shuttlesUsed: number) => void;
+  addMatch: (userId: string, match: Omit<Match, 'id' | 'startTime' | 'status' | 'shuttlecocksUsed'>) => Promise<void>;
+  completeMatch: (userId: string, matchId: string, teamAScore: number, teamBScore: number, shuttlesUsed: number) => Promise<void>;
   
-  updateFinancialConfig: (userId: string, config: FinancialConfig) => void;
-  initializeCourts: (userId: string) => void;
-  addCourt: (userId: string, name: string) => void;
-  deleteCourt: (userId: string, courtId: string) => void;
+  updateFinancialConfig: (userId: string, config: FinancialConfig) => Promise<void>;
+  initializeCourts: (userId: string) => Promise<void>;
+  addCourt: (userId: string, name: string) => Promise<void>;
+  deleteCourt: (userId: string, courtId: string) => Promise<void>;
 }
 
 
