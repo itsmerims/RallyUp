@@ -43,6 +43,15 @@ service cloud.firestore {
         && data.stats.currentStreak is number;
     }
 
+    function isValidAutoRegister(data, ownerId) {
+      return data.keys().hasAll(['userId', 'name', 'tier', 'sessionId', 'autoRegistered'])
+        && data.userId == ownerId
+        && data.autoRegistered == true
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.tier in ['BEGINNER', 'LOW_INTERMEDIATE', 'INTERMEDIATE', 'ADVANCED']
+        && data.sessionId is string;
+    }
+
     function isValidCourt(data) {
       return data.keys().hasAll(['userId', 'name', 'status', 'queue'])
         && data.userId == request.auth.uid
@@ -75,7 +84,8 @@ service cloud.firestore {
     match /users/{userId}/players/{playerId} {
       allow read: if isSignedIn() && isValidId(playerId);
       allow list: if isSignedIn();
-      allow create: if isOwner(userId) && isValidId(playerId) && isValidPlayer(incoming());
+      allow create: if (isOwner(userId) && isValidId(playerId) && isValidPlayer(incoming()))
+        || (isSignedIn() && isValidId(playerId) && isValidAutoRegister(incoming(), userId) && request.auth.uid != userId);
       allow update: if isOwner(userId) && isValidId(playerId) && isValidPlayer(incoming());
       allow delete: if isOwner(userId) && isValidId(playerId);
       // Allow anyone (including non-auth players) to subscribe for notifications

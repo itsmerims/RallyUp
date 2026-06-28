@@ -166,6 +166,16 @@ export default function Dashboard() {
           if (result.matchSessionId) {
             localStorage.setItem('rallyup_current_session_id', result.matchSessionId);
             setCurrentSessionId(result.matchSessionId);
+            // Auto-register player in QM's roster
+            if (userProfile) {
+              const playerId = Math.random().toString(36).substring(7);
+              firestoreService.autoRegisterPlayer(
+                result.qmUserId, playerId,
+                userProfile.name || 'Player',
+                userProfile.skillTier || 'BEGINNER',
+                result.matchSessionId
+              );
+            }
           }
           window.history.replaceState({}, '', window.location.pathname);
         }

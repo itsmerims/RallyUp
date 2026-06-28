@@ -3,7 +3,7 @@ import {
   collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, 
   onSnapshot, query, where, writeBatch 
 } from 'firebase/firestore';
-import { Player, Court, Match, FinancialConfig } from '../types';
+import { Player, Court, Match, FinancialConfig, SkillTier } from '../types';
 
 enum OperationType {
   CREATE = 'create',
@@ -257,6 +257,27 @@ export const initializeDefaultCourts = async (userId: string) => {
     await batch.commit();
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `users/${userId}/courts`);
+  }
+};
+
+// Auto-register a player into a QM's roster when they join a session
+export const autoRegisterPlayer = async (qmUserId: string, playerId: string, name: string, tier: SkillTier, sessionId: string) => {
+  const path = `users/${qmUserId}/players/${playerId}`;
+  try {
+    await setDoc(doc(db, path), {
+      userId: qmUserId,
+      name,
+      tier,
+      ratingScore: 1000,
+      joinedAt: Date.now(),
+      hasPaid: false,
+      status: 'WAITING',
+      sessionId,
+      autoRegistered: true,
+      stats: { gamesPlayed: 0, wins: 0, losses: 0, currentStreak: 0 },
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, path);
   }
 };
 
