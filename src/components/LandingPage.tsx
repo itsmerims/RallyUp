@@ -443,7 +443,7 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
           <div className="flex items-center gap-3">
             <ThemeToggle />
             <div className="hidden sm:flex items-center gap-2 text-xs text-slate-400 mr-2">
-              <span>Install ShuttleFlow on your device</span>
+              <span>Install RallyUp on your device</span>
               <button 
                 onClick={() => setShowInstallModal(true)}
                 className="text-red-500 hover:text-red-400 font-bold underline"
