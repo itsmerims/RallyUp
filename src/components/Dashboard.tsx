@@ -786,7 +786,8 @@ export default function Dashboard() {
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0">
                             <button 
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 if (user) runOp(`paid-${player.id}`, () => togglePlayerPaid(user.uid, player.id));
                               }}
                               className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors border ${
@@ -797,7 +798,8 @@ export default function Dashboard() {
                             >
                               {isPending(`paid-${player.id}`) ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
                             </button>
-                            <button onClick={() => {
+                            <button onClick={(e) => {
+                              e.stopPropagation();
                               if (user) runOp(`del-${player.id}`, () => deletePlayer(user.uid, player.id));
                             }} className="text-slate-600 hover:text-rose-500 opacity-0 group-hover:opacity-100 p-1.5 transition-all" disabled={isPending(`del-${player.id}`)}>
                               {isPending(`del-${player.id}`) ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3.5 h-3.5"/>}
@@ -1100,7 +1102,8 @@ export default function Dashboard() {
                       </div>
 
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           if (user) runOp(`del-${player.id}`, () => deletePlayer(user.uid, player.id));
                         }}
                         className="text-slate-600 hover:text-red-500 p-1 bg-slate-950 border border-slate-850 rounded-lg"
