@@ -335,3 +335,43 @@ export const getSessionMapping = async (sessionId: string): Promise<{ qmUserId: 
   }
 };
 
+// Batch operations for Settings data reset
+export const deleteAllMatches = async (userId: string) => {
+  const path = `users/${userId}/matches`;
+  try {
+    const snapshot = await getDocs(collection(db, path));
+    if (snapshot.empty) return;
+    const batch = writeBatch(db);
+    snapshot.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
+};
+
+export const deleteAllPlayers = async (userId: string) => {
+  const path = `users/${userId}/players`;
+  try {
+    const snapshot = await getDocs(collection(db, path));
+    if (snapshot.empty) return;
+    const batch = writeBatch(db);
+    snapshot.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
+};
+
+export const deleteAllCourts = async (userId: string) => {
+  const path = `users/${userId}/courts`;
+  try {
+    const snapshot = await getDocs(collection(db, path));
+    if (snapshot.empty) return;
+    const batch = writeBatch(db);
+    snapshot.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
+};
+

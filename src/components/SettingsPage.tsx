@@ -13,7 +13,7 @@ interface SettingsPageProps {
 }
 
 export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessionLeft }: SettingsPageProps) {
-  const { user, userProfile, updateProfile } = useAuth();
+  const { user, userProfile, updateProfile, logout } = useAuth();
   const { courts, addCourt, deleteCourt, currentSessionId, setCurrentSessionId } = useAppStore();
 
   // Collapsible States
@@ -51,6 +51,10 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
   const [joiningCode, setJoiningCode] = useState('');
   const [joinLoading, setJoinLoading] = useState(false);
   const [joinError, setJoinError] = useState('');
+
+  // Reset / Delete states
+  const [confirmAction, setConfirmAction] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   // Share session
   const [copySuccess, setCopySuccess] = useState(false);
@@ -183,6 +187,57 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
   };
 
   const isQM = userProfile?.role === 'QUEUE_MASTER';
+
+  const handleResetAll = async () => {
+    if (!user) return;
+    setActionLoading(true);
+    try {
+      await Promise.all([
+        firestoreService.deleteAllMatches(user.uid),
+        firestoreService.deleteAllPlayers(user.uid),
+        firestoreService.deleteAllCourts(user.uid),
+      ]);
+      setConfirmAction(null);
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleResetMatches = async () => {
+    if (!user) return;
+    setActionLoading(true);
+    try {
+      await firestoreService.deleteAllMatches(user.uid);
+      setConfirmAction(null);
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    setActionLoading(true);
+    try {
+      await Promise.all([
+        firestoreService.deleteAllMatches(user.uid),
+        firestoreService.deleteAllPlayers(user.uid),
+        firestoreService.deleteAllCourts(user.uid),
+        firestoreService.deleteUserProfile(user.uid),
+      ]);
+      setConfirmAction(null);
+      await logout();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   return (
     <div className="flex-1 bg-slate-950 p-4 md:p-8 overflow-y-auto relative flex flex-col h-full font-sans text-slate-100">
@@ -622,7 +677,12 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
                                 Wipes everything on this device — roster, matches, fees, and session history. Does not affect global rankings.
                               </p>
                             </div>
-                            <button className="shrink-0 px-4 h-10 bg-slate-950 hover:bg-slate-800 text-slate-300 font-medium text-xs rounded-xl transition-colors border border-slate-700">
+                            <button
+                              onClick={() => setConfirmAction('resetAll')}
+                              disabled={actionLoading}
+                              className="shrink-0 px-4 h-10 bg-slate-950 hover:bg-slate-800 text-slate-300 font-medium text-xs rounded-xl transition-colors border border-slate-700 disabled:opacity-50 flex items-center gap-2"
+                            >
+                              {actionLoading && confirmAction === 'resetAll' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                               Reset all
                             </button>
                           </div>
@@ -634,7 +694,12 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
                                 Reset all match history, fees while keeping all player records intact.
                               </p>
                             </div>
-                            <button className="shrink-0 px-4 h-10 bg-slate-950 hover:bg-slate-800 text-slate-300 font-medium text-xs rounded-xl transition-colors border border-slate-700">
+                            <button
+                              onClick={() => setConfirmAction('resetMatches')}
+                              disabled={actionLoading}
+                              className="shrink-0 px-4 h-10 bg-slate-950 hover:bg-slate-800 text-slate-300 font-medium text-xs rounded-xl transition-colors border border-slate-700 disabled:opacity-50 flex items-center gap-2"
+                            >
+                              {actionLoading && confirmAction === 'resetMatches' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                               Reset
                             </button>
                           </div>
@@ -666,7 +731,10 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
                       >
                         <div className="flex items-center justify-between p-4 bg-slate-950/50 rounded-2xl border border-slate-850 mt-4">
                           <span className="text-sm font-bold text-slate-200">Survey Form</span>
-                          <button className="px-5 h-10 bg-red-500 hover:bg-red-600 text-[#ffffff] font-bold text-xs rounded-xl transition-colors shadow-lg shadow-red-500/10">
+                          <button
+                            onClick={() => window.open('https://forms.gle/your-survey-link', '_blank')}
+                            className="px-5 h-10 bg-red-500 hover:bg-red-600 text-[#ffffff] font-bold text-xs rounded-xl transition-colors shadow-lg shadow-red-500/10"
+                          >
                             Give Feedback
                           </button>
                         </div>
@@ -697,7 +765,12 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
                               Permanently delete your profile, match history, and ranking. This cannot be undone.
                             </p>
                           </div>
-                          <button className="shrink-0 px-5 h-10 bg-transparent border border-rose-500 text-rose-500 hover:bg-rose-500 hover:text-white font-bold text-xs rounded-xl transition-colors">
+                          <button
+                            onClick={() => setConfirmAction('deleteAccount')}
+                            disabled={actionLoading}
+                            className="shrink-0 px-5 h-10 bg-transparent border border-rose-500 text-rose-500 hover:bg-rose-500 hover:text-white font-bold text-xs rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2"
+                          >
+                            {actionLoading && confirmAction === 'deleteAccount' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                             Delete
                           </button>
                         </div>
@@ -712,6 +785,64 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
         </div>
 
       </div>
+
+      {/* Confirmation Overlay */}
+      <AnimatePresence>
+        {confirmAction && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => !actionLoading && setConfirmAction(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center">
+                <div className="w-12 h-12 mx-auto mb-4 bg-rose-500/10 rounded-2xl flex items-center justify-center border border-rose-500/20">
+                  <Trash2 className="w-6 h-6 text-rose-400" />
+                </div>
+                <h3 className="text-lg font-black text-white mb-2">
+                  {confirmAction === 'resetAll' && 'Reset All Data?'}
+                  {confirmAction === 'resetMatches' && 'Reset Match History?'}
+                  {confirmAction === 'deleteAccount' && 'Delete Account?'}
+                </h3>
+                <p className="text-sm text-slate-400 mb-6 leading-relaxed">
+                  {confirmAction === 'resetAll' && 'This will permanently wipe all players, matches, courts, and fees. Global rankings are not affected.'}
+                  {confirmAction === 'resetMatches' && 'This will permanently delete all match history and fees. Player records will be kept.'}
+                  {confirmAction === 'deleteAccount' && 'This will permanently delete your profile, all data, and match history. This cannot be undone.'}
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setConfirmAction(null)}
+                    disabled={actionLoading}
+                    className="flex-1 h-11 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirmAction === 'resetAll') handleResetAll();
+                      else if (confirmAction === 'resetMatches') handleResetMatches();
+                      else if (confirmAction === 'deleteAccount') handleDeleteAccount();
+                    }}
+                    disabled={actionLoading}
+                    className="flex-1 h-11 bg-rose-500 hover:bg-rose-600 text-[#ffffff] font-bold text-xs rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                    {actionLoading ? 'Deleting...' : 'Confirm'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
