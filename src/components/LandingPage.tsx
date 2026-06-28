@@ -25,18 +25,6 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
   const counterRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Check if first time user to show modal
-    const hasVisited = localStorage.getItem('rallyup_has_visited');
-    if (!hasVisited) {
-      const timer = setTimeout(() => {
-        setShowInstallModal(true);
-        localStorage.setItem('rallyup_has_visited', 'true');
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, []);
-
-  useEffect(() => {
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
