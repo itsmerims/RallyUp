@@ -256,9 +256,6 @@ export default function Dashboard() {
     setDropTargetPlayerId(null);
   }, [dropTargetCourt, dropTargetPlayerId]);
 
-  // Tab order for keyboard navigation
-  const tabOrder = ['courts', 'players', 'finance', 'clubs', 'rankings', 'stats', 'settings'];
-
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -267,15 +264,6 @@ export default function Dashboard() {
       if (e.key === 'a' || e.key === 'A') { if (isQM) document.getElementById('player-input')?.focus(); }
       if (e.key === 'm' || e.key === 'M') { if (isQM) handleAutoMatch(); }
       if (e.key >= '1' && e.key <= '9') {
-        const idx = parseInt(e.key) - 1;
-        if (e.shiftKey && idx < 7) {
-          const tab = tabOrder[idx];
-          if (tab === 'players' && !isQM) return;
-          if (tab === 'finance' && !isQM) return;
-          if (tab === 'stats' && !isQM) return;
-          setActiveTab(tab as any);
-          return;
-        }
         const activeOnCourt = matches.find(m => m.status === 'Active');
         if (activeOnCourt && isQM) {
           setCompletingMatchId(activeOnCourt.id);
@@ -630,7 +618,6 @@ export default function Dashboard() {
           >
             <LayoutGrid className="w-4 h-4" />
             {isQM ? 'Courts & Queues' : 'Dashboard'}
-            <kbd className="text-[8px] text-slate-600 bg-slate-900 px-1 rounded ml-0.5">⇧1</kbd>
           </button>
           
           {isQM && (
@@ -642,7 +629,6 @@ export default function Dashboard() {
             >
               <Users className="w-4 h-4" />
               Roster
-              <kbd className="text-[8px] text-slate-600 bg-slate-900 px-1 rounded ml-0.5">⇧2</kbd>
             </button>
           )}
 
@@ -655,7 +641,6 @@ export default function Dashboard() {
             >
               <Coins className="w-4 h-4" />
               Finance
-              <kbd className="text-[8px] text-slate-600 bg-slate-900 px-1 rounded ml-0.5">⇧3</kbd>
             </button>
           )}
 
@@ -667,7 +652,6 @@ export default function Dashboard() {
           >
             <Users className="w-4 h-4" />
             Clubs
-            <kbd className="text-[8px] text-slate-600 bg-slate-900 px-1 rounded ml-0.5">⇧4</kbd>
           </button>
 
           <button
@@ -678,7 +662,6 @@ export default function Dashboard() {
           >
             <Trophy className="w-4 h-4" />
             Rankings
-            <kbd className="text-[8px] text-slate-600 bg-slate-900 px-1 rounded ml-0.5">⇧5</kbd>
           </button>
 
           {isQM && (
@@ -690,7 +673,6 @@ export default function Dashboard() {
             >
               <Activity className="w-4 h-4" />
               History
-              <kbd className="text-[8px] text-slate-600 bg-slate-900 px-1 rounded ml-0.5">⇧6</kbd>
             </button>
           )}
         </div>
@@ -730,7 +712,6 @@ export default function Dashboard() {
             <div className="absolute top-full right-0 mt-1.5 bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 w-56">
               <div className="space-y-1.5">
                 {[
-                  { keys: '⇧ + 1–7', label: 'Switch tabs' },
                   { keys: 'A', label: 'Focus add player' },
                   { keys: 'M', label: 'Auto match' },
                   { keys: '1–9', label: 'Quick score (match active)' },
