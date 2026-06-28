@@ -1,5 +1,5 @@
 export type SkillTier = 'BEGINNER' | 'LOW_INTERMEDIATE' | 'INTERMEDIATE' | 'ADVANCED';
-export type PlayerStatus = 'PLAYING' | 'WAITING' | 'RESTING' | 'OUT';
+export type PlayerStatus = 'ACTIVE' | 'RESTING' | 'DISCONNECTED' | 'PLAYING' | 'WAITING' | 'OUT';
 export type CourtStatus = 'Available' | 'Occupied' | 'Finishing Soon';
 
 export interface UserProfile {

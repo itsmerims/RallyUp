@@ -146,6 +146,17 @@ export default function PlayerDashboard({ joinedQmUserId, onNavigateToSettings }
     ? `${Math.round((userProfile.stats.wins / userProfile.stats.gamesPlayed) * 100)}%` 
     : '0%';
 
+  const myPlayerDoc = players.find(p => p.id === userProfile?.id);
+  const myStatus = myPlayerDoc?.status || 'DISCONNECTED';
+
+  const toggleStatus = async () => {
+    if (!joinedQmUserId || !userProfile) return;
+    const next = myStatus === 'ACTIVE' ? 'RESTING' : 'ACTIVE';
+    try {
+      await firestoreService.updatePlayer(joinedQmUserId, userProfile.id, { status: next });
+    } catch {}
+  };
+
   return (
     <div className="flex-1 bg-slate-950 p-4 md:p-8 overflow-y-auto relative flex flex-col h-full font-sans text-slate-100">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(16,185,129,0.05),transparent_70%)] z-0 pointer-events-none" />
@@ -174,15 +185,28 @@ export default function PlayerDashboard({ joinedQmUserId, onNavigateToSettings }
               </div>
             </div>
 
-            {/* Connection Indicator */}
+            {/* Connection Indicator + Status Toggle */}
             {joinedQmUserId ? (
               <div className="flex items-center gap-3 bg-slate-950/60 border border-slate-800 p-3 rounded-2xl">
-                <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" />
-                <div className="text-left">
-                  <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Session Connected</div>
-                  <div className="text-xs font-mono font-bold text-slate-200">
-                    Host ID: {joinedQmUserId.substring(0, 8)}...
-                  </div>
+                <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                  myStatus === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' :
+                  myStatus === 'RESTING' ? 'bg-amber-500' :
+                  'bg-slate-600'
+                }`} />
+                <div className="text-left min-w-0">
+                  <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Connected</div>
+                  <button
+                    onClick={toggleStatus}
+                    className={`text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 mt-0.5 transition-colors ${
+                      myStatus === 'ACTIVE' ? 'text-emerald-400 hover:text-emerald-300' :
+                      myStatus === 'RESTING' ? 'text-amber-400 hover:text-amber-300' :
+                      'text-slate-500'
+                    }`}
+                  >
+                    {myStatus === 'ACTIVE' ? '🟢 Active — tap to rest' :
+                     myStatus === 'RESTING' ? '🟡 Resting — tap to activate' :
+                     '⚫ Disconnected'}
+                  </button>
                 </div>
               </div>
             ) : (

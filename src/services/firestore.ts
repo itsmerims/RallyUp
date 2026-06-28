@@ -286,7 +286,7 @@ export const autoRegisterPlayer = async (qmUserId: string, playerId: string, nam
       ratingScore: 1000,
       joinedAt: Date.now(),
       hasPaid: false,
-      status: 'WAITING',
+      status: 'ACTIVE',
       sessionId,
       autoRegistered: true,
       stats: { gamesPlayed: 0, wins: 0, losses: 0, currentStreak: 0 },

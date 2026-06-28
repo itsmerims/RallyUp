@@ -34,7 +34,7 @@ service cloud.firestore {
         && data.ratingScore is number
         && data.joinedAt is number
         && data.hasPaid is bool
-        && data.status in ['WAITING', 'PLAYING', 'RESTING', 'AWAY']
+        && data.status in ['ACTIVE', 'RESTING', 'DISCONNECTED', 'WAITING', 'PLAYING', 'OUT']
         && data.stats is map
         && data.stats.keys().hasAll(['gamesPlayed', 'wins', 'losses', 'currentStreak'])
         && data.stats.gamesPlayed is number

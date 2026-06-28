@@ -3,6 +3,7 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import notificationRouter from './routes/notifications.js';
+import playerStatusRouter from './routes/playerStatus.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -13,6 +14,7 @@ app.use(express.json());
 
 // API routes
 app.use('/api', notificationRouter);
+app.use('/api', playerStatusRouter);
 
 // On Vercel, static files are served by Vercel's edge network (see vercel.json rewrites)
 if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {

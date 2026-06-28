@@ -184,7 +184,10 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
             userProfile.name || 'Player',
             userProfile.skillTier || 'BEGINNER',
             result.matchSessionId
-          ).catch(() => {}); // Best-effort; don't block join when Firestore rules are still being deployed
+          ).then(() => {
+            // Explicitly set to ACTIVE in case this is a reconnection
+            firestoreService.updatePlayer(result.qmUserId, userProfile.id, { status: 'ACTIVE' });
+          }).catch(() => {});
         }
         if (onSessionJoined) {
           onSessionJoined(result.qmUserId, result.matchSessionId);

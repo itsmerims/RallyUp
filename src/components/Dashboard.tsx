@@ -156,6 +156,22 @@ export default function Dashboard() {
     return unsubscribe;
   }, []);
 
+  // Set status to DISCONNECTED on tab close
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const qm = localStorage.getItem('rallyup_joined_qm');
+      const pid = userProfile?.id;
+      if (qm && pid) {
+        navigator.sendBeacon(
+          '/api/playerStatus',
+          JSON.stringify({ qmUserId: qm, playerId: pid, status: 'DISCONNECTED' })
+        );
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [userProfile]);
+
   // Auto-join from URL ?join=XXXXXX
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -204,6 +220,7 @@ export default function Dashboard() {
   const handleSessionLeft = () => {
     const qmUserId = localStorage.getItem('rallyup_joined_qm');
     if (userProfile && qmUserId) {
+      firestoreService.updatePlayer(qmUserId, userProfile.id, { status: 'DISCONNECTED' });
       removePlayerFcmToken(qmUserId, userProfile.id);
     }
     setJoinedQmUserId(null);
@@ -766,7 +783,7 @@ export default function Dashboard() {
                     <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 w-full">
                       {filteredPlayers.map((player, index) => (
                         <div key={`${player.id}-${index}`} className={`p-3 border rounded-xl flex items-center justify-between group transition-colors cursor-pointer ${
-                          player.status === 'RESTING' ? 'bg-slate-900/40 border-slate-850 opacity-60' : 'bg-slate-900 border-slate-800'
+                          player.status === 'RESTING' ? 'bg-slate-900/40 border-slate-850 opacity-60' : 'bg-slate-900                          border-slate-800'
                         }`} onClick={() => setDetailPlayer(player)}>
                           <div className="flex items-center gap-2.5">
                             <div className={`w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center text-xs font-bold shrink-0 ${
@@ -778,7 +795,10 @@ export default function Dashboard() {
                               <div className="text-xs font-bold text-slate-200 truncate">{player.name}</div>
                               <div className="text-[9px] text-slate-500 uppercase tracking-wide truncate">
                                 {player.tier?.replace('_', ' ')} • <span className={
-                                  player.status === 'PLAYING' ? 'text-emerald-400 font-bold' :
+                                  player.status === 'ACTIVE' ? 'text-emerald-400 font-bold' :
+                                  player.status === 'RESTING' ? 'text-amber-400' :
+                                  player.status === 'DISCONNECTED' ? 'text-slate-600' :
+                                  player.status === 'PLAYING' ? 'text-red-400 font-bold' :
                                   player.status === 'WAITING' ? 'text-amber-400' : 'text-slate-500'
                                 }>{player.status}</span>
                               </div>
@@ -1096,7 +1116,16 @@ export default function Dashboard() {
                           {player.name.substring(0,2)}
                         </div>
                         <div>
-                          <h4 className="font-bold text-white text-sm">{player.name}</h4>
+                          <h4 className="font-bold text-white text-sm flex items-center gap-2">
+                            {player.name}
+                            <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${
+                              player.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400' :
+                              player.status === 'RESTING' ? 'bg-amber-500/10 text-amber-400' :
+                              player.status === 'DISCONNECTED' ? 'bg-slate-800 text-slate-500' :
+                              player.status === 'PLAYING' ? 'bg-red-500/10 text-red-400' :
+                              'bg-slate-800 text-slate-400'
+                            }`}>{player.status}</span>
+                          </h4>
                           <span className="text-[10px] text-slate-500 uppercase tracking-wide font-medium">{player.tier?.replace('_', ' ')}</span>
                         </div>
                       </div>
