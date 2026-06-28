@@ -179,13 +179,14 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
         }
         // Auto-register as a player in the QM's roster (non-blocking)
         if (userProfile && result.matchSessionId) {
+          const joinedBefore = !!localStorage.getItem('rallyup_joined_qm');
           firestoreService.autoRegisterPlayer(
             result.qmUserId, userProfile.id,
             userProfile.name || 'Player',
             (userProfile.skillTier as SkillTier) || 'BEG',
             result.matchSessionId
           ).then(() => {
-            // Explicitly set to ACTIVE in case this is a reconnection
+            if (joinedBefore) localStorage.setItem('rallyup_reconnected', 'true');
             firestoreService.updatePlayer(result.qmUserId, userProfile.id, { status: 'waiting' });
           }).catch(() => {});
         }

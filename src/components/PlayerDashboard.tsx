@@ -7,6 +7,7 @@ import { SkillTier } from '../types';
 import { requestPlayerNotificationPermission } from '../services/notifications';
 import * as firestoreService from '../services/firestore';
 import gsap from 'gsap';
+import ReconnectModal from './ReconnectModal';
 
 interface PlayerDashboardProps {
   joinedQmUserId: string | null;
@@ -61,6 +62,7 @@ export default function PlayerDashboard({ joinedQmUserId, onNavigateToSettings }
 
   const [notifyingId, setNotifyingId] = useState<string | null>(null);
   const [bookingCourtId, setBookingCourtId] = useState<string | null>(null);
+  const [showReconnect, setShowReconnect] = useState(() => localStorage.getItem('rallyup_reconnected') === 'true');
   const [subscribedPlayers, setSubscribedPlayers] = useState<string[]>(() => {
     if (!joinedQmUserId) return [];
     try {
@@ -500,6 +502,7 @@ export default function PlayerDashboard({ joinedQmUserId, onNavigateToSettings }
         </div>
 
       </div>
+      <ReconnectModal isOpen={showReconnect} onClose={() => setShowReconnect(false)} />
     </div>
   );
 }
