@@ -75,6 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
+      window.location.reload();
     } catch (error) {
       console.error('Error signing in with Google', error);
       throw error;
@@ -84,6 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signInWithEmail = async (email: string, pass: string) => {
     try {
       await signInWithEmailAndPassword(auth, email, pass);
+      window.location.reload();
     } catch (error) {
       console.error('Error signing in with Email', error);
       throw error;
@@ -93,6 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUpWithEmail = async (email: string, pass: string) => {
     try {
       await createUserWithEmailAndPassword(auth, email, pass);
+      window.location.reload();
     } catch (error) {
       console.error('Error signing up with Email', error);
       throw error;

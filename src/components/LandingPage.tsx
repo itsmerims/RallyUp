@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Download, ArrowRight, Activity, MapPin, Award, Users, ChevronRight, Zap, Shield, CheckCircle2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
 import InstallModal from './InstallModal';
 import gsap from 'gsap';
@@ -9,10 +8,14 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
+interface LandingPageProps {
+  onGetStarted: () => void;
+  onSignIn: () => void;
+}
+
 type PageState = 'home' | 'about' | 'how-it-works' | 'rankings';
 
-export default function LandingPage() {
-  const navigate = useNavigate();
+export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [activePage, setActivePage] = useState<PageState>('home');
@@ -82,7 +85,7 @@ export default function LandingPage() {
           ease: 'power2.out',
           scrollTrigger: { trigger: counterRef.current, start: 'top 85%' },
           onUpdate: () => {
-            el.textContent = Math.round(val.n);
+            el.textContent = String(Math.round(val.n));
           },
         });
       });
@@ -161,7 +164,7 @@ export default function LandingPage() {
               Rankings are calculated based on your match history, win rate, and the skill level of your opponents.
               Sign in to see your current standing and local club leaderboards!
             </p>
-            <button onClick={navigate('/signin')} className="px-8 py-3 bg-red-500 hover:bg-red-400 text-[#ffffff] font-bold rounded-xl mb-8">
+            <button onClick={onSignIn} className="px-8 py-3 bg-red-500 hover:bg-red-400 text-[#ffffff] font-bold rounded-xl mb-8">
               Sign In to View Rankings
             </button>
             <div>
@@ -217,7 +220,7 @@ export default function LandingPage() {
                   className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto"
                 >
                 <button 
-                  onClick={navigate('/signin')}
+                  onClick={onGetStarted}
                   className="px-8 py-4 bg-red-500 hover:bg-red-400 text-[#ffffff] font-bold rounded-2xl transition-all active:scale-[0.98] shadow-xl shadow-red-500/20 flex items-center justify-center gap-2 text-lg"
                 >
                   Open App <ArrowRight className="w-5 h-5" />
@@ -377,7 +380,7 @@ export default function LandingPage() {
                 <p className="text-lg text-slate-400 mb-8 max-w-2xl mx-auto relative z-10">
                   Are you a club organizer? Stop managing spreadsheets and whiteboards. Let RallyUp handle the queue, track payments, and organize fair matches so you can actually enjoy playing.
                 </p>
-                <button onClick={navigate('/signin')} className="px-8 py-4 bg-white text-slate-950 hover:bg-slate-200 font-bold rounded-2xl transition-all relative z-10">
+                <button onClick={onGetStarted} className="px-8 py-4 bg-white text-slate-950 hover:bg-slate-200 font-bold rounded-2xl transition-all relative z-10">
                   Start Your Club
                 </button>
               </div>
@@ -414,7 +417,7 @@ export default function LandingPage() {
               <div className="w-full text-center mb-24">
                 <h2 className="text-5xl font-black mb-8">Ready when you are. <br/>Show up. Get a fair game.</h2>
                 <button 
-                  onClick={navigate('/signin')}
+                  onClick={onGetStarted}
                   className="px-10 py-5 bg-red-500 hover:bg-red-400 text-[#ffffff] font-bold rounded-2xl transition-all shadow-xl shadow-red-500/20 text-xl"
                 >
                   Join RallyUp Now
@@ -461,7 +464,7 @@ export default function LandingPage() {
               </button>
             </div>
             <button 
-              onClick={navigate('/signin')}
+              onClick={onSignIn}
               className="px-4 py-2 text-sm font-bold bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800 transition-all text-white"
             >
               Sign In
@@ -540,7 +543,7 @@ export default function LandingPage() {
                 <li><button onClick={() => setActivePage('how-it-works')} className="hover:text-white transition-colors">How it works</button></li>
                 <li><button onClick={() => setActivePage('rankings')} className="hover:text-white transition-colors">Rankings</button></li>
                 <li><button className="hover:text-white transition-colors cursor-not-allowed">What's new</button></li>
-                <li><button onClick={navigate('/signin')} className="hover:text-white transition-colors">Open app</button></li>
+                <li><button onClick={onGetStarted} className="hover:text-white transition-colors">Open app</button></li>
                 <li><button onClick={() => setActivePage('about')} className="hover:text-white transition-colors">About</button></li>
               </ul>
             </div>

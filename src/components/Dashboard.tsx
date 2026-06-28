@@ -109,6 +109,8 @@ export default function Dashboard() {
     return matchName && matchTier;
   });
 
+  const isQM = userProfile?.role === 'QUEUE_MASTER';
+
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -249,7 +251,6 @@ export default function Dashboard() {
   }
   
   const activeMatches = matches.filter(m => m.status === 'Active');
-  const isQM = userProfile?.role === 'QUEUE_MASTER';
 
   return (
     <div className="fixed inset-0 bg-slate-950 text-slate-100 font-sans flex flex-col overflow-hidden">

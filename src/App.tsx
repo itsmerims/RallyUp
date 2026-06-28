@@ -1,16 +1,39 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import React, { Component, useState, useEffect } from 'react';
 import Dashboard from './components/Dashboard';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AuthProvider } from './contexts/AuthContext';
 import AuthGuard from './components/AuthGuard';
 import SplashScreen from './components/SplashScreen';
-import LandingPage from './components/LandingPage';
-import AuthPage from './components/AuthPage';
+import { AnimatePresence } from 'motion/react';
 
-function AppShell() {
+class ErrorBoundary extends Component<{children: React.ReactNode}, {error: Error | null}> {
+  state = { error: null as Error | null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="fixed inset-0 bg-slate-950 flex items-center justify-center p-8">
+          <div className="max-w-lg text-center">
+            <h1 className="text-2xl font-black text-red-500 mb-4">Something went wrong</h1>
+            <pre className="text-sm text-slate-400 bg-slate-900 rounded-xl p-4 text-left overflow-auto max-h-60 mb-4 font-mono">
+              {this.state.error.message}
+              {this.state.error.stack}
+            </pre>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-3 bg-red-500 text-[#ffffff] font-bold rounded-xl"
+            >
+              Reload App
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+export default function App() {
   const [showSplash, setShowSplash] = useState(true);
-  const { user, loading } = useAuth();
 
   useEffect(() => {
     const handler = () => setShowSplash(true);
@@ -18,46 +41,19 @@ function AppShell() {
     return () => window.removeEventListener('rallyup:reload', handler);
   }, []);
 
-  if (showSplash) {
-    return <SplashScreen onFinish={() => setShowSplash(false)} />;
-  }
-
-  if (loading) {
-    return (
-      <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center">
-        <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
-      </div>
-    );
-  }
-
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={
-          !user ? <LandingPage /> : <Navigate to="/dashboard" replace />
-        }
-      />
-      <Route path="/signin" element={!user ? <AuthPage /> : <Navigate to="/dashboard" replace />} />
-      <Route
-        path="/dashboard"
-        element={
-          <AuthGuard>
-            <Dashboard />
-          </AuthGuard>
-        }
-      />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-  );
-}
-
-export default function App() {
-  return (
-    <BrowserRouter>
+    <ErrorBoundary>
       <AuthProvider>
-        <AppShell />
+        <AnimatePresence mode="wait">
+          {showSplash ? (
+            <SplashScreen key="splash" onFinish={() => setShowSplash(false)} />
+          ) : (
+            <AuthGuard key="app">
+              <Dashboard />
+            </AuthGuard>
+          )}
+        </AnimatePresence>
       </AuthProvider>
-    </BrowserRouter>
+    </ErrorBoundary>
   );
 }
