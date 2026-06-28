@@ -16,7 +16,7 @@ import type { ToastItem } from './NotificationToast';
 import { 
   Plus, Check, Trophy, Settings, Trash2, LayoutGrid, Users, 
   Activity, Menu, X, Loader2, LogOut, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
-  Monitor, MonitorOff, Coins, Info, ShieldAlert, Sparkles, Bell, SkipForward, RotateCcw
+  Monitor, MonitorOff, Coins, Info, ShieldAlert, Sparkles, Bell, RotateCcw
 } from 'lucide-react';
 import { Player, SkillTier } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -100,6 +100,8 @@ export default function Dashboard() {
   const [scoreA, setScoreA] = useState('21');
   const [scoreB, setScoreB] = useState('19');
   const [shuttlesUsed, setShuttlesUsed] = useState('1');
+  const [quickDeclare, setQuickDeclare] = useState(false);
+  const [declareWinner, setDeclareWinner] = useState<'A' | 'B' | null>(null);
 
   // Notification toast state
   const [toasts, setToasts] = useState<ToastItem[]>([]);
@@ -268,6 +270,7 @@ export default function Dashboard() {
         if (activeOnCourt && isQM) {
           setCompletingMatchId(activeOnCourt.id);
           setScoreA('21'); setScoreB('19'); setShuttlesUsed('1');
+          setQuickDeclare(false); setDeclareWinner(null);
         }
       }
     };
@@ -527,43 +530,97 @@ export default function Dashboard() {
                 </button>
               </div>
 
-              <div className="flex flex-col gap-4">
-                <div className="flex gap-4">
-                  <div className="flex-1 flex flex-col gap-2">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Team A Score</label>
-                    <input
-                      type="number"
-                      value={scoreA}
-                      onChange={(e) => setScoreA(e.target.value)}
-                      className="w-full h-14 bg-slate-950 border border-slate-800 text-white text-xl font-black text-center rounded-2xl outline-none focus:border-emerald-500"
-                    />
-                  </div>
-                  <div className="flex-1 flex flex-col gap-2">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Team B Score</label>
-                    <input
-                      type="number"
-                      value={scoreB}
-                      onChange={(e) => setScoreB(e.target.value)}
-                      className="w-full h-14 bg-slate-950 border border-slate-800 text-white text-xl font-black text-center rounded-2xl outline-none focus:border-emerald-500"
-                    />
-                  </div>
-                </div>
+              {/* Toggle between Score Entry and Quick Declaration */}
+              <button
+                onClick={() => { setQuickDeclare(!quickDeclare); setDeclareWinner(null); }}
+                className="w-full py-2.5 px-4 bg-slate-950 border border-slate-700 rounded-xl text-[10px] font-bold uppercase tracking-wider text-slate-300 hover:text-white hover:border-emerald-500/50 transition-all text-center"
+              >
+                {quickDeclare
+                  ? 'Switch to Score Entry'
+                  : 'Click here to skip scores'}
+              </button>
 
-                <div className="flex flex-col gap-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Shuttles Used</label>
-                  <input
-                    type="number"
-                    value={shuttlesUsed}
-                    onChange={(e) => setShuttlesUsed(e.target.value)}
-                    className="w-full h-12 bg-slate-950 border border-slate-800 text-white text-sm font-bold rounded-xl px-4 outline-none focus:border-emerald-500"
-                  />
+              {quickDeclare ? (
+                /* Quick Declaration Mode */
+                <div className="flex flex-col gap-4">
+                  {/* Info Note */}
+                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
+                    <p className="text-[10px] font-medium text-amber-300/90 leading-relaxed">
+                      Quick declaration mode. Pick a winner without entering scores — recorded under Match Declarations, not Rankings. Use Switch to Score Entry to make this match count.
+                    </p>
+                  </div>
+
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Select Winner</p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setDeclareWinner('A')}
+                      className={`flex-1 h-14 rounded-2xl border text-xs font-black uppercase tracking-wider transition-all ${
+                        declareWinner === 'A'
+                          ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
+                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-600'
+                      }`}
+                    >
+                      Team A
+                    </button>
+                    <button
+                      onClick={() => setDeclareWinner('B')}
+                      className={`flex-1 h-14 rounded-2xl border text-xs font-black uppercase tracking-wider transition-all ${
+                        declareWinner === 'B'
+                          ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
+                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-600'
+                      }`}
+                    >
+                      Team B
+                    </button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                /* Score Entry Mode */
+                <div className="flex flex-col gap-4">
+                  <div className="flex gap-4">
+                    <div className="flex-1 flex flex-col gap-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Team A Score</label>
+                      <input
+                        type="number"
+                        value={scoreA}
+                        onChange={(e) => setScoreA(e.target.value)}
+                        className="w-full h-14 bg-slate-950 border border-slate-800 text-white text-xl font-black text-center rounded-2xl outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div className="flex-1 flex flex-col gap-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Team B Score</label>
+                      <input
+                        type="number"
+                        value={scoreB}
+                        onChange={(e) => setScoreB(e.target.value)}
+                        className="w-full h-14 bg-slate-950 border border-slate-800 text-white text-xl font-black text-center rounded-2xl outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Shuttles Used</label>
+                    <input
+                      type="number"
+                      value={shuttlesUsed}
+                      onChange={(e) => setShuttlesUsed(e.target.value)}
+                      className="w-full h-12 bg-slate-950 border border-slate-800 text-white text-sm font-bold rounded-xl px-4 outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+              )}
 
               <button
                 onClick={() => {
-                  if (user && completingMatchId) {
-                    runOp('completeMatch', async () => {
+                  if (!user || !completingMatchId) return;
+                  runOp('completeMatch', async () => {
+                    if (quickDeclare) {
+                      // Quick declaration: winner gets 21, loser gets 19
+                      const win = declareWinner === 'A'
+                        ? { a: 21, b: 19 }
+                        : { a: 19, b: 21 };
+                      await completeMatch(user.uid, completingMatchId, win.a, win.b, 1);
+                    } else {
                       await completeMatch(
                         user.uid,
                         completingMatchId,
@@ -571,15 +628,15 @@ export default function Dashboard() {
                         parseInt(scoreB) || 0,
                         parseInt(shuttlesUsed) || 1
                       );
-                      setCompletingMatchId(null);
-                    });
-                  }
+                    }
+                    setCompletingMatchId(null);
+                  });
                 }}
-                className="w-full h-12 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2"
-                disabled={isPending('completeMatch')}
+                className="w-full h-12 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                disabled={isPending('completeMatch') || (quickDeclare && !declareWinner)}
               >
                 {isPending('completeMatch') ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                Confirm Match End
+                {quickDeclare ? 'Declare Winner' : 'Confirm Match End'}
               </button>
             </motion.div>
           </div>
@@ -1230,23 +1287,13 @@ export default function Dashboard() {
                                       setScoreA('21');
                                       setScoreB('19');
                                       setShuttlesUsed('1');
+                                      setQuickDeclare(false);
+                                      setDeclareWinner(null);
                                     }
                                   }}
                                   className="flex-1 h-10 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold text-xs uppercase tracking-wider rounded-xl border border-emerald-500/15"
                                 >
                                   Complete Match
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    if (!user) return;
-                                    if (window.confirm(`Scoreless complete for ${court.name}?`)) {
-                                      runOp(`complete-${activeMatch.id}`, () => completeMatch(user.uid, activeMatch.id, 21, 19, 1));
-                                    }
-                                  }}
-                                  className="h-10 w-10 bg-slate-800 hover:bg-slate-700 text-slate-400 font-bold rounded-xl border border-slate-700 flex items-center justify-center"
-                                  title="Scoreless complete"
-                                >
-                                  <SkipForward className="w-4 h-4" />
                                 </button>
                                 <button
                                   onClick={() => {
