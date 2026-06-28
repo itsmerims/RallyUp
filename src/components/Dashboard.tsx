@@ -22,6 +22,7 @@ import { Player, SkillTier } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { requestNotificationPermission, removePlayerFcmToken, setupMessageListener } from '../services/notifications';
 import gsap from 'gsap';
+import { formatWaitTime } from '../utils/time';
 import PlayerInfoModal from './PlayerInfoModal';
 import SessionModal from './SessionModal';
 import SessionChoiceModal from './SessionChoiceModal';
@@ -108,11 +109,13 @@ export default function Dashboard() {
   const [rosterSearch, setRosterSearch] = useState('');
   const [rosterTierFilter, setRosterTierFilter] = useState<SkillTier | 'ALL'>('ALL');
 
-  const filteredPlayers = players.filter((p) => {
-    const matchName = p.name.toLowerCase().includes(rosterSearch.toLowerCase());
-    const matchTier = rosterTierFilter === 'ALL' || p.tier === rosterTierFilter;
-    return matchName && matchTier;
-  });
+  const filteredPlayers = players
+    .filter((p) => {
+      const matchName = p.name.toLowerCase().includes(rosterSearch.toLowerCase());
+      const matchTier = rosterTierFilter === 'ALL' || p.tier === rosterTierFilter;
+      return matchName && matchTier;
+    })
+    .sort((a, b) => (a.waitingSince || a.joinedAt) - (b.waitingSince || b.joinedAt));
 
   const isQM = userProfile?.role === 'QUEUE_MASTER';
 
@@ -795,7 +798,7 @@ export default function Dashboard() {
                             <div className="overflow-hidden">
                               <div className="text-xs font-bold text-slate-200 truncate">{player.name}</div>
                               <div className="text-[9px] text-slate-500 uppercase tracking-wide truncate">
-                                {player.tier} • <span className={
+                                {player.tier} • <span className="text-slate-600 font-mono">{formatWaitTime(player.waitingSince || player.joinedAt)}</span> • <span className={
                                   player.status === 'waiting' ? 'text-emerald-400 font-bold' :
                                   player.status === 'resting' ? 'text-amber-400' :
                                   player.status === 'active' ? 'text-blue-400' :
