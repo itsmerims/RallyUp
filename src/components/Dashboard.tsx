@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { Player, SkillTier } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { requestNotificationPermission, setupMessageListener } from '../services/notifications';
+import { requestNotificationPermission, removePlayerFcmToken, setupMessageListener } from '../services/notifications';
 import gsap from 'gsap';
 import PlayerInfoModal from './PlayerInfoModal';
 import SessionModal from './SessionModal';
@@ -168,9 +168,8 @@ export default function Dashboard() {
             setCurrentSessionId(result.matchSessionId);
             // Auto-register player in QM's roster
             if (userProfile) {
-              const playerId = Math.random().toString(36).substring(7);
               firestoreService.autoRegisterPlayer(
-                result.qmUserId, playerId,
+                result.qmUserId, userProfile.id,
                 userProfile.name || 'Player',
                 userProfile.skillTier || 'BEGINNER',
                 result.matchSessionId
@@ -200,6 +199,10 @@ export default function Dashboard() {
   };
 
   const handleSessionLeft = () => {
+    const qmUserId = localStorage.getItem('rallyup_joined_qm');
+    if (userProfile && qmUserId) {
+      removePlayerFcmToken(qmUserId, userProfile.id);
+    }
     setJoinedQmUserId(null);
     localStorage.removeItem('rallyup_joined_qm');
     localStorage.removeItem('rallyup_joined_code');

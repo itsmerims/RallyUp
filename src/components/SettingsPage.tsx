@@ -173,15 +173,14 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
         if (result.matchSessionId) {
           localStorage.setItem('rallyup_current_session_id', result.matchSessionId);
         }
-        // Auto-register as a player in the QM's roster
+        // Auto-register as a player in the QM's roster (non-blocking)
         if (userProfile && result.matchSessionId) {
-          const playerId = Math.random().toString(36).substring(7);
           firestoreService.autoRegisterPlayer(
-            result.qmUserId, playerId,
+            result.qmUserId, userProfile.id,
             userProfile.name || 'Player',
             userProfile.skillTier || 'BEGINNER',
             result.matchSessionId
-          );
+          ).catch(() => {}); // Best-effort; don't block join when Firestore rules are still being deployed
         }
         if (onSessionJoined) {
           onSessionJoined(result.qmUserId, result.matchSessionId);

@@ -275,7 +275,7 @@ export const autoRegisterPlayer = async (qmUserId: string, playerId: string, nam
       sessionId,
       autoRegistered: true,
       stats: { gamesPlayed: 0, wins: 0, losses: 0, currentStreak: 0 },
-    });
+    }, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.CREATE, path);
   }
