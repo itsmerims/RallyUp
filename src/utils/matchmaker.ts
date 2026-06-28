@@ -2,10 +2,15 @@ import { Player, SkillTier } from '../types';
 
 export const getTierWeight = (tier: SkillTier) => {
   switch (tier) {
-    case 'BEGINNER': return 1;
-    case 'LOW_INTERMEDIATE': return 2;
-    case 'INTERMEDIATE': return 3;
-    case 'ADVANCED': return 4;
+    case 'BEG': return 1;
+    case 'ADV_BEG': return 2;
+    case 'LOW_INT': return 3;
+    case 'INT': return 4;
+    case 'MID_INT': return 5;
+    case 'UP_INT': return 6;
+    case 'ADV': return 7;
+    case 'EXP': return 8;
+    case 'PRO': return 9;
     default: return 1;
   }
 };
@@ -17,7 +22,7 @@ export const calculateVariance = (players: Player[]) => {
 };
 
 export const generateOptimalMatch = (players: Player[]): Player[] | null => {
-  const waiting = players.filter(p => p.status === 'WAITING' || p.status === 'RESTING');
+  const waiting = players.filter(p => p.status === 'waiting');
   if (waiting.length < 4) return null;
 
   const sortedCandidates = [...waiting].sort((a, b) => a.joinedAt - b.joinedAt);

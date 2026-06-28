@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { X, Trophy, TrendingUp, Activity, Award } from 'lucide-react';
 import gsap from 'gsap';
 import { Player, Match, SkillTier } from '../types';
+import { getTierFullLabel } from '../utils/tiers';
 
 interface PlayerInfoModalProps {
   isOpen: boolean;
@@ -13,17 +14,27 @@ interface PlayerInfoModalProps {
 }
 
 const tierColors: Record<SkillTier, string> = {
-  BEGINNER: 'text-slate-400',
-  LOW_INTERMEDIATE: 'text-blue-400',
-  INTERMEDIATE: 'text-emerald-400',
-  ADVANCED: 'text-purple-400',
+  BEG: 'text-slate-400',
+  ADV_BEG: 'text-blue-300',
+  LOW_INT: 'text-blue-400',
+  INT: 'text-emerald-400',
+  MID_INT: 'text-emerald-500',
+  UP_INT: 'text-teal-400',
+  ADV: 'text-purple-400',
+  EXP: 'text-purple-500',
+  PRO: 'text-amber-400',
 };
 
 const tierBg: Record<SkillTier, string> = {
-  BEGINNER: 'bg-slate-500/10 border-slate-500/20',
-  LOW_INTERMEDIATE: 'bg-blue-500/10 border-blue-500/20',
-  INTERMEDIATE: 'bg-emerald-500/10 border-emerald-500/20',
-  ADVANCED: 'bg-purple-500/10 border-purple-500/20',
+  BEG: 'bg-slate-500/10 border-slate-500/20',
+  ADV_BEG: 'bg-blue-500/10 border-blue-500/20',
+  LOW_INT: 'bg-blue-500/10 border-blue-500/20',
+  INT: 'bg-emerald-500/10 border-emerald-500/20',
+  MID_INT: 'bg-emerald-500/10 border-emerald-500/20',
+  UP_INT: 'bg-teal-500/10 border-teal-500/20',
+  ADV: 'bg-purple-500/10 border-purple-500/20',
+  EXP: 'bg-purple-500/10 border-purple-500/20',
+  PRO: 'bg-amber-500/10 border-amber-500/20',
 };
 
 export default function PlayerInfoModal({ isOpen, player, players, matches, onClose }: PlayerInfoModalProps) {

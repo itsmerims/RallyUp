@@ -190,7 +190,7 @@ export default function Dashboard() {
               firestoreService.autoRegisterPlayer(
                 result.qmUserId, userProfile.id,
                 userProfile.name || 'Player',
-                userProfile.skillTier || 'BEGINNER',
+                userProfile.skillTier || 'BEG',
                 result.matchSessionId
               );
             }
@@ -220,7 +220,6 @@ export default function Dashboard() {
   const handleSessionLeft = () => {
     const qmUserId = localStorage.getItem('rallyup_joined_qm');
     if (userProfile && qmUserId) {
-      firestoreService.updatePlayer(qmUserId, userProfile.id, { status: 'DISCONNECTED' });
       removePlayerFcmToken(qmUserId, userProfile.id);
     }
     setJoinedQmUserId(null);
@@ -766,15 +765,15 @@ export default function Dashboard() {
                         className="w-full h-9 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl px-3 outline-none focus:border-red-500/50 placeholder:text-slate-600"
                       />
                       <div className="flex gap-1 mt-1.5">
-                        {(['ALL', 'BEGINNER', 'LOW_INTERMEDIATE', 'INTERMEDIATE', 'ADVANCED'] as const).map((t) => (
+                        {(['ALL', 'BEG', 'ADV_BEG', 'LOW_INT', 'INT', 'MID_INT', 'UP_INT', 'ADV', 'EXP', 'PRO'] as const).map((t) => (
                           <button
                             key={t}
-                            onClick={() => setRosterTierFilter(t)}
+                            onClick={() => setRosterTierFilter(t as SkillTier | 'ALL')}
                             className={`text-[8px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider transition-colors ${
                               rosterTierFilter === t ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'text-slate-500 bg-slate-950/50 border border-slate-800 hover:text-white'
                             }`}
                           >
-                            {t === 'ALL' ? 'All' : t === 'LOW_INTERMEDIATE' ? 'Low Int' : t.charAt(0) + t.slice(1).toLowerCase()}
+                            {t === 'ALL' ? 'All' : t}
                           </button>
                         ))}
                       </div>
@@ -783,23 +782,25 @@ export default function Dashboard() {
                     <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 w-full">
                       {filteredPlayers.map((player, index) => (
                         <div key={`${player.id}-${index}`} className={`p-3 border rounded-xl flex items-center justify-between group transition-colors cursor-pointer ${
-                          player.status === 'RESTING' ? 'bg-slate-900/40 border-slate-850 opacity-60' : 'bg-slate-900                          border-slate-800'
+                          player.status === 'resting' ? 'bg-slate-900/40 border-slate-850 opacity-60' : 'bg-slate-900 border-slate-800'
                         }`} onClick={() => setDetailPlayer(player)}>
                           <div className="flex items-center gap-2.5">
                             <div className={`w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center text-xs font-bold shrink-0 ${
-                              player.status === 'PLAYING' ? 'bg-red-500 text-[#ffffff]' : 'bg-slate-800 text-slate-300'
+                              player.status === 'waiting' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+                              player.status === 'resting' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' :
+                              'bg-slate-800 text-slate-300'
                             }`}>
                               {player.name.substring(0, 2).toUpperCase()}
                             </div>
                             <div className="overflow-hidden">
                               <div className="text-xs font-bold text-slate-200 truncate">{player.name}</div>
                               <div className="text-[9px] text-slate-500 uppercase tracking-wide truncate">
-                                {player.tier?.replace('_', ' ')} • <span className={
-                                  player.status === 'ACTIVE' ? 'text-emerald-400 font-bold' :
-                                  player.status === 'RESTING' ? 'text-amber-400' :
-                                  player.status === 'DISCONNECTED' ? 'text-slate-600' :
-                                  player.status === 'PLAYING' ? 'text-red-400 font-bold' :
-                                  player.status === 'WAITING' ? 'text-amber-400' : 'text-slate-500'
+                                {player.tier} • <span className={
+                                  player.status === 'waiting' ? 'text-emerald-400 font-bold' :
+                                  player.status === 'resting' ? 'text-amber-400' :
+                                  player.status === 'active' ? 'text-blue-400' :
+                                  player.status === 'timeout' ? 'text-slate-600' :
+                                  'text-slate-500'
                                 }>{player.status}</span>
                               </div>
                             </div>
@@ -1119,10 +1120,10 @@ export default function Dashboard() {
                           <h4 className="font-bold text-white text-sm flex items-center gap-2">
                             {player.name}
                             <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${
-                              player.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400' :
-                              player.status === 'RESTING' ? 'bg-amber-500/10 text-amber-400' :
-                              player.status === 'DISCONNECTED' ? 'bg-slate-800 text-slate-500' :
-                              player.status === 'PLAYING' ? 'bg-red-500/10 text-red-400' :
+                              player.status === 'waiting' ? 'bg-emerald-500/10 text-emerald-400' :
+                              player.status === 'resting' ? 'bg-amber-500/10 text-amber-400' :
+                              player.status === 'active' ? 'bg-blue-500/10 text-blue-400' :
+                              player.status === 'timeout' ? 'bg-slate-800 text-slate-500' :
                               'bg-slate-800 text-slate-400'
                             }`}>{player.status}</span>
                           </h4>

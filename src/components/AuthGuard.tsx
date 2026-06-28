@@ -363,12 +363,17 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
                 {/* Skill Select 2x2 Grid */}
                 <div className="mb-6">
                   <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 font-mono">Skill Level *</label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-2">
                     {[
-                      { id: 'BEGINNER', label: 'Beginner', desc: 'Just starting out' },
-                      { id: 'LOW_INTERMEDIATE', label: 'Low Inter.', desc: 'Regular play' },
-                      { id: 'INTERMEDIATE', label: 'Intermediate', desc: 'Competitive club' },
-                      { id: 'ADVANCED', label: 'Advanced', desc: 'Tournament level' }
+                      { id: 'BEG', label: 'Beg', desc: 'Just starting out' },
+                      { id: 'ADV_BEG', label: 'Adv Beg', desc: 'Building fundamentals' },
+                      { id: 'LOW_INT', label: 'Low Int', desc: 'Regular play' },
+                      { id: 'INT', label: 'Int', desc: 'Competitive club' },
+                      { id: 'MID_INT', label: 'Mid Int', desc: 'Strong club player' },
+                      { id: 'UP_INT', label: 'Up Int', desc: 'High level club' },
+                      { id: 'ADV', label: 'Adv', desc: 'Tournament level' },
+                      { id: 'EXP', label: 'Exp', desc: 'Expert level' },
+                      { id: 'PRO', label: 'Pro', desc: 'Professional level' }
                     ].map((tier) => (
                       <button
                         key={tier.id}

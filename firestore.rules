@@ -27,14 +27,15 @@ service cloud.firestore {
     }
 
     function isValidPlayer(data) {
-      return data.keys().hasAll(['userId', 'name', 'tier', 'ratingScore', 'joinedAt', 'hasPaid', 'status', 'stats'])
+      return data.keys().hasAll(['userId', 'name', 'tier', 'ratingScore', 'joinedAt', 'waitingSince', 'hasPaid', 'status', 'stats'])
         && data.userId == request.auth.uid
         && data.name is string && data.name.size() > 0 && data.name.size() <= 100
-        && data.tier in ['BEGINNER', 'LOW_INTERMEDIATE', 'INTERMEDIATE', 'ADVANCED']
+        && data.tier in ['BEG', 'ADV_BEG', 'LOW_INT', 'INT', 'MID_INT', 'UP_INT', 'ADV', 'EXP', 'PRO']
         && data.ratingScore is number
         && data.joinedAt is number
+        && data.waitingSince is number
         && data.hasPaid is bool
-        && data.status in ['ACTIVE', 'RESTING', 'DISCONNECTED', 'WAITING', 'PLAYING', 'OUT']
+        && data.status in ['waiting', 'active', 'resting', 'timeout']
         && data.stats is map
         && data.stats.keys().hasAll(['gamesPlayed', 'wins', 'losses', 'currentStreak'])
         && data.stats.gamesPlayed is number
@@ -48,7 +49,7 @@ service cloud.firestore {
         && data.userId == ownerId
         && data.autoRegistered == true
         && data.name is string && data.name.size() > 0 && data.name.size() <= 100
-        && data.tier in ['BEGINNER', 'LOW_INTERMEDIATE', 'INTERMEDIATE', 'ADVANCED']
+        && data.tier in ['BEG', 'ADV_BEG', 'LOW_INT', 'INT', 'MID_INT', 'UP_INT', 'ADV', 'EXP', 'PRO']
         && data.sessionId is string;
     }
 

@@ -129,11 +129,16 @@ export default function PlayerDashboard({ joinedQmUserId, onNavigateToSettings }
   );
 
   const getTierColor = (tier: string) => {
-    switch (tier) {
-      case 'BEGINNER': return 'text-slate-400';
-      case 'LOW_INTERMEDIATE': return 'text-blue-400';
-      case 'INTERMEDIATE': return 'text-emerald-400';
-      case 'ADVANCED': return 'text-purple-400';
+    switch(tier) {
+      case 'BEG': return 'text-slate-400';
+      case 'ADV_BEG': return 'text-blue-300';
+      case 'LOW_INT': return 'text-blue-400';
+      case 'INT': return 'text-emerald-400';
+      case 'MID_INT': return 'text-emerald-500';
+      case 'UP_INT': return 'text-teal-400';
+      case 'ADV': return 'text-purple-400';
+      case 'EXP': return 'text-purple-500';
+      case 'PRO': return 'text-amber-400';
       default: return 'text-slate-400';
     }
   };
@@ -147,11 +152,11 @@ export default function PlayerDashboard({ joinedQmUserId, onNavigateToSettings }
     : '0%';
 
   const myPlayerDoc = players.find(p => p.id === userProfile?.id);
-  const myStatus = myPlayerDoc?.status || 'DISCONNECTED';
+  const myStatus = myPlayerDoc?.status || 'waiting';
 
   const toggleStatus = async () => {
     if (!joinedQmUserId || !userProfile) return;
-    const next = myStatus === 'ACTIVE' ? 'RESTING' : 'ACTIVE';
+    const next = myStatus === 'waiting' ? 'resting' : 'waiting';
     try {
       await firestoreService.updatePlayer(joinedQmUserId, userProfile.id, { status: next });
     } catch {}
@@ -189,8 +194,8 @@ export default function PlayerDashboard({ joinedQmUserId, onNavigateToSettings }
             {joinedQmUserId ? (
               <div className="flex items-center gap-3 bg-slate-950/60 border border-slate-800 p-3 rounded-2xl">
                 <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                  myStatus === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' :
-                  myStatus === 'RESTING' ? 'bg-amber-500' :
+                  myStatus === 'waiting' ? 'bg-emerald-500 animate-pulse' :
+                  myStatus === 'resting' ? 'bg-amber-500' :
                   'bg-slate-600'
                 }`} />
                 <div className="text-left min-w-0">
@@ -198,14 +203,14 @@ export default function PlayerDashboard({ joinedQmUserId, onNavigateToSettings }
                   <button
                     onClick={toggleStatus}
                     className={`text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 mt-0.5 transition-colors ${
-                      myStatus === 'ACTIVE' ? 'text-emerald-400 hover:text-emerald-300' :
-                      myStatus === 'RESTING' ? 'text-amber-400 hover:text-amber-300' :
+                      myStatus === 'waiting' ? 'text-emerald-400 hover:text-emerald-300' :
+                      myStatus === 'resting' ? 'text-amber-400 hover:text-amber-300' :
                       'text-slate-500'
                     }`}
                   >
-                    {myStatus === 'ACTIVE' ? '🟢 Active — tap to rest' :
-                     myStatus === 'RESTING' ? '🟡 Resting — tap to activate' :
-                     '⚫ Disconnected'}
+                    {myStatus === 'waiting' ? '🟢 Waiting — tap to rest' :
+                     myStatus === 'resting' ? '🟡 Resting — tap to wait' :
+                     '⚫ Away'}
                   </button>
                 </div>
               </div>
@@ -479,8 +484,8 @@ export default function PlayerDashboard({ joinedQmUserId, onNavigateToSettings }
                           )}
                         </button>
                         <span className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase ${
-                          p.status === 'PLAYING' ? 'bg-emerald-500/10 text-emerald-400' :
-                          p.status === 'WAITING' ? 'bg-amber-500/10 text-amber-400' : 'bg-slate-800 text-slate-400'
+                          p.status === 'waiting' ? 'bg-emerald-500/10 text-emerald-400' :
+                          p.status === 'resting' ? 'bg-amber-500/10 text-amber-400' : 'bg-slate-800 text-slate-400'
                         }`}>
                           {p.status}
                         </span>

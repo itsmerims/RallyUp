@@ -9,6 +9,7 @@ import {
   createUserWithEmailAndPassword
 } from 'firebase/auth';
 import { UserProfile, SkillTier } from '../types';
+import { getBaseRating } from '../utils/tiers';
 import * as firestoreService from '../services/firestore';
 import { requestNotificationPermission, removeFcmToken } from '../services/notifications';
 
@@ -115,16 +116,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const completeProfile = async (skillTier: SkillTier, country: string, role: 'PLAYER' | 'QUEUE_MASTER') => {
     if (!user) return;
     
-    const getBaseRating = (tier: SkillTier) => {
-      switch(tier) {
-        case 'BEGINNER': return 1000;
-        case 'LOW_INTERMEDIATE': return 1400;
-        case 'INTERMEDIATE': return 1800;
-        case 'ADVANCED': return 2200;
-        default: return 1000;
-      }
-    };
-
     const initialProfile: UserProfile = {
       id: user.uid,
       name: user.displayName || user.email?.split('@')[0] || 'Player',

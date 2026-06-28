@@ -1,5 +1,5 @@
-export type SkillTier = 'BEGINNER' | 'LOW_INTERMEDIATE' | 'INTERMEDIATE' | 'ADVANCED';
-export type PlayerStatus = 'ACTIVE' | 'RESTING' | 'DISCONNECTED' | 'PLAYING' | 'WAITING' | 'OUT';
+export type SkillTier = 'BEG' | 'ADV_BEG' | 'LOW_INT' | 'INT' | 'MID_INT' | 'UP_INT' | 'ADV' | 'EXP' | 'PRO';
+export type PlayerStatus = 'waiting' | 'active' | 'resting' | 'timeout';
 export type CourtStatus = 'Available' | 'Occupied' | 'Finishing Soon';
 
 export interface UserProfile {
@@ -30,6 +30,7 @@ export interface Player {
   status: PlayerStatus;
   ratingScore: number;
   joinedAt: number;
+  waitingSince: number;
   hasPaid: boolean;
   userId?: string;
   fcmTokens?: string[];

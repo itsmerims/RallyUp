@@ -57,10 +57,15 @@ export default function LocalGlobalRankings() {
 
   const getTierBadge = (tier: string) => {
     switch (tier) {
-      case 'BEGINNER': return <span className="bg-slate-800 text-slate-300 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border border-slate-700">Beginner</span>;
-      case 'LOW_INTERMEDIATE': return <span className="bg-blue-950 text-blue-300 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border border-blue-800/60">Low Inter</span>;
-      case 'INTERMEDIATE': return <span className="bg-emerald-950 text-emerald-300 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border border-emerald-800/60">Inter.</span>;
-      case 'ADVANCED': return <span className="bg-purple-950 text-purple-300 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border border-purple-800/60">Advanced</span>;
+      case 'BEG': return <span className="bg-slate-800 text-slate-300 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border border-slate-700">Beg</span>;
+      case 'ADV_BEG': return <span className="bg-blue-950 text-blue-300 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border border-blue-800/60">Adv Beg</span>;
+      case 'LOW_INT': return <span className="bg-blue-950 text-blue-300 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border border-blue-800/60">Low Int</span>;
+      case 'INT': return <span className="bg-emerald-950 text-emerald-300 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border border-emerald-800/60">Int</span>;
+      case 'MID_INT': return <span className="bg-emerald-950 text-emerald-300 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border border-emerald-800/60">Mid Int</span>;
+      case 'UP_INT': return <span className="bg-teal-950 text-teal-300 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border border-teal-800/60">Up Int</span>;
+      case 'ADV': return <span className="bg-purple-950 text-purple-300 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border border-purple-800/60">Adv</span>;
+      case 'EXP': return <span className="bg-purple-950 text-purple-300 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border border-purple-800/60">Exp</span>;
+      case 'PRO': return <span className="bg-amber-950 text-amber-300 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border border-amber-800/60">Pro</span>;
       default: return <span className="bg-slate-800 text-slate-400 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">Unknown</span>;
     }
   };
@@ -249,7 +254,7 @@ export default function LocalGlobalRankings() {
 
                   {/* Tier filtering buttons */}
                   <div className="flex flex-wrap gap-1.5 bg-slate-950 border border-slate-800 p-1 rounded-xl">
-                    {['ALL', 'BEGINNER', 'LOW_INTERMEDIATE', 'INTERMEDIATE', 'ADVANCED'].map((t) => (
+                    {['ALL', 'BEG', 'ADV_BEG', 'LOW_INT', 'INT', 'MID_INT', 'UP_INT', 'ADV', 'EXP', 'PRO'].map((t) => (
                       <button
                         key={t}
                         onClick={() => setTierFilter(t)}

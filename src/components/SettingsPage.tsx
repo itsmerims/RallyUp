@@ -33,7 +33,7 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
 
   // Profile Form States
   const [name, setName] = useState(userProfile?.name || '');
-  const [skillTier, setSkillTier] = useState<SkillTier>(userProfile?.skillTier || 'BEGINNER');
+  const [skillTier, setSkillTier] = useState<SkillTier>(userProfile?.skillTier || 'BEG');
   const [country, setCountry] = useState(userProfile?.country || 'Philippines');
   const [role, setRole] = useState<'PLAYER' | 'QUEUE_MASTER'>(userProfile?.role || 'PLAYER');
   const [saveLoading, setSaveLoading] = useState(false);
@@ -69,7 +69,7 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
   useEffect(() => {
     if (userProfile) {
       setName(userProfile.name || '');
-      setSkillTier(userProfile.skillTier || 'BEGINNER');
+      setSkillTier((userProfile.skillTier as SkillTier) || 'BEG');
       setCountry(userProfile.country || 'Philippines');
       setRole(userProfile.role || 'PLAYER');
     }
@@ -182,11 +182,11 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
           firestoreService.autoRegisterPlayer(
             result.qmUserId, userProfile.id,
             userProfile.name || 'Player',
-            userProfile.skillTier || 'BEGINNER',
+            (userProfile.skillTier as SkillTier) || 'BEG',
             result.matchSessionId
           ).then(() => {
             // Explicitly set to ACTIVE in case this is a reconnection
-            firestoreService.updatePlayer(result.qmUserId, userProfile.id, { status: 'ACTIVE' });
+            firestoreService.updatePlayer(result.qmUserId, userProfile.id, { status: 'waiting' });
           }).catch(() => {});
         }
         if (onSessionJoined) {

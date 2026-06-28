@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Player, Court, Match, FinancialConfig, SkillTier, Club, ClubMember } from './types';
+import { getBaseRating } from './utils/tiers';
 import * as firestoreService from './services/firestore';
 import { sendMatchNotification } from './services/notifications';
 
@@ -25,7 +26,7 @@ interface AppState {
   setCurrentSessionId: (id: string) => void;
 
   // Actions
-  addPlayer: (userId: string, player: Omit<Player, 'id' | 'hasPaid' | 'ratingScore' | 'joinedAt' | 'stats' | 'status'>) => void;
+  addPlayer: (userId: string, player: Omit<Player, 'id' | 'hasPaid' | 'ratingScore' | 'joinedAt' | 'waitingSince' | 'stats' | 'status'>) => void;
   updatePlayerStatus: (userId: string, id: string, status: Player['status']) => void;
   togglePlayerPaid: (userId: string, id: string) => void;
   deletePlayer: (userId: string, id: string) => void;
@@ -39,15 +40,7 @@ interface AppState {
   deleteCourt: (userId: string, courtId: string) => void;
 }
 
-const getBaseRating = (tier: SkillTier) => {
-  switch(tier) {
-    case 'BEGINNER': return 1000;
-    case 'LOW_INTERMEDIATE': return 1400;
-    case 'INTERMEDIATE': return 1800;
-    case 'ADVANCED': return 2200;
-    default: return 1000;
-  }
-};
+
 
 export const useAppStore = create<AppState>()(
   (set, get) => ({
@@ -90,7 +83,8 @@ export const useAppStore = create<AppState>()(
         joinedAt: Date.now(),
         hasPaid: false,
         ratingScore: getBaseRating(playerData.tier),
-        status: 'WAITING',
+        status: 'waiting',
+        waitingSince: Date.now(),
         sessionId,
         stats: {
           gamesPlayed: 0,
@@ -140,9 +134,6 @@ export const useAppStore = create<AppState>()(
       }
 
       const playersToUpdate = [...newMatch.teamA, ...newMatch.teamB].filter(Boolean) as string[];
-      for (const pId of playersToUpdate) {
-        await firestoreService.updatePlayer(userId, pId, { status: newMatch.status === 'Active' ? 'PLAYING' : 'WAITING' });
-      }
 
       if (newMatch.status === 'Active') {
         sendMatchNotification({
@@ -203,11 +194,12 @@ export const useAppStore = create<AppState>()(
            ratingScore -= 10;
          }
          
-         await firestoreService.updatePlayer(userId, p.id, {
-           status: 'RESTING',
-           stats,
-           ratingScore
-         });
+          await firestoreService.updatePlayer(userId, p.id, {
+            status: 'resting',
+            waitingSince: Date.now(),
+            stats,
+            ratingScore
+          });
       }
 
       const completedPlayerIds = [...match.teamA, ...match.teamB];
@@ -235,9 +227,6 @@ export const useAppStore = create<AppState>()(
           const nextMatch = state.matches.find(m => m.id === nextMatchId);
           if (nextMatch) {
             const nextPlayers = [...nextMatch.teamA, ...nextMatch.teamB].filter(Boolean);
-            for (const pId of nextPlayers) {
-              await firestoreService.updatePlayer(userId, pId, { status: 'PLAYING' });
-            }
 
             sendMatchNotification({
               playerIds: nextPlayers,

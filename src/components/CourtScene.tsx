@@ -25,10 +25,15 @@ interface CourtSceneProps {
 function PlayerModel({ position, tier, name }: { position: [number, number, number]; tier: SkillTier; name: string }) {
   const getTierColor = (t: SkillTier) => {
     switch (t) {
-      case 'BEGINNER': return '#64748b'; // Slate/Gray
-      case 'LOW_INTERMEDIATE': return '#3b82f6'; // Blue
-      case 'INTERMEDIATE': return '#10b981'; // Emerald/Green
-      case 'ADVANCED': return '#a855f7'; // Purple
+      case 'BEG': return '#64748b';
+      case 'ADV_BEG': return '#93c5fd';
+      case 'LOW_INT': return '#3b82f6';
+      case 'INT': return '#10b981';
+      case 'MID_INT': return '#10b981';
+      case 'UP_INT': return '#14b8a6';
+      case 'ADV': return '#a855f7';
+      case 'EXP': return '#a855f7';
+      case 'PRO': return '#f59e0b';
       default: return '#cbd5e1';
     }
   };
