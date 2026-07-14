@@ -76,7 +76,7 @@ export const useAppStore = create<AppState>()(
     },
     
     addPlayer: async (userId, playerData) => {
-      const sessionId = get().currentSessionId || undefined;
+      const sessionId = get().currentSessionId;
       const newPlayer: Player = {
         ...playerData,
         id: Math.random().toString(36).substring(7),
@@ -85,7 +85,7 @@ export const useAppStore = create<AppState>()(
         ratingScore: getBaseRating(playerData.tier),
         status: 'waiting',
         waitingSince: Date.now(),
-        sessionId,
+        ...(sessionId ? { sessionId } : {}),
         stats: {
           gamesPlayed: 0,
           wins: 0,

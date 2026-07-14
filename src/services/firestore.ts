@@ -146,6 +146,7 @@ export const savePlayer = async (userId: string, player: Player) => {
     });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
+    throw error;
   }
 };
 
