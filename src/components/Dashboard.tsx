@@ -1196,6 +1196,8 @@ export default function Dashboard() {
                   <div ref={courtGridRef} className="flex-1 overflow-y-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 relative z-10 pb-24">
                     {courts.map((court, index) => {
                       const activeMatch = matches.find(m => m.id === court.activeMatchId);
+                      const assignedPlayerCount = court.queue.filter(playerId => players.some(player => player.id === playerId)).length;
+                      const canStartMatch = assignedPlayerCount >= 4;
                       const elapsed = activeMatch?.startTime ? Math.floor((Date.now() - activeMatch.startTime) / 60000) : 0;
                       return (
                         <div 
@@ -1315,7 +1317,9 @@ export default function Dashboard() {
                           ) : (
                             <button
                               onClick={() => setStartMatchCourt(court.id)}
-                              className="flex-1 h-10 bg-emerald-500 hover:bg-emerald-400 text-[#ffffff] font-bold text-xs uppercase tracking-wider rounded-xl border border-emerald-400/30 transition-all"
+                              disabled={!canStartMatch}
+                              title={canStartMatch ? 'Start the assigned match' : 'Assign 4 players to this court first'}
+                              className="flex-1 h-10 bg-emerald-500 hover:bg-emerald-400 text-[#ffffff] font-bold text-xs uppercase tracking-wider rounded-xl border border-emerald-400/30 transition-all disabled:bg-slate-800 disabled:text-slate-600 disabled:border-slate-700 disabled:cursor-not-allowed disabled:hover:bg-slate-800"
                             >
                               Start Match
                             </button>
