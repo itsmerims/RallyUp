@@ -290,7 +290,7 @@ export const useAppStore = create<AppState>()(
         return { ...player, status: 'waiting' as const, waitingSince, stats, ratingScore };
       });
       const matches = state.matches.map(item => item.id === matchId ? {
-        ...item, status: 'Completed' as const, shuttlecocksUsed: shuttlesUsed, scoreA: teamAScore, scoreB: teamBScore,
+        ...item, status: 'Completed' as const, completedAt: Date.now(), shuttlecocksUsed: shuttlesUsed, scoreA: teamAScore, scoreB: teamBScore,
       } : item);
       const courts = state.courts.map(court => court.activeMatchId === matchId
         ? { ...court, activeMatchId: null, status: 'Available' as const }
@@ -301,7 +301,7 @@ export const useAppStore = create<AppState>()(
       writeWorkspacePart(userId, 'courts', courts);
 
       if (get().connectionMode === 'online') {
-        await firestoreService.updateMatch(userId, matchId, { status: 'Completed', shuttlecocksUsed: shuttlesUsed, scoreA: teamAScore, scoreB: teamBScore });
+        await firestoreService.updateMatch(userId, matchId, { status: 'Completed', completedAt: Date.now(), shuttlecocksUsed: shuttlesUsed, scoreA: teamAScore, scoreB: teamBScore });
         await Promise.all(players.filter(player => completedPlayerIds.includes(player.id)).map(player =>
           firestoreService.updatePlayer(userId, player.id, { status: player.status, waitingSince, stats: player.stats, ratingScore: player.ratingScore })));
         const court = state.courts.find(item => item.activeMatchId === matchId);

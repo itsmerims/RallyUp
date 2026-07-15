@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Copy, QrCode, Key, Monitor, MonitorOff, Check, Loader2, Shield, Users } from 'lucide-react';
+import { X, Key, Monitor, MonitorOff, Loader2, Shield, Users } from 'lucide-react';
 import gsap from 'gsap';
 import * as firestoreService from '../services/firestore';
 
@@ -21,15 +21,11 @@ export default function SessionModal({ isOpen, onClose, user, currentSessionId, 
     if (!user) return '';
     return localStorage.getItem(`rallyup_session_${user.uid}`) || '';
   });
-  const [copySuccess, setCopySuccess] = useState(false);
-  const [showQR, setShowQR] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setStep(currentSessionId ? 'done' : 'start');
       if (user) setSessionCode(localStorage.getItem(`rallyup_session_${user.uid}`) || '');
-      setShowQR(false);
-      setCopySuccess(false);
       if (cardRef.current) {
         gsap.fromTo(cardRef.current,
           { y: 40, opacity: 0, scale: 0.92 },
@@ -80,8 +76,6 @@ export default function SessionModal({ isOpen, onClose, user, currentSessionId, 
       setCurrentSessionId('');
       setSessionCode('');
       setStep('start');
-      setShowQR(false);
-      setCopySuccess(false);
       handleClose();
     } catch (err) {
       console.error(err);
@@ -89,8 +83,6 @@ export default function SessionModal({ isOpen, onClose, user, currentSessionId, 
       setLoading(false);
     }
   };
-
-  const shareUrl = sessionCode ? `${window.location.origin}?join=${sessionCode}` : '';
 
   return (
     <AnimatePresence>
@@ -154,42 +146,6 @@ export default function SessionModal({ isOpen, onClose, user, currentSessionId, 
                       </div>
                     )}
 
-                    <div className="flex gap-2 mt-2">
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(shareUrl).then(() => {
-                            setCopySuccess(true);
-                            setTimeout(() => setCopySuccess(false), 2000);
-                          });
-                        }}
-                        className="flex items-center gap-1.5 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-[10px] font-bold rounded-lg uppercase tracking-wider transition-colors"
-                      >
-                        {copySuccess ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                        {copySuccess ? 'Copied!' : 'Copy Link'}
-                      </button>
-                      <button
-                        onClick={() => setShowQR(!showQR)}
-                        className="flex items-center gap-1.5 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-[10px] font-bold rounded-lg uppercase tracking-wider transition-colors"
-                      >
-                        <QrCode className="w-3.5 h-3.5" />
-                        QR
-                      </button>
-                    </div>
-
-                    {showQR && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        className="bg-white p-3 rounded-xl overflow-hidden"
-                      >
-                        <img
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(shareUrl)}`}
-                          alt="QR Code"
-                          className="w-30 h-30"
-                        />
-                        <span className="text-[9px] text-slate-500 block mt-1">Scan to join session</span>
-                      </motion.div>
-                    )}
                   </div>
 
                   <div className="flex items-center gap-2 mt-4 text-xs text-slate-500 bg-slate-950/30 p-3 rounded-2xl border border-slate-850 w-full">

@@ -109,6 +109,7 @@ export const subscribeToMatches = (userId: string, callback: (matches: Match[]) 
         status: data.status,
         scoreA: data.scoreA,
         scoreB: data.scoreB,
+        completedAt: data.completedAt,
         shuttlecocksUsed: data.shuttlecocksUsed,
         sessionId: data.sessionId,
       } as Match);

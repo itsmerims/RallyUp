@@ -83,8 +83,8 @@ service cloud.firestore {
     }
 
     match /users/{userId}/players/{playerId} {
-      allow read: if isSignedIn() && isValidId(playerId);
-      allow list: if isSignedIn();
+      allow read: if isValidId(playerId);
+      allow list: if true;
       allow create: if (isOwner(userId) && isValidId(playerId) && isValidPlayer(incoming()))
         || (isSignedIn() && isValidId(playerId) && isValidAutoRegister(incoming(), userId) && request.auth.uid != userId);
       allow update: if isOwner(userId) && isValidId(playerId) && isValidPlayer(incoming());
@@ -95,16 +95,16 @@ service cloud.firestore {
     }
 
     match /users/{userId}/courts/{courtId} {
-      allow read: if isSignedIn() && isValidId(courtId);
-      allow list: if isSignedIn();
+      allow read: if isValidId(courtId);
+      allow list: if true;
       allow create: if isOwner(userId) && isValidId(courtId) && isValidCourt(incoming());
       allow update: if isOwner(userId) && isValidId(courtId) && isValidCourt(incoming());
       allow delete: if isOwner(userId) && isValidId(courtId);
     }
 
     match /users/{userId}/matches/{matchId} {
-      allow read: if isSignedIn() && isValidId(matchId);
-      allow list: if isSignedIn();
+      allow read: if isValidId(matchId);
+      allow list: if true;
       allow create: if isOwner(userId) && isValidId(matchId) && isValidMatch(incoming());
       allow update: if isOwner(userId) && isValidId(matchId) && isValidMatch(incoming());
       allow delete: if isOwner(userId) && isValidId(matchId);
@@ -122,7 +122,7 @@ service cloud.firestore {
     }
 
     match /sessions/{sessionId} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow create, update: if isSignedIn();
       allow delete: if isSignedIn();
     }

@@ -16,7 +16,8 @@ import type { ToastItem } from './NotificationToast';
 import { 
   Plus, Check, Trophy, Settings, Trash2, LayoutGrid, Users, 
   Activity, Menu, X, Loader2, LogOut, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
-  Monitor, MonitorOff, Coins, Info, ShieldAlert, Sparkles, Bell, RotateCcw
+  Monitor, MonitorOff, Coins, Info, ShieldAlert, Sparkles, Bell, RotateCcw,
+  MoreHorizontal, Share2, Copy, QrCode
 } from 'lucide-react';
 import { Player, SkillTier } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -42,6 +43,9 @@ export default function Dashboard() {
   } = useAppStore();
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
+  const [showLiveShare, setShowLiveShare] = useState(false);
+  const [liveLinkCopied, setLiveLinkCopied] = useState(false);
   // Inline player add form state
   const [addMode, setAddMode] = useState<'single' | 'bulk'>('single');
   const [playerInput, setPlayerInput] = useState('');
@@ -481,6 +485,8 @@ export default function Dashboard() {
   
   const activeMatches = matches.filter(m => m.status === 'Active');
   const queuedMatches = matches.filter(m => m.status === 'Waiting');
+  const publicSessionCode = user ? localStorage.getItem(`rallyup_session_${user.uid}`) || '' : '';
+  const liveViewUrl = publicSessionCode ? `${window.location.origin}/live?session=${publicSessionCode}` : '';
 
   return (
     <div className="fixed inset-0 bg-slate-950 text-slate-100 font-sans flex flex-col overflow-hidden">
@@ -508,6 +514,15 @@ export default function Dashboard() {
 
       {/* 10-Second Welcome Modal */}
       <WelcomeModal />
+
+      <AnimatePresence>
+        {showLiveShare && <div className="fixed inset-0 z-[210] flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-sm" onMouseDown={event => { if (event.target === event.currentTarget) setShowLiveShare(false); }}>
+          <motion.div initial={{ opacity: 0, scale: .95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: .95 }} className="w-full max-w-sm rounded-3xl border border-slate-700 bg-slate-900 p-6 text-center shadow-2xl">
+            <div className="mb-4 flex items-center justify-between text-left"><div><h3 className="text-lg font-black uppercase text-white">Share Live View</h3><p className="mt-1 text-[10px] text-slate-500">Public, read-only realtime dashboard</p></div><button onClick={() => setShowLiveShare(false)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-800 hover:text-white"><X className="h-4 w-4" /></button></div>
+            {liveViewUrl ? <><div className="mx-auto w-fit rounded-2xl bg-white p-3"><img src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(liveViewUrl)}`} alt="Live session QR code" className="h-44 w-44" /></div><p className="mt-3 break-all rounded-xl bg-slate-950 p-3 text-[9px] text-slate-400">{liveViewUrl}</p><div className="mt-3 grid grid-cols-2 gap-2"><button onClick={() => { void navigator.clipboard.writeText(liveViewUrl); setLiveLinkCopied(true); setTimeout(() => setLiveLinkCopied(false), 1800); }} className="flex h-10 items-center justify-center gap-2 rounded-xl bg-emerald-500 text-[10px] font-black uppercase text-slate-950"><Copy className="h-4 w-4" />{liveLinkCopied ? 'Copied' : 'Copy Link'}</button><button onClick={() => window.open(liveViewUrl, '_blank', 'noopener,noreferrer')} className="flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-800 text-[10px] font-black uppercase text-white"><Share2 className="h-4 w-4" />Open View</button></div></> : <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-5"><p className="text-xs font-bold text-amber-300">Start a session and generate a Session Code first.</p><button onClick={() => { setShowLiveShare(false); setShowSessionModal(true); }} className="mt-4 h-10 rounded-xl bg-amber-500 px-5 text-[10px] font-black uppercase text-slate-950">Create Session Code</button></div>}
+          </motion.div>
+        </div>}
+      </AnimatePresence>
 
       {/* Complete Match Modal */}
       <AnimatePresence>
@@ -731,7 +746,22 @@ export default function Dashboard() {
         </div>
 
         {/* Right header buttons */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {isQM && <button onClick={() => setShowLiveShare(true)} className="flex h-9 items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 text-[10px] font-black uppercase tracking-wider text-emerald-300 transition hover:bg-emerald-500/20"><Share2 className="h-4 w-4" /><span className="hidden sm:inline">Live View</span></button>}
+          <div className="relative">
+            <button onClick={() => setIsActionMenuOpen(open => !open)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-800 bg-slate-900 text-slate-400 transition hover:bg-slate-800 hover:text-white" aria-label="Open actions menu"><MoreHorizontal className="h-5 w-5" /></button>
+            {isActionMenuOpen && <><button aria-label="Close actions menu" onClick={() => setIsActionMenuOpen(false)} className="fixed inset-0 z-40 cursor-default" /><div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 p-2 shadow-2xl">
+              {isQM && <button onClick={() => setConnectionMode(connectionMode === 'online' ? 'offline' : 'online')} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-slate-300 hover:bg-slate-800">{connectionMode === 'online' ? <Monitor className="h-4 w-4 text-emerald-400" /> : <MonitorOff className="h-4 w-4 text-amber-400" />}Connection: {connectionMode}</button>}
+              {isQM && <button onClick={() => { setShowSessionModal(true); setIsActionMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-slate-300 hover:bg-slate-800"><QrCode className="h-4 w-4 text-indigo-400" />Session Code</button>}
+              <button onClick={() => { setIsActionMenuOpen(false); void runOp('notif', async () => { if (userProfile && 'Notification' in window && Notification.permission !== 'granted') await requestNotificationPermission(userProfile.id); }); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-slate-300 hover:bg-slate-800"><Bell className="h-4 w-4 text-amber-400" />Notifications</button>
+              <button onClick={() => { setActiveTab('settings'); setIsActionMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-slate-300 hover:bg-slate-800"><Settings className="h-4 w-4 text-slate-400" />Settings</button>
+              <div className="my-1 border-t border-slate-800" />
+              <div className="flex items-center justify-between rounded-xl px-3 py-2"><span className="text-xs font-bold text-slate-400">Theme</span><ThemeToggle /></div>
+              <button onClick={() => runOp('signout', async () => { await logout(); })} disabled={isPending('signout')} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-red-300 hover:bg-red-500/10">{isPending('signout') ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}Sign Out</button>
+            </div></>}
+          </div>
+        </div>
+        <div className="hidden">
           {isQM && (
             <button
               onClick={() => setConnectionMode(connectionMode === 'online' ? 'offline' : 'online')}

@@ -55,6 +55,7 @@ export interface Match {
   shuttlecocksUsed: number;
   scoreA?: number;
   scoreB?: number;
+  completedAt?: number;
   sessionId?: string;
 }
 

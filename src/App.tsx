@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import AuthGuard from './components/AuthGuard';
 import SplashScreen from './components/SplashScreen';
 import { AnimatePresence } from 'motion/react';
+import LiveSessionView from './components/LiveSessionView';
 
 class ErrorBoundary extends Component<{children: React.ReactNode}, {error: Error | null}> {
   state = { error: null as Error | null };
@@ -33,6 +34,7 @@ class ErrorBoundary extends Component<{children: React.ReactNode}, {error: Error
 }
 
 export default function App() {
+  if (window.location.pathname === '/live') return <ErrorBoundary><LiveSessionView /></ErrorBoundary>;
   const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
