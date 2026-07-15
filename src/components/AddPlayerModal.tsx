@@ -55,7 +55,8 @@ export default function AddPlayerModal({ isOpen, onClose }: AddPlayerModalProps)
   const parsePlayer = (input: string) => {
     const match = input.trim().match(/^(.+?)\s*[-–]\s*(\d)$/);
     const shortcutTier = match ? getTierFromShortcut(match[2]) : null;
-    return { name: (match?.[1] || input).trim(), tier: shortcutTier || tier };
+    const fullName = (match?.[1] || input).trim();
+    return { name: fullName.split(/\s+/)[0] || '', tier: shortcutTier || tier };
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -103,9 +104,9 @@ export default function AddPlayerModal({ isOpen, onClose }: AddPlayerModalProps)
           </div>
 
           {mode === 'bulk' ? (
-            <textarea autoFocus value={playerNames} onChange={event => setPlayerNames(event.target.value)} placeholder={'Player name (or Name - 3)\nOne player per line'} className="min-h-24 w-full resize-none rounded-xl bg-slate-950/70 border border-slate-700 text-sm text-white p-3 outline-none focus:border-violet-500 placeholder:text-slate-600" />
+            <textarea autoFocus value={playerNames} onChange={event => setPlayerNames(event.target.value)} placeholder={'Full name (or Full Name - 3)\nFirst name will be used · One per line'} className="min-h-24 w-full resize-none rounded-xl bg-slate-950/70 border border-slate-700 text-sm text-white p-3 outline-none focus:border-violet-500 placeholder:text-slate-600" />
           ) : (
-            <input autoFocus value={playerNames} onChange={event => setPlayerNames(event.target.value)} placeholder="Player name (or Name - 3)" className={inputClass} />
+            <input autoFocus value={playerNames} onChange={event => setPlayerNames(event.target.value)} placeholder="Full name — first name will be used" className={inputClass} />
           )}
 
           <div className="relative">

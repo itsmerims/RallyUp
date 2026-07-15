@@ -209,9 +209,10 @@ export default function Dashboard() {
   };
 
   const parsePlayerInput = (input: string): { name: string; tier: SkillTier } | null => {
+    const firstName = (name: string) => name.trim().split(/\s+/)[0] || '';
     const dashMatch = input.match(/^(.+?)\s*[-–]\s*(\d+)$/);
     if (dashMatch) {
-      const name = dashMatch[1].trim();
+      const name = firstName(dashMatch[1]);
       const num = dashMatch[2];
       const tier = getTierFromShortcut(num);
       if (tier && name.length > 0) return { name, tier };
@@ -219,12 +220,12 @@ export default function Dashboard() {
     // Try just the number at the end
     const numMatch = input.match(/^(.+?)\s+(\d+)$/);
     if (numMatch) {
-      const name = numMatch[1].trim();
+      const name = firstName(numMatch[1]);
       const tier = getTierFromShortcut(numMatch[2]);
       if (tier && name.length > 0) return { name, tier };
     }
     // Fallback: use name with default tier
-    if (input.length > 0) return { name: input, tier: 'BEG' };
+    if (input.length > 0) return { name: firstName(input), tier: 'BEG' };
     return null;
   };
 
