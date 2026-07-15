@@ -113,7 +113,7 @@ export default function CompactPipeline({ onAddPlayer, onEditPlayer, onAutoQueue
   const outlineButtonClass = 'flex h-8 items-center gap-1.5 rounded-lg border-2 border-indigo-500 bg-transparent px-3 text-[11px] font-bold text-indigo-300 transition hover:bg-indigo-500/10 active:scale-95 disabled:cursor-not-allowed disabled:border-slate-700 disabled:text-slate-600';
 
   return (
-    <div className="grid h-full min-h-0 w-full grid-cols-1 gap-4 overflow-y-auto bg-slate-950 p-4 lg:grid-cols-[minmax(300px,1fr)_minmax(360px,1.35fr)_minmax(360px,1.35fr)] lg:overflow-hidden">
+    <div className="panel-scrollbar grid h-full min-h-0 w-full grid-cols-1 gap-3 overflow-y-auto bg-slate-950 p-2 sm:gap-4 sm:p-4 xl:grid-cols-[minmax(280px,1fr)_minmax(340px,1.35fr)_minmax(340px,1.35fr)] xl:overflow-hidden">
       <section className={panelClass}>
         <header className={headerClass}>
           <div><h2 className="text-xs font-black tracking-[0.18em] text-white">PLAYERS</h2><p className="mt-0.5 text-[9px] text-slate-500">{waitingPlayers.length} waiting · {availablePlayers.length - waitingPlayers.length} resting</p></div>
@@ -132,7 +132,7 @@ export default function CompactPipeline({ onAddPlayer, onEditPlayer, onAutoQueue
           </div>
         </div>
         <div className="panel-scrollbar players-scrollbar min-h-0 flex-1 overflow-y-auto p-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
           {filteredPlayers.map(player => (
             <article key={player.id} draggable={player.status === 'waiting'} onDragStart={event => { event.dataTransfer.setData('text/plain', player.id); event.dataTransfer.effectAllowed = 'move'; }} onClick={() => onEditPlayer(player)} className={`group min-w-0 rounded-xl border-2 p-3 shadow-sm transition ${player.status === 'resting' ? 'cursor-pointer border-amber-500/35 bg-amber-500/5 opacity-75' : 'cursor-grab border-transparent bg-slate-900 hover:border-indigo-500/40 hover:bg-slate-800 active:cursor-grabbing'}`}>
               <div className="mb-2 flex items-center justify-between gap-1"><span className={`max-w-full truncate rounded-full px-2 py-0.5 text-[8px] font-black ${player.status === 'resting' ? 'bg-amber-500/20 text-amber-300' : tierColors[player.tier]}`}>{player.status === 'resting' ? 'RESTING' : tierLabel(player.tier)}</span><div className="flex"><button onClick={event => { event.stopPropagation(); onEditPlayer(player); }} className="p-1 text-slate-500 hover:text-indigo-300" title="Edit player"><Pencil className="h-3 w-3" /></button><button onClick={event => { event.stopPropagation(); if (user) deletePlayer(user.uid, player.id); }} className="p-1 text-slate-500 hover:text-red-400" title="Delete player"><Trash2 className="h-3 w-3" /></button></div></div>
@@ -158,7 +158,7 @@ export default function CompactPipeline({ onAddPlayer, onEditPlayer, onAutoQueue
           <div><h2 className="text-xs font-black tracking-[0.18em] text-white">QUEUE</h2><p className="mt-0.5 text-[9px] text-slate-500">{queuedMatches.length} matches lined up</p></div>
           <button onClick={addDraftQueue} className={outlineButtonClass}><Plus className="h-3.5 w-3.5" /> Add Queue</button>
         </header>
-        <div className="panel-scrollbar queue-scrollbar min-h-0 flex-1 overflow-y-auto p-3"><div className="grid grid-cols-2 gap-3">
+        <div className="panel-scrollbar queue-scrollbar min-h-0 flex-1 overflow-y-auto p-3"><div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {draftQueues.map((queue, index) => {
             const playerCount = [...queue.teamA, ...queue.teamB].filter(Boolean).length;
             return <article key={queue.id} className="rounded-2xl border border-slate-700/80 border-l-4 border-l-indigo-500/60 bg-slate-900 p-3 shadow-lg shadow-black/10">
@@ -200,7 +200,7 @@ export default function CompactPipeline({ onAddPlayer, onEditPlayer, onAutoQueue
 
       <section className={panelClass}>
         <header className={headerClass}><div><h2 className="text-xs font-black tracking-[0.18em] text-white">COURTS</h2><p className="mt-0.5 text-[9px] text-slate-500">{courts.filter(court => court.status !== 'Available').length} occupied / {courts.length} total</p></div><div className="flex gap-2"><button onClick={onAutoQueue} disabled={waitingPlayers.length < 4 || courts.length === 0} className={outlineButtonClass} title="Auto-match four waiting players"><Sparkles className="h-3.5 w-3.5" /> Auto</button><button onClick={() => user && addCourt(user.uid, `Court ${courts.length + 1}`)} className={outlineButtonClass}><Plus className="h-3.5 w-3.5" /> Court</button></div></header>
-        <div className="panel-scrollbar courts-scrollbar grid min-h-0 flex-1 auto-rows-min grid-cols-2 gap-3 overflow-y-auto p-3">
+        <div className="panel-scrollbar courts-scrollbar grid min-h-0 flex-1 auto-rows-min grid-cols-1 gap-3 overflow-y-auto p-3 sm:grid-cols-2">
           {courts.map(court => {
             const active = matches.find(match => match.id === court.activeMatchId);
             const nextQueued = queuedMatches.length > 0;

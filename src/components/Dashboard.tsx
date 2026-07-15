@@ -669,18 +669,18 @@ export default function Dashboard() {
       </AnimatePresence>
 
       {/* Top Navigation / Status Bar */}
-      <header ref={headerRef} className="h-16 flex items-center justify-between px-4 md:px-8 bg-slate-900/50 border-b border-slate-800 backdrop-blur-md z-20 shrink-0">
-        <div className="flex items-center gap-4">
+      <header ref={headerRef} className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-slate-800 bg-slate-900/50 px-2 backdrop-blur-md sm:px-4 md:px-8 z-20">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-4">
           <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 -ml-2 text-slate-400 hover:text-white transition-colors lg:hidden">
             <Menu className="w-6 h-6" />
           </button>
-          <div className="w-10 h-10 bg-red-500 flex items-center justify-center rounded-xl shadow-[0_0_20px_rgba(239,68,68,0.25)]">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-500 shadow-[0_0_20px_rgba(239,68,68,0.25)] sm:h-10 sm:w-10">
             <svg className="w-6 h-6 text-[#ffffff]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
           </div>
-          <h1 className="text-xl md:text-2xl font-black tracking-tighter uppercase italic text-white flex items-center gap-2">
-            RallyUp
+          <h1 className="flex min-w-0 items-center gap-2 text-base font-black uppercase italic tracking-tighter text-white sm:text-xl md:text-2xl">
+            <span className="hidden min-[360px]:inline">RallyUp</span>
             <span className="hidden sm:inline-block text-[9px] font-black uppercase tracking-widest bg-slate-850 text-slate-400 border border-slate-800 px-2.5 py-0.5 rounded">PH</span>
             {currentSessionId && (
               <span className="text-[8px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
@@ -764,7 +764,7 @@ export default function Dashboard() {
           {isQM && <button onClick={() => setShowLiveShare(true)} className="flex h-9 items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 text-[10px] font-black uppercase tracking-wider text-emerald-300 transition hover:bg-emerald-500/20"><Share2 className="h-4 w-4" /><span className="hidden sm:inline">Live View</span></button>}
           <div className="relative">
             <button onClick={() => setIsActionMenuOpen(open => !open)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-800 bg-slate-900 text-slate-400 transition hover:bg-slate-800 hover:text-white" aria-label="Open actions menu"><MoreHorizontal className="h-5 w-5" /></button>
-            {isActionMenuOpen && <><button aria-label="Close actions menu" onClick={() => setIsActionMenuOpen(false)} className="fixed inset-0 z-40 cursor-default" /><div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 p-2 shadow-2xl">
+            {isActionMenuOpen && <><button aria-label="Close actions menu" onClick={() => setIsActionMenuOpen(false)} className="fixed inset-0 z-40 cursor-default" /><div className="fixed left-2 right-2 top-[4.25rem] z-50 overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 p-2 shadow-2xl sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-64">
               {isQM && <button onClick={() => setConnectionMode(connectionMode === 'online' ? 'offline' : 'online')} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-slate-300 hover:bg-slate-800">{connectionMode === 'online' ? <Monitor className="h-4 w-4 text-emerald-400" /> : <MonitorOff className="h-4 w-4 text-amber-400" />}Connection: {connectionMode}</button>}
               {isQM && <button onClick={() => { setShowSessionModal(true); setIsActionMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-slate-300 hover:bg-slate-800"><QrCode className="h-4 w-4 text-indigo-400" />Session Code</button>}
               <button onClick={() => { setIsActionMenuOpen(false); void runOp('notif', async () => { if (userProfile && 'Notification' in window && Notification.permission !== 'granted') await requestNotificationPermission(userProfile.id); }); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-slate-300 hover:bg-slate-800"><Bell className="h-4 w-4 text-amber-400" />Notifications</button>
