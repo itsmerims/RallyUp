@@ -11,6 +11,7 @@ interface CompactPipelineProps {
   onAutoQueue: () => void;
   onManualQueue: () => void;
   onFinish: (matchId: string) => void;
+  onDeclareWin: (matchId: string, winner: 'A' | 'B') => void;
 }
 
 const tierColors: Record<SkillTier, string> = {
@@ -21,7 +22,7 @@ const tierColors: Record<SkillTier, string> = {
 
 const tierLabel = (tier: SkillTier) => tier.replace('_', ' ');
 
-export default function CompactPipeline({ onAddPlayer, onEditPlayer, onAutoQueue, onManualQueue, onFinish }: CompactPipelineProps) {
+export default function CompactPipeline({ onAddPlayer, onEditPlayer, onAutoQueue, onManualQueue, onFinish, onDeclareWin }: CompactPipelineProps) {
   const { user } = useAuth();
   const { players, matches, courts, deletePlayer, startMatch, cancelMatch, addCourt, deleteCourt } = useAppStore();
   const [playerSearch, setPlayerSearch] = useState('');
@@ -124,7 +125,7 @@ export default function CompactPipeline({ onAddPlayer, onEditPlayer, onAutoQueue
                 <div className="grid min-h-32 grid-cols-[1fr_22px_1fr] items-stretch rounded-lg bg-slate-950/45 p-2">
                   <div className="flex min-w-0 flex-col items-center">
                     <div className="text-[8px] font-black tracking-widest text-slate-400">TEAM A</div>
-                    <span className="my-1 flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/15 text-[10px] font-black text-blue-300 ring-1 ring-blue-400/25">{active.scoreA || 0}</span>
+                    <button onClick={() => onDeclareWin(active.id, 'A')} className="my-1 h-6 rounded-md bg-emerald-500/15 px-3 text-[8px] font-black tracking-wider text-emerald-300 ring-1 ring-emerald-400/30 transition hover:bg-emerald-500/25">WIN</button>
                     <div className="w-full space-y-1">{active.teamA.map(id => {
                       const player = players.find(p => p.id === id);
                       return <div key={id} className="min-w-0 rounded-md bg-blue-500/5 px-1 py-1 text-center">
@@ -140,7 +141,7 @@ export default function CompactPipeline({ onAddPlayer, onEditPlayer, onAutoQueue
                   </div>
                   <div className="flex min-w-0 flex-col items-center">
                     <div className="text-[8px] font-black tracking-widest text-slate-400">TEAM B</div>
-                    <span className="my-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500/15 text-[10px] font-black text-red-300 ring-1 ring-red-400/25">{active.scoreB || 0}</span>
+                    <button onClick={() => onDeclareWin(active.id, 'B')} className="my-1 h-6 rounded-md bg-emerald-500/15 px-3 text-[8px] font-black tracking-wider text-emerald-300 ring-1 ring-emerald-400/30 transition hover:bg-emerald-500/25">WIN</button>
                     <div className="w-full space-y-1">{active.teamB.map(id => {
                       const player = players.find(p => p.id === id);
                       return <div key={id} className="min-w-0 rounded-md bg-red-500/5 px-1 py-1 text-center">

@@ -958,6 +958,11 @@ export default function Dashboard() {
                 setScoreA('21'); setScoreB('19'); setShuttlesUsed('1');
                 setQuickDeclare(false); setDeclareWinner(null);
               }}
+              onDeclareWin={(matchId, winner) => {
+                setCompletingMatchId(matchId);
+                setScoreA('21'); setScoreB('19'); setShuttlesUsed('1');
+                setQuickDeclare(true); setDeclareWinner(winner);
+              }}
             />
           ) : false ? (
             /* QUEUE MASTER MAIN VIEW (ORIGINAL WITH COURT ALLOCATOR & LIVE ROSTER SIDEBAR) */

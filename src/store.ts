@@ -278,7 +278,7 @@ export const useAppStore = create<AppState>()(
         const lost = (onTeamA && bWon) || (!onTeamA && aWon);
         if (won) { stats.wins += 1; stats.currentStreak = stats.currentStreak > 0 ? stats.currentStreak + 1 : 1; ratingScore += 15; }
         if (lost) { stats.losses += 1; stats.currentStreak = stats.currentStreak < 0 ? stats.currentStreak - 1 : -1; ratingScore -= 10; }
-        return { ...player, status: 'resting' as const, waitingSince, stats, ratingScore };
+        return { ...player, status: 'waiting' as const, waitingSince, stats, ratingScore };
       });
       const matches = state.matches.map(item => item.id === matchId ? {
         ...item, status: 'Completed' as const, shuttlecocksUsed: shuttlesUsed, scoreA: teamAScore, scoreB: teamBScore,
