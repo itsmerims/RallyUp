@@ -27,26 +27,24 @@ import PlayerInfoModal from './PlayerInfoModal';
 import SessionModal from './SessionModal';
 import SessionChoiceModal from './SessionChoiceModal';
 import ClubDashboard from './ClubDashboard';
+import MatchMakerModal from './MatchMakerModal';
+import { readWorkspace, writeWorkspacePart } from '../services/localData';
 
 export default function Dashboard() {
   const { user, userProfile, logout } = useAuth();
   const { 
     players, courts, matches, clubs, clubMembers,
-    isLoading, dataLoaded, currentSessionId,
+    isLoading, dataLoaded, currentSessionId, connectionMode,
     setPlayers, setCourts, setMatches, setFinancialConfig, setDataLoaded, setCurrentSessionId, initializeCourts,
     setClubs, setClubMembers,
-    togglePlayerPaid, completeMatch, deletePlayer, addCourt, deleteCourt
+    togglePlayerPaid, completeMatch, deletePlayer, addCourt, deleteCourt, startMatch, resetMatchTimer, setConnectionMode
   } = useAppStore();
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   // Inline player add form state
   const [addMode, setAddMode] = useState<'single' | 'bulk'>('single');
   const [playerInput, setPlayerInput] = useState('');
-  // Drag-and-drop state
-  const [dropTargetCourt, setDropTargetCourt] = useState<string | null>(null);
-  const [dropTargetPlayerId, setDropTargetPlayerId] = useState<string | null>(null);
-  // Start match on a specific court
-  const [startMatchCourt, setStartMatchCourt] = useState<string | null>(null);
+  const [showMatchMaker, setShowMatchMaker] = useState(false);
   
   // Custom navigation tabs
   const [activeTab, setActiveTab] = useState<'courts' | 'players' | 'stats' | 'finance' | 'rankings' | 'clubs' | 'settings'>('courts');
@@ -124,6 +122,7 @@ export default function Dashboard() {
       return matchName && matchTier;
     })
     .sort((a, b) => (a.waitingSince || a.joinedAt) - (b.waitingSince || b.joinedAt));
+  const waitingRoster = filteredPlayers.filter(player => player.status === 'waiting');
 
   const isQM = userProfile?.role === 'QUEUE_MASTER';
 
@@ -136,9 +135,9 @@ export default function Dashboard() {
     }
     const match = generateOptimalMatch(players);
     if (!match || match.length < 4) return;
-    const freeCourt = courts.find(c => c.status === 'Available');
-    if (!freeCourt) {
-      showToast('Auto Match', 'No available court.');
+    const targetCourt = [...courts].sort((a, b) => a.queue.length - b.queue.length)[0];
+    if (!targetCourt) {
+      showToast('Auto Match', 'Add a court before queuing a match.');
       return;
     }
 
@@ -166,11 +165,11 @@ export default function Dashboard() {
     }
 
     await useAppStore.getState().addMatch(user.uid, {
-      courtId: freeCourt.id,
+      courtId: targetCourt.id,
       teamA: [match[0].id, match[1].id],
       teamB: [match[2].id, match[3].id],
     });
-    showToast('Match Created!', `${match[0].name} & ${match[1].name} vs ${match[2].name} & ${match[3].name}`, 6000);
+    showToast('Match Queued', `${match[0].name} & ${match[1].name} vs ${match[2].name} & ${match[3].name}`, 6000);
   };
 
   const showToast = (title: string, body: string, duration = 4000) => {
@@ -218,45 +217,6 @@ export default function Dashboard() {
     if (input.length > 0) return { name: input, tier: 'BEG' };
     return null;
   };
-
-  // Handle starting a match on a specific court
-  useEffect(() => {
-    if (!startMatchCourt || !user || !isQM) return;
-    const court = courts.find(c => c.id === startMatchCourt);
-    if (!court || court.status !== 'Available') { setStartMatchCourt(null); return; }
-    const waiting = players.filter(p => p.status === 'waiting').slice(0, 4);
-    if (waiting.length < 4) {
-      showToast('Start Match', 'Need at least 4 waiting players to start a match.');
-      setStartMatchCourt(null);
-      return;
-    }
-    const names = waiting.map(p => p.name).join(', ');
-    if (window.confirm(`Start match on ${court.name} with:\n${names}?`)) {
-      const match = generateOptimalMatch(players);
-      if (match && match.length >= 4) {
-        runOp(`start-${court.id}`, () => useAppStore.getState().addMatch(user.uid, {
-          courtId: court.id,
-          teamA: [match[0].id, match[1].id],
-          teamB: [match[2].id, match[3].id],
-        }));
-      }
-    }
-    setStartMatchCourt(null);
-  }, [startMatchCourt]);
-
-  // Handle drag-drop: add player to court queue
-  useEffect(() => {
-    if (!dropTargetCourt || !dropTargetPlayerId || !user) { setDropTargetCourt(null); setDropTargetPlayerId(null); return; }
-    const court = courts.find(c => c.id === dropTargetCourt);
-    if (!court || court.status !== 'Available') { setDropTargetCourt(null); setDropTargetPlayerId(null); return; }
-    const p = players.find(pl => pl.id === dropTargetPlayerId);
-    if (!p) { setDropTargetCourt(null); setDropTargetPlayerId(null); return; }
-    const newQueue = [...court.queue, dropTargetPlayerId];
-    runOp(`drop-${court.id}`, () => firestoreService.updateCourt(user.uid, court.id, { queue: newQueue }));
-    showToast('Added to Queue', `${p.name} added to ${court.name} queue.`);
-    setDropTargetCourt(null);
-    setDropTargetPlayerId(null);
-  }, [dropTargetCourt, dropTargetPlayerId]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -384,27 +344,56 @@ export default function Dashboard() {
       ? joinedQmUserId 
       : user.uid;
 
+    const local = readWorkspace(targetUserId);
+    setPlayers(local.players);
+    setCourts(local.courts);
+    setMatches(local.matches);
+    if (local.financialConfig) setFinancialConfig(local.financialConfig);
+
+    if (connectionMode === 'offline') {
+      if (local.courts.length === 0 && userProfile.role === 'QUEUE_MASTER') initializeCourts(user.uid);
+      setDataLoaded(true);
+      return;
+    }
+
+    // Online mode is local-first: publish the last local workspace before accepting remote snapshots.
+    void Promise.all([
+      ...local.players.map(player => firestoreService.savePlayer(targetUserId, player)),
+      ...local.courts.map(court => firestoreService.saveCourt(targetUserId, court)),
+      ...local.matches.map(match => firestoreService.saveMatch(targetUserId, match)),
+      ...(local.financialConfig ? [firestoreService.saveFinancialConfig(targetUserId, local.financialConfig)] : []),
+    ]);
+
     let isInitialLoad = true;
+    let preferLocalPlayers = local.players.length > 0;
+    let preferLocalCourts = local.courts.length > 0;
+    let preferLocalMatches = local.matches.length > 0;
     
     const unsubCourts = firestoreService.subscribeToCourts(targetUserId, (courtsData) => {
+      if (preferLocalCourts) { preferLocalCourts = false; return; }
       if (courtsData.length === 0 && isInitialLoad && userProfile.role === 'QUEUE_MASTER') {
         initializeCourts(user.uid);
       } else {
         setCourts(courtsData);
+        writeWorkspacePart(targetUserId, 'courts', courtsData);
       }
     });
     
     const sessionFilter = currentSessionId || undefined;
     const unsubPlayers = firestoreService.subscribeToPlayers(targetUserId, (playersData) => {
+      if (preferLocalPlayers) { preferLocalPlayers = false; return; }
       setPlayers(playersData);
+      writeWorkspacePart(targetUserId, 'players', playersData);
     }, sessionFilter);
 
     const unsubMatches = firestoreService.subscribeToMatches(targetUserId, (matchesData) => {
+      if (preferLocalMatches) { preferLocalMatches = false; return; }
       setMatches(matchesData);
+      writeWorkspacePart(targetUserId, 'matches', matchesData);
     }, sessionFilter);
 
     const unsubConfig = firestoreService.subscribeToFinancialConfig(targetUserId, (configData) => {
-      if (configData) setFinancialConfig(configData);
+      if (configData) { setFinancialConfig(configData); writeWorkspacePart(targetUserId, 'financialConfig', configData); }
     });
 
     // Club subscriptions
@@ -447,7 +436,7 @@ export default function Dashboard() {
       unsubClubs.forEach(u => u());
       clearTimeout(timer);
     };
-  }, [user, userProfile, joinedQmUserId, currentSessionId, setPlayers, setCourts, setMatches, setFinancialConfig, setClubs, setClubMembers, setDataLoaded, initializeCourts]);
+  }, [user, userProfile, joinedQmUserId, currentSessionId, connectionMode, setPlayers, setCourts, setMatches, setFinancialConfig, setClubs, setClubMembers, setDataLoaded, initializeCourts]);
 
   // Show session choice modal for QMs without an active session
   useEffect(() => {
@@ -485,6 +474,7 @@ export default function Dashboard() {
   }
   
   const activeMatches = matches.filter(m => m.status === 'Active');
+  const queuedMatches = matches.filter(m => m.status === 'Waiting');
 
   return (
     <div className="fixed inset-0 bg-slate-950 text-slate-100 font-sans flex flex-col overflow-hidden">
@@ -736,6 +726,16 @@ export default function Dashboard() {
 
         {/* Right header buttons */}
         <div className="flex items-center gap-3">
+          {isQM && (
+            <button
+              onClick={() => setConnectionMode(connectionMode === 'online' ? 'offline' : 'online')}
+              className={`h-9 px-3 rounded-xl border text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 ${connectionMode === 'online' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-amber-500/10 border-amber-500/30 text-amber-400'}`}
+              title="Switch data connection mode"
+            >
+              {connectionMode === 'online' ? <Monitor className="w-3.5 h-3.5" /> : <MonitorOff className="w-3.5 h-3.5" />}
+              {connectionMode}
+            </button>
+          )}
           {isQM && (
             <div className="relative group">
               <button
@@ -1040,7 +1040,7 @@ export default function Dashboard() {
                     </div>
 
                     <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 w-full">
-                      {filteredPlayers.map((player, index) => (
+                      {waitingRoster.map((player, index) => (
                         <div key={`${player.id}-${index}`} 
                           draggable
                           onDragStart={(e) => { e.dataTransfer.setData('text/plain', player.id); e.dataTransfer.effectAllowed = 'move'; }}
@@ -1192,28 +1192,32 @@ export default function Dashboard() {
                   </AnimatePresence>
                 </div>
 
+                <div className="relative z-10 px-4 md:px-6 py-3 border-b border-slate-800 bg-slate-900/40 flex items-center gap-3 overflow-x-auto shrink-0">
+                  <div className="shrink-0">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-amber-400">Match Queue ({queuedMatches.length})</div>
+                    <div className="text-[9px] text-slate-500">Reserved players are removed from the waiting roster</div>
+                  </div>
+                  {queuedMatches.map((match, index) => {
+                    const court = courts.find(item => item.id === match.courtId);
+                    const names = [...match.teamA, ...match.teamB].map(id => players.find(player => player.id === id)?.name || 'Unknown');
+                    return <div key={match.id} className="shrink-0 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 min-w-52">
+                      <div className="text-[9px] font-bold text-slate-500 uppercase">#{index + 1} · {court?.name || 'Court'}</div>
+                      <div className="text-[10px] font-bold text-slate-200 truncate">{names.join(' · ')}</div>
+                    </div>;
+                  })}
+                  {queuedMatches.length === 0 && <span className="text-xs text-slate-600 italic">No matches queued.</span>}
+                </div>
+
                 {/* Grid of Courts for QM */}
                   <div ref={courtGridRef} className="flex-1 overflow-y-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 relative z-10 pb-24">
                     {courts.map((court, index) => {
                       const activeMatch = matches.find(m => m.id === court.activeMatchId);
-                      const assignedPlayerCount = court.queue.filter(playerId => players.some(player => player.id === playerId)).length;
-                      const canStartMatch = assignedPlayerCount >= 4;
+                      const canStartMatch = court.status === 'Available' && court.queue.some(matchId => matches.some(match => match.id === matchId && match.status === 'Waiting'));
                       const elapsed = activeMatch?.startTime ? Math.floor((Date.now() - activeMatch.startTime) / 60000) : 0;
                       return (
                         <div 
                           key={`${court.id}-${index}`} 
                           className="court-card bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col justify-between h-56 relative group hover:border-slate-700 transition-all"
-                          onDragOver={(e) => { if (court.status === 'Available') { e.preventDefault(); e.currentTarget.classList.add('border-emerald-500'); } }}
-                          onDragLeave={(e) => { e.currentTarget.classList.remove('border-emerald-500'); }}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            e.currentTarget.classList.remove('border-emerald-500');
-                            const data = e.dataTransfer.getData('text/plain');
-                            if (!data || !user || court.status !== 'Available') return;
-                            // If dropping a player ID, add to match queue
-                            setDropTargetCourt(court.id);
-                            setDropTargetPlayerId(data);
-                          }}
                         >
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-black uppercase tracking-wider text-slate-400">{court.name}</span>
@@ -1267,11 +1271,11 @@ export default function Dashboard() {
                         {court.queue.length > 0 && (
                           <div className="text-[9px] text-amber-400 bg-amber-500/5 rounded-xl px-2.5 py-1.5 flex flex-wrap gap-1 items-center">
                             <span className="font-bold uppercase tracking-wider text-[8px]">Queue:</span>
-                            {court.queue.map((pId) => {
-                              const p = players.find(pl => pl.id === pId);
-                              return p ? (
-                                <span key={pId} className="bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded font-bold text-[8px]">
-                                  {p.name}
+                            {court.queue.map((matchId) => {
+                              const queued = matches.find(match => match.id === matchId);
+                              return queued ? (
+                                <span key={matchId} className="bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded font-bold text-[8px]">
+                                  {[...queued.teamA, ...queued.teamB].map(id => players.find(player => player.id === id)?.name).filter(Boolean).join(' · ')}
                                 </span>
                               ) : null;
                             })}
@@ -1300,8 +1304,7 @@ export default function Dashboard() {
                                 <button
                                   onClick={() => {
                                     if (!user) return;
-                                    // Reset match timer: update startTime to now
-                                    runOp(`reset-${activeMatch.id}`, () => firestoreService.updateMatch(user.uid, activeMatch.id, { startTime: Date.now() }));
+                                    runOp(`reset-${activeMatch.id}`, () => resetMatchTimer(user.uid, activeMatch.id));
                                   }}
                                   className="h-10 w-10 bg-slate-800 hover:bg-slate-700 text-slate-400 font-bold rounded-xl border border-slate-700 flex items-center justify-center"
                                   title="Reset timer"
@@ -1316,9 +1319,9 @@ export default function Dashboard() {
                             )
                           ) : (
                             <button
-                              onClick={() => setStartMatchCourt(court.id)}
+                              onClick={() => { if (user) runOp(`start-${court.id}`, () => startMatch(user.uid, court.id)); }}
                               disabled={!canStartMatch}
-                              title={canStartMatch ? 'Start the assigned match' : 'Assign 4 players to this court first'}
+                              title={canStartMatch ? 'Start the next queued match' : 'Queue a match for this court first'}
                               className="flex-1 h-10 bg-emerald-500 hover:bg-emerald-400 text-[#ffffff] font-bold text-xs uppercase tracking-wider rounded-xl border border-emerald-400/30 transition-all disabled:bg-slate-800 disabled:text-slate-600 disabled:border-slate-700 disabled:cursor-not-allowed disabled:hover:bg-slate-800"
                             >
                               Start Match
@@ -1342,15 +1345,14 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                {/* Floating Auto Match Button */}
+                {/* Queue creation actions */}
                 {isQM && (
-                  <button
-                    onClick={handleAutoMatch}
-                    className="absolute bottom-6 right-6 h-14 bg-red-500 hover:bg-red-600 text-[#ffffff] font-black rounded-2xl text-xs uppercase tracking-widest px-6 transition-all shadow-xl shadow-red-500/20 active:scale-95 flex items-center gap-2 z-50 border border-red-400/50"
-                  >
-                    <Sparkles className="w-5 h-5" />
-                    AUTO MATCH
-                  </button>
+                  <div className="absolute bottom-6 right-6 flex gap-2 z-50">
+                    <button onClick={() => setShowMatchMaker(true)} className="h-14 bg-slate-800 hover:bg-slate-700 text-white font-black rounded-2xl text-xs uppercase tracking-widest px-5 border border-slate-700">Manual Queue</button>
+                    <button onClick={handleAutoMatch} className="h-14 bg-red-500 hover:bg-red-600 text-white font-black rounded-2xl text-xs uppercase tracking-widest px-6 shadow-xl shadow-red-500/20 active:scale-95 flex items-center gap-2 border border-red-400/50">
+                      <Sparkles className="w-5 h-5" /> Auto Queue
+                    </button>
+                  </div>
                 )}
               </section>
 
@@ -1568,6 +1570,7 @@ export default function Dashboard() {
       
       <NotificationToast toasts={toasts} onDismiss={dismissToast} />
       <PlayerInfoModal isOpen={!!detailPlayer} player={detailPlayer} players={players} matches={matches} onClose={() => setDetailPlayer(null)} />
+      <MatchMakerModal isOpen={showMatchMaker} onClose={() => setShowMatchMaker(false)} />
       <SessionModal
         isOpen={showSessionModal}
         onClose={() => setShowSessionModal(false)}

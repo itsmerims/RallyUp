@@ -14,7 +14,7 @@ interface MatchMakerModalProps {
 
 export default function MatchMakerModal({ isOpen, onClose }: MatchMakerModalProps) {
   const { user } = useAuth();
-  const { players, courts, addMatch, updatePlayerStatus } = useAppStore();
+  const { players, courts, addMatch } = useAppStore();
   const waitingPlayers = players.filter(p => p.status === 'waiting');
   
   // Local state for drag and drop
@@ -135,12 +135,12 @@ export default function MatchMakerModal({ isOpen, onClose }: MatchMakerModalProp
     );
   };
 
-  const startMatch = () => {
+  const startMatch = async () => {
     const validTeamA = teamA.filter(Boolean) as Player[];
     const validTeamB = teamB.filter(Boolean) as Player[];
     
-    if (validTeamA.length === 0 || validTeamB.length === 0) {
-      alert("Each team needs at least one player.");
+    if (validTeamA.length !== 2 || validTeamB.length !== 2) {
+      alert("Each team needs exactly two players.");
       return;
     }
     if (!selectedCourt) {
@@ -149,11 +149,16 @@ export default function MatchMakerModal({ isOpen, onClose }: MatchMakerModalProp
     }
     if (!user) return;
 
-    addMatch(user.uid, {
-      teamA: validTeamA.map(p => p.id),
-      teamB: validTeamB.map(p => p.id),
-      courtId: selectedCourt,
-    });
+    try {
+      await addMatch(user.uid, {
+        teamA: validTeamA.map(p => p.id),
+        teamB: validTeamB.map(p => p.id),
+        courtId: selectedCourt,
+      });
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Unable to queue this match.');
+      return;
+    }
     
     gsap.to('.modal-content', { 
       y: 50, opacity: 0, duration: 0.3, 
@@ -336,7 +341,7 @@ export default function MatchMakerModal({ isOpen, onClose }: MatchMakerModalProp
                   onClick={startMatch}
                   className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95 text-lg flex items-center justify-center gap-2"
                 >
-                  Dispatch to Court
+                  Add to Match Queue
                 </button>
               </div>
             </div>
