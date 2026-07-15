@@ -448,6 +448,20 @@ export default function Dashboard() {
     };
   }, [user, userProfile, joinedQmUserId, currentSessionId, connectionMode, setPlayers, setCourts, setMatches, setFinancialConfig, setClubs, setClubMembers, setDataLoaded, initializeCourts]);
 
+  // Keep the public read-only feed current even when the QM prefers the local-first
+  // workspace. Firestore queues these writes and publishes them after reconnection.
+  useEffect(() => {
+    if (!user || !isQM || !currentSessionId || connectionMode !== 'offline') return;
+    const publishTimer = window.setTimeout(() => {
+      void Promise.all([
+        ...players.map(player => firestoreService.savePlayer(user.uid, { ...player, sessionId: currentSessionId })),
+        ...courts.map(court => firestoreService.saveCourt(user.uid, court)),
+        ...matches.map(match => firestoreService.saveMatch(user.uid, { ...match, sessionId: currentSessionId })),
+      ]);
+    }, 250);
+    return () => window.clearTimeout(publishTimer);
+  }, [user, isQM, currentSessionId, connectionMode, players, courts, matches]);
+
   // Show session choice modal for QMs without an active session
   useEffect(() => {
     if (dataLoaded && isQM && !currentSessionId && !localStorage.getItem('rallyup_is_temporary')) {
