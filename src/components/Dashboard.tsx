@@ -129,12 +129,17 @@ export default function Dashboard() {
 
   const handleAutoMatch = async () => {
     if (!user || !isQM) return;
-    const waiting = players.filter(p => p.status === 'waiting');
+    let draftedIds = new Set<string>();
+    try {
+      const drafts = JSON.parse(localStorage.getItem('rallyup_draft_queues') || '[]') as Array<{ teamA?: Array<string | null>; teamB?: Array<string | null> }>;
+      draftedIds = new Set(drafts.flatMap(draft => [...(draft.teamA || []), ...(draft.teamB || [])].filter((id): id is string => Boolean(id))));
+    } catch { /* Ignore malformed local draft data. */ }
+    const waiting = players.filter(p => p.status === 'waiting' && !draftedIds.has(p.id));
     if (waiting.length < 4) {
       showToast('Auto Match', 'Need at least 4 waiting players.');
       return;
     }
-    const match = generateOptimalMatch(players);
+    const match = generateOptimalMatch(waiting, matches);
     if (!match || match.length < 4) return;
     const targetCourt = [...courts].sort((a, b) => a.queue.length - b.queue.length)[0];
     if (!targetCourt) {
