@@ -29,6 +29,7 @@ import SessionChoiceModal from './SessionChoiceModal';
 import ClubDashboard from './ClubDashboard';
 import MatchMakerModal from './MatchMakerModal';
 import AddPlayerModal from './AddPlayerModal';
+import CompactPipeline from './CompactPipeline';
 import { readWorkspace, writeWorkspacePart } from '../services/localData';
 
 export default function Dashboard() {
@@ -947,6 +948,18 @@ export default function Dashboard() {
         {/* 1. COURTS & QUEUES / PLAYER OVERVIEW TAB */}
         {activeTab === 'courts' && (
           isQM ? (
+            <CompactPipeline
+              onAddPlayer={() => setShowAddPlayer(true)}
+              onEditPlayer={setDetailPlayer}
+              onAutoQueue={handleAutoMatch}
+              onManualQueue={() => setShowMatchMaker(true)}
+              onFinish={(matchId) => {
+                setCompletingMatchId(matchId);
+                setScoreA('21'); setScoreB('19'); setShuttlesUsed('1');
+                setQuickDeclare(false); setDeclareWinner(null);
+              }}
+            />
+          ) : false ? (
             /* QUEUE MASTER MAIN VIEW (ORIGINAL WITH COURT ALLOCATOR & LIVE ROSTER SIDEBAR) */
             <div className="flex-1 flex overflow-hidden w-full">
               

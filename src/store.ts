@@ -37,6 +37,7 @@ interface AppState {
   addMatch: (userId: string, match: Omit<Match, 'id' | 'startTime' | 'status' | 'shuttlecocksUsed'>) => Promise<void>;
   startMatch: (userId: string, courtId: string) => Promise<void>;
   resetMatchTimer: (userId: string, matchId: string) => Promise<void>;
+  cancelMatch: (userId: string, matchId: string) => Promise<void>;
   completeMatch: (userId: string, matchId: string, teamAScore: number, teamBScore: number, shuttlesUsed: number) => Promise<void>;
   
   updateFinancialConfig: (userId: string, config: FinancialConfig) => Promise<void>;
@@ -224,6 +225,38 @@ export const useAppStore = create<AppState>()(
       set({ matches });
       writeWorkspacePart(userId, 'matches', matches);
       if (get().connectionMode === 'online') await firestoreService.updateMatch(userId, matchId, { startTime });
+    },
+
+    cancelMatch: async (userId, matchId) => {
+      const state = get();
+      const match = state.matches.find(item => item.id === matchId);
+      if (!match || match.status === 'Completed') return;
+      const playerIds = new Set([...match.teamA, ...match.teamB]);
+      const matches = state.matches.filter(item => item.id !== matchId);
+      const players = state.players.map(player => playerIds.has(player.id)
+        ? { ...player, status: 'waiting' as const, waitingSince: Date.now() }
+        : player);
+      const courts = state.courts.map(court => ({
+        ...court,
+        activeMatchId: court.activeMatchId === matchId ? null : court.activeMatchId,
+        status: court.activeMatchId === matchId ? 'Available' as const : court.status,
+        queue: court.queue.filter(id => id !== matchId),
+      }));
+      set({ matches, players, courts });
+      writeWorkspacePart(userId, 'matches', matches);
+      writeWorkspacePart(userId, 'players', players);
+      writeWorkspacePart(userId, 'courts', courts);
+      if (get().connectionMode === 'online') {
+        await firestoreService.deleteMatchDoc(userId, matchId);
+        await Promise.all(players.filter(player => playerIds.has(player.id)).map(player =>
+          firestoreService.updatePlayer(userId, player.id, { status: 'waiting', waitingSince: player.waitingSince })));
+        const court = state.courts.find(item => item.activeMatchId === matchId || item.queue.includes(matchId));
+        if (court) await firestoreService.updateCourt(userId, court.id, {
+          activeMatchId: court.activeMatchId === matchId ? null : court.activeMatchId,
+          status: court.activeMatchId === matchId ? 'Available' : court.status,
+          queue: court.queue.filter(id => id !== matchId),
+        });
+      }
     },
 
     completeMatch: async (userId, matchId, teamAScore, teamBScore, shuttlesUsed) => {

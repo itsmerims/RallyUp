@@ -221,6 +221,15 @@ export const updateMatch = async (userId: string, matchId: string, updates: Part
   }
 };
 
+export const deleteMatchDoc = async (userId: string, matchId: string) => {
+  const path = `users/${userId}/matches/${matchId}`;
+  try {
+    await deleteDoc(doc(db, `users/${userId}/matches`, matchId));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
+};
+
 export const saveFinancialConfig = async (userId: string, config: FinancialConfig) => {
   const path = `users/${userId}/financialConfig/default`;
   try {
