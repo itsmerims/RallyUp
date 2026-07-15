@@ -75,4 +75,44 @@ html.theme-light ::selection {
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: var(--color-slate-600);
   }
+
+  .panel-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--panel-scroll-thumb, var(--color-slate-600)) transparent;
+    scrollbar-gutter: stable;
+  }
+  .panel-scrollbar::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+  .panel-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .panel-scrollbar::-webkit-scrollbar-thumb {
+    min-height: 36px;
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background: var(--panel-scroll-thumb, var(--color-slate-600));
+    background-clip: padding-box;
+  }
+  .panel-scrollbar::-webkit-scrollbar-thumb:hover {
+    border-width: 2px;
+    background: var(--panel-scroll-hover, var(--color-slate-500));
+    background-clip: padding-box;
+  }
+  .panel-scrollbar::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  .players-scrollbar {
+    --panel-scroll-thumb: color-mix(in srgb, var(--color-emerald-500) 55%, var(--color-slate-700));
+    --panel-scroll-hover: var(--color-emerald-500);
+  }
+  .queue-scrollbar {
+    --panel-scroll-thumb: color-mix(in srgb, var(--color-amber-500) 55%, var(--color-slate-700));
+    --panel-scroll-hover: var(--color-amber-500);
+  }
+  .courts-scrollbar {
+    --panel-scroll-thumb: color-mix(in srgb, var(--color-indigo-500) 55%, var(--color-slate-700));
+    --panel-scroll-hover: var(--color-indigo-500);
+  }
 }
