@@ -191,27 +191,35 @@ export const useAppStore = create<AppState>()(
     startMatch: async (userId, courtId) => {
       const state = get();
       const court = state.courts.find(c => c.id === courtId);
-      if (!court || court.activeMatchId || court.queue.length === 0) return;
-      const matchId = court.queue[0];
-      const queuedMatch = state.matches.find(match => match.id === matchId && match.status === 'Waiting');
+      if (!court || court.activeMatchId) return;
+      const ownQueuedMatch = court.queue
+        .map(matchId => state.matches.find(match => match.id === matchId && match.status === 'Waiting'))
+        .find((match): match is Match => Boolean(match));
+      const queuedMatch = ownQueuedMatch || state.matches.find(match => match.status === 'Waiting');
       if (!queuedMatch) return;
+      const matchId = queuedMatch.id;
 
       const startTime = Date.now();
       const matches = state.matches.map(match => match.id === matchId
-        ? { ...match, status: 'Active' as const, startTime }
+        ? { ...match, courtId, status: 'Active' as const, startTime }
         : match);
-      const courts = state.courts.map(item => item.id === courtId
-        ? { ...item, status: 'Occupied' as const, activeMatchId: matchId, queue: item.queue.slice(1) }
-        : item);
+      const courts = state.courts.map(item => ({
+        ...item,
+        ...(item.id === courtId ? { status: 'Occupied' as const, activeMatchId: matchId } : {}),
+        queue: item.queue.filter(id => id !== matchId),
+      }));
       set({ matches, courts });
       writeWorkspacePart(userId, 'matches', matches);
       writeWorkspacePart(userId, 'courts', courts);
 
       if (get().connectionMode === 'online') {
-        await firestoreService.updateMatch(userId, matchId, { status: 'Active', startTime });
-        await firestoreService.updateCourt(userId, courtId, {
-          status: 'Occupied', activeMatchId: matchId, queue: court.queue.slice(1),
-        });
+        await firestoreService.updateMatch(userId, matchId, { courtId, status: 'Active', startTime });
+        await Promise.all(courts.filter((item, index) => {
+          const previous = state.courts[index];
+          return item.activeMatchId !== previous.activeMatchId || item.status !== previous.status || item.queue.length !== previous.queue.length;
+        }).map(item => firestoreService.updateCourt(userId, item.id, {
+          status: item.status, activeMatchId: item.activeMatchId, queue: item.queue,
+        })));
         sendMatchNotification({
           playerIds: [...queuedMatch.teamA, ...queuedMatch.teamB], qmUserId: userId,
           title: 'Court Ready', body: `Please proceed to ${court.name}.`, type: 'COURT_READY',

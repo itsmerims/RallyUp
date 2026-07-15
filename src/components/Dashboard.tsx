@@ -27,7 +27,6 @@ import PlayerInfoModal from './PlayerInfoModal';
 import SessionModal from './SessionModal';
 import SessionChoiceModal from './SessionChoiceModal';
 import ClubDashboard from './ClubDashboard';
-import MatchMakerModal from './MatchMakerModal';
 import AddPlayerModal from './AddPlayerModal';
 import CompactPipeline from './CompactPipeline';
 import { readWorkspace, writeWorkspacePart } from '../services/localData';
@@ -46,7 +45,6 @@ export default function Dashboard() {
   // Inline player add form state
   const [addMode, setAddMode] = useState<'single' | 'bulk'>('single');
   const [playerInput, setPlayerInput] = useState('');
-  const [showMatchMaker, setShowMatchMaker] = useState(false);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   
   // Custom navigation tabs
@@ -952,7 +950,6 @@ export default function Dashboard() {
               onAddPlayer={() => setShowAddPlayer(true)}
               onEditPlayer={setDetailPlayer}
               onAutoQueue={handleAutoMatch}
-              onManualQueue={() => setShowMatchMaker(true)}
               onFinish={(matchId) => {
                 setCompletingMatchId(matchId);
                 setScoreA('21'); setScoreB('19'); setShuttlesUsed('1');
@@ -1368,7 +1365,6 @@ export default function Dashboard() {
                 {/* Queue creation actions */}
                 {isQM && (
                   <div className="absolute bottom-6 right-6 flex gap-2 z-50">
-                    <button onClick={() => setShowMatchMaker(true)} className="h-14 bg-slate-800 hover:bg-slate-700 text-white font-black rounded-2xl text-xs uppercase tracking-widest px-5 border border-slate-700">Manual Queue</button>
                     <button onClick={handleAutoMatch} className="h-14 bg-red-500 hover:bg-red-600 text-white font-black rounded-2xl text-xs uppercase tracking-widest px-6 shadow-xl shadow-red-500/20 active:scale-95 flex items-center gap-2 border border-red-400/50">
                       <Sparkles className="w-5 h-5" /> Auto Queue
                     </button>
@@ -1590,7 +1586,6 @@ export default function Dashboard() {
       
       <NotificationToast toasts={toasts} onDismiss={dismissToast} />
       <PlayerInfoModal isOpen={!!detailPlayer} player={detailPlayer} players={players} matches={matches} onClose={() => setDetailPlayer(null)} />
-      <MatchMakerModal isOpen={showMatchMaker} onClose={() => setShowMatchMaker(false)} />
       <AddPlayerModal isOpen={showAddPlayer} onClose={() => setShowAddPlayer(false)} />
       <SessionModal
         isOpen={showSessionModal}
