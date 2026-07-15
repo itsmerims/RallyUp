@@ -118,10 +118,11 @@ export const useAppStore = create<AppState>()(
     },
     
     updatePlayerStatus: async (userId, id, status) => {
-      const players = get().players.map(player => player.id === id ? { ...player, status } : player);
+      const waitingSince = status === 'waiting' ? Date.now() : undefined;
+      const players = get().players.map(player => player.id === id ? { ...player, status, ...(waitingSince ? { waitingSince } : {}) } : player);
       set({ players });
       writeWorkspacePart(userId, 'players', players);
-      if (get().connectionMode === 'online') await firestoreService.updatePlayer(userId, id, { status });
+      if (get().connectionMode === 'online') await firestoreService.updatePlayer(userId, id, { status, ...(waitingSince ? { waitingSince } : {}) });
     },
 
     togglePlayerPaid: async (userId, id) => {

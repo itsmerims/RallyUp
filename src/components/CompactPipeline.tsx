@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Pencil, Plus, Sparkles, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Pause, Pencil, Play, Plus, Search, Sparkles, Trash2, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAppStore } from '../store';
 import type { Player, SkillTier } from '../types';
@@ -24,24 +24,34 @@ const tierLabel = (tier: SkillTier) => tier.replace('_', ' ');
 
 export default function CompactPipeline({ onAddPlayer, onEditPlayer, onAutoQueue, onManualQueue, onFinish, onDeclareWin }: CompactPipelineProps) {
   const { user } = useAuth();
-  const { players, matches, courts, deletePlayer, startMatch, cancelMatch, addCourt, deleteCourt } = useAppStore();
+  const { players, matches, courts, deletePlayer, updatePlayerStatus, startMatch, cancelMatch, addCourt, deleteCourt } = useAppStore();
   const [playerSearch, setPlayerSearch] = useState('');
   const [tierFilter, setTierFilter] = useState<SkillTier | 'ALL'>('ALL');
   const [playerSort, setPlayerSort] = useState<'waiting' | 'name' | 'games'>('waiting');
   const [sortAsc, setSortAsc] = useState(true);
+  const [showRestModal, setShowRestModal] = useState(false);
+  const [restSearch, setRestSearch] = useState('');
   const waitingPlayers = useMemo(() => players.filter(player => player.status === 'waiting'), [players]);
+  const availablePlayers = useMemo(() => players.filter(player => player.status === 'waiting' || player.status === 'resting'), [players]);
+  const restModalPlayers = useMemo(() => {
+    const search = restSearch.trim().toLowerCase();
+    return availablePlayers
+      .filter(player => !search || player.name.toLowerCase().includes(search))
+      .sort((a, b) => Number(b.status === 'resting') - Number(a.status === 'resting') || a.name.localeCompare(b.name));
+  }, [availablePlayers, restSearch]);
   const filteredPlayers = useMemo(() => {
     const search = playerSearch.trim().toLowerCase();
-    return waitingPlayers
+    return availablePlayers
       .filter(player => (!search || player.name.toLowerCase().includes(search)) && (tierFilter === 'ALL' || player.tier === tierFilter))
       .sort((a, b) => {
+        if (a.status !== b.status) return a.status === 'resting' ? -1 : 1;
         let result = 0;
         if (playerSort === 'name') result = a.name.localeCompare(b.name);
         else if (playerSort === 'games') result = (a.stats?.gamesPlayed || 0) - (b.stats?.gamesPlayed || 0);
         else result = (a.waitingSince || a.joinedAt) - (b.waitingSince || b.joinedAt);
         return sortAsc ? result : -result;
       });
-  }, [waitingPlayers, playerSearch, tierFilter, playerSort, sortAsc]);
+  }, [availablePlayers, playerSearch, tierFilter, playerSort, sortAsc]);
   const queuedMatches = matches.filter(match => match.status === 'Waiting');
 
   const panelClass = 'flex min-h-[360px] min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/35';
@@ -52,8 +62,8 @@ export default function CompactPipeline({ onAddPlayer, onEditPlayer, onAutoQueue
     <div className="grid h-full min-h-0 w-full grid-cols-1 gap-4 overflow-y-auto bg-slate-950 p-4 lg:grid-cols-[minmax(300px,1fr)_minmax(360px,1.35fr)_minmax(360px,1.35fr)] lg:overflow-hidden">
       <section className={panelClass}>
         <header className={headerClass}>
-          <div><h2 className="text-xs font-black tracking-[0.18em] text-white">PLAYERS</h2><p className="mt-0.5 text-[9px] text-slate-500">{filteredPlayers.length} of {waitingPlayers.length} waiting</p></div>
-          <button onClick={onAddPlayer} className={outlineButtonClass}><Plus className="h-3.5 w-3.5" /> Add</button>
+          <div><h2 className="text-xs font-black tracking-[0.18em] text-white">PLAYERS</h2><p className="mt-0.5 text-[9px] text-slate-500">{waitingPlayers.length} waiting · {availablePlayers.length - waitingPlayers.length} resting</p></div>
+          <div className="flex gap-2"><button onClick={() => setShowRestModal(true)} className={outlineButtonClass}><Pause className="h-3.5 w-3.5" /> Rest</button><button onClick={onAddPlayer} className={outlineButtonClass}><Plus className="h-3.5 w-3.5" /> Add</button></div>
         </header>
         <div className="shrink-0 space-y-2 border-b border-slate-800/70 p-3">
           <div className="flex gap-2">
@@ -70,16 +80,24 @@ export default function CompactPipeline({ onAddPlayer, onEditPlayer, onAutoQueue
         <div className="min-h-0 flex-1 overflow-y-auto p-3">
           <div className="grid grid-cols-2 gap-3">
           {filteredPlayers.map(player => (
-            <article key={player.id} onClick={() => onEditPlayer(player)} className="group min-w-0 cursor-pointer rounded-xl border-2 border-transparent bg-slate-900 p-3 shadow-sm transition hover:border-indigo-500/40 hover:bg-slate-800">
-              <div className="mb-2 flex items-center justify-between gap-1"><span className={`max-w-full truncate rounded-full px-2 py-0.5 text-[8px] font-black ${tierColors[player.tier]}`}>{tierLabel(player.tier)}</span><div className="flex"><button onClick={event => { event.stopPropagation(); onEditPlayer(player); }} className="p-1 text-slate-500 hover:text-indigo-300" title="Edit player"><Pencil className="h-3 w-3" /></button><button onClick={event => { event.stopPropagation(); if (user) deletePlayer(user.uid, player.id); }} className="p-1 text-slate-500 hover:text-red-400" title="Delete player"><Trash2 className="h-3 w-3" /></button></div></div>
+            <article key={player.id} onClick={() => onEditPlayer(player)} className={`group min-w-0 cursor-pointer rounded-xl border-2 p-3 shadow-sm transition ${player.status === 'resting' ? 'border-amber-500/35 bg-amber-500/5 opacity-75' : 'border-transparent bg-slate-900 hover:border-indigo-500/40 hover:bg-slate-800'}`}>
+              <div className="mb-2 flex items-center justify-between gap-1"><span className={`max-w-full truncate rounded-full px-2 py-0.5 text-[8px] font-black ${player.status === 'resting' ? 'bg-amber-500/20 text-amber-300' : tierColors[player.tier]}`}>{player.status === 'resting' ? 'RESTING' : tierLabel(player.tier)}</span><div className="flex"><button onClick={event => { event.stopPropagation(); onEditPlayer(player); }} className="p-1 text-slate-500 hover:text-indigo-300" title="Edit player"><Pencil className="h-3 w-3" /></button><button onClick={event => { event.stopPropagation(); if (user) deletePlayer(user.uid, player.id); }} className="p-1 text-slate-500 hover:text-red-400" title="Delete player"><Trash2 className="h-3 w-3" /></button></div></div>
               <h3 className="truncate text-xs font-bold text-white">{player.name}</h3>
-              <div className="mt-1 flex justify-between text-[9px] text-slate-500"><span>{formatWaitTime(player.waitingSince || player.joinedAt)}</span><span>{player.stats?.gamesPlayed || 0} games</span></div>
+              <div className="mt-1 flex justify-between text-[9px] text-slate-500"><span>{player.status === 'resting' ? 'Wait frozen' : formatWaitTime(player.waitingSince || player.joinedAt)}</span><span>{player.stats?.gamesPlayed || 0} games</span></div>
             </article>
           ))}
           </div>
           {filteredPlayers.length === 0 && <p className="p-8 text-center text-xs text-slate-600">No matching waiting players</p>}
         </div>
       </section>
+
+      {showRestModal && <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-sm" onMouseDown={event => { if (event.target === event.currentTarget) setShowRestModal(false); }}>
+        <div className="flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-3xl border border-slate-700 bg-slate-900 shadow-2xl">
+          <header className="flex items-center justify-between border-b border-slate-800 p-5"><div><h3 className="text-base font-black uppercase text-white">Player Rest</h3><p className="mt-1 text-[10px] text-slate-400">Resting players stay pinned and cannot be queued.</p></div><button onClick={() => setShowRestModal(false)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-800 hover:text-white"><X className="h-4 w-4" /></button></header>
+          <div className="border-b border-slate-800 p-4"><div className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-3"><Search className="h-4 w-4 text-slate-500" /><input autoFocus value={restSearch} onChange={event => setRestSearch(event.target.value)} placeholder="Search players..." className="h-10 min-w-0 flex-1 bg-transparent text-xs text-white outline-none placeholder:text-slate-600" /></div></div>
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-4">{restModalPlayers.map(player => <div key={player.id} className={`flex items-center gap-3 rounded-xl border p-3 ${player.status === 'resting' ? 'border-amber-500/30 bg-amber-500/5' : 'border-slate-800 bg-slate-950/60'}`}><div className="min-w-0 flex-1"><div className="truncate text-xs font-bold text-white">{player.name}</div><div className="mt-0.5 text-[9px] font-bold uppercase text-slate-500">{tierLabel(player.tier)} · {player.status}</div></div><button onClick={() => user && updatePlayerStatus(user.uid, player.id, player.status === 'resting' ? 'waiting' : 'resting')} className={`flex h-8 items-center gap-1.5 rounded-lg px-3 text-[10px] font-black uppercase transition ${player.status === 'resting' ? 'bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25' : 'bg-amber-500/15 text-amber-300 hover:bg-amber-500/25'}`}>{player.status === 'resting' ? <><Play className="h-3.5 w-3.5" /> Resume</> : <><Pause className="h-3.5 w-3.5" /> Rest</>}</button></div>)}{restModalPlayers.length === 0 && <p className="p-8 text-center text-xs text-slate-600">No players found.</p>}</div>
+        </div>
+      </div>}
 
       <section className={panelClass}>
         <header className={headerClass}>
