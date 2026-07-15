@@ -35,6 +35,8 @@ export interface Player {
   userId?: string;
   fcmTokens?: string[];
   sessionId?: string;
+  timeIn?: string;
+  timeOut?: string;
   stats: {
     gamesPlayed: number;
     wins: number;

@@ -28,6 +28,7 @@ import SessionModal from './SessionModal';
 import SessionChoiceModal from './SessionChoiceModal';
 import ClubDashboard from './ClubDashboard';
 import MatchMakerModal from './MatchMakerModal';
+import AddPlayerModal from './AddPlayerModal';
 import { readWorkspace, writeWorkspacePart } from '../services/localData';
 
 export default function Dashboard() {
@@ -45,6 +46,7 @@ export default function Dashboard() {
   const [addMode, setAddMode] = useState<'single' | 'bulk'>('single');
   const [playerInput, setPlayerInput] = useState('');
   const [showMatchMaker, setShowMatchMaker] = useState(false);
+  const [showAddPlayer, setShowAddPlayer] = useState(false);
   
   // Custom navigation tabs
   const [activeTab, setActiveTab] = useState<'courts' | 'players' | 'stats' | 'finance' | 'rankings' | 'clubs' | 'settings'>('courts');
@@ -1376,8 +1378,8 @@ export default function Dashboard() {
                   <p className="text-sm text-slate-400 mt-1">Manage and audit court member lists and stats.</p>
                 </div>
                 <button
-                  onClick={() => { setActiveTab('courts'); setTimeout(() => document.getElementById('player-input')?.focus(), 100); }}
-                  className="h-12 bg-emerald-500 hover:bg-emerald-400 text-[#ffffff] font-black rounded-xl text-xs uppercase tracking-widest px-6 transition-all"
+                  onClick={() => setShowAddPlayer(true)}
+                  className="h-12 bg-violet-600 hover:bg-violet-500 text-white font-black rounded-xl text-xs uppercase tracking-widest px-6 transition-all"
                 >
                   + Add Player
                 </button>
@@ -1571,6 +1573,7 @@ export default function Dashboard() {
       <NotificationToast toasts={toasts} onDismiss={dismissToast} />
       <PlayerInfoModal isOpen={!!detailPlayer} player={detailPlayer} players={players} matches={matches} onClose={() => setDetailPlayer(null)} />
       <MatchMakerModal isOpen={showMatchMaker} onClose={() => setShowMatchMaker(false)} />
+      <AddPlayerModal isOpen={showAddPlayer} onClose={() => setShowAddPlayer(false)} />
       <SessionModal
         isOpen={showSessionModal}
         onClose={() => setShowSessionModal(false)}

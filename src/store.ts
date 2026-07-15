@@ -29,7 +29,7 @@ interface AppState {
   setConnectionMode: (mode: ConnectionMode) => void;
 
   // Actions
-  addPlayer: (userId: string, player: Omit<Player, 'id' | 'hasPaid' | 'ratingScore' | 'joinedAt' | 'waitingSince' | 'stats' | 'status'>) => Promise<void>;
+  addPlayer: (userId: string, player: Omit<Player, 'id' | 'hasPaid' | 'ratingScore' | 'joinedAt' | 'waitingSince' | 'stats' | 'status'> & { status?: Player['status'] }) => Promise<void>;
   updatePlayerStatus: (userId: string, id: string, status: Player['status']) => Promise<void>;
   togglePlayerPaid: (userId: string, id: string) => Promise<void>;
   deletePlayer: (userId: string, id: string) => Promise<void>;
@@ -93,7 +93,7 @@ export const useAppStore = create<AppState>()(
         joinedAt: Date.now(),
         hasPaid: false,
         ratingScore: getBaseRating(playerData.tier),
-        status: 'waiting',
+        status: playerData.status ?? 'waiting',
         waitingSince: Date.now(),
         ...(sessionId ? { sessionId } : {}),
         stats: {

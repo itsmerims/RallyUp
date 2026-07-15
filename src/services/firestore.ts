@@ -61,6 +61,8 @@ export const subscribeToPlayers = (userId: string, callback: (players: Player[])
         stats: data.stats,
         fcmTokens: data.fcmTokens || [],
         sessionId: data.sessionId,
+        timeIn: data.timeIn,
+        timeOut: data.timeOut,
       } as Player);
     });
     callback(players);
@@ -544,4 +546,3 @@ export const deleteAllCourts = async (userId: string) => {
     handleFirestoreError(error, OperationType.DELETE, path);
   }
 };
-
