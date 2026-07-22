@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAppStore } from '../store';
 import * as firestoreService from '../services/firestore';
-import { Settings, Shield, User, Globe, MapPin, Save, Plus, Trash2, Key, HelpCircle, Check, Loader2, RefreshCw, Info, ChevronDown, MoreVertical, Link, Copy, QrCode, Monitor, MonitorOff } from 'lucide-react';
+import { Settings, Shield, User, Globe, MapPin, Save, Plus, Trash2, Key, HelpCircle, Check, Loader2, RefreshCw, Info, ChevronDown, MoreVertical, Link, Copy, QrCode, Monitor, MonitorOff, Download, Upload } from 'lucide-react';
 import { SkillTier } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
+import { buildExportData, downloadExport, validateImportData, importData } from '../utils/dataTransfer';
+import type { ExportData } from '../utils/dataTransfer';
 
 interface SettingsPageProps {
   onSessionJoined?: (qmUserId: string, matchSessionId?: string) => void;
@@ -14,7 +16,7 @@ interface SettingsPageProps {
 
 export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessionLeft }: SettingsPageProps) {
   const { user, userProfile, updateProfile, logout } = useAuth();
-  const { courts, addCourt, deleteCourt, currentSessionId, setCurrentSessionId } = useAppStore();
+  const { players, courts, matches, financialConfig, addCourt, deleteCourt, currentSessionId, setCurrentSessionId } = useAppStore();
 
   // Collapsible States
   const [openSections, setOpenSections] = useState({
@@ -22,6 +24,7 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
     sessionHosting: true,
     courtsConfig: true,
     connectSession: true,
+    dataTransfer: true,
     resetData: false,
     others: false,
     dangerZone: false
@@ -55,6 +58,11 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
   // Reset / Delete states
   const [confirmAction, setConfirmAction] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Import/Export states
+  const [importLoading, setImportLoading] = useState(false);
+  const [importResult, setImportResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [importMerge, setImportMerge] = useState(false);
 
   // Share session
   const [copySuccess, setCopySuccess] = useState(false);
@@ -658,6 +666,110 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
           {/* RESET DATA & DANGER ZONE SECTION (QM Only) */}
           {isQM && (
             <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6 mt-2 pb-12">
+              {/* Data Import / Export */}
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col gap-2">
+                <div className="flex items-center justify-between cursor-pointer group" onClick={() => toggleSection('dataTransfer')}>
+                  <div className="flex items-center gap-2">
+                    <RefreshCw className="w-5 h-5 text-slate-400" />
+                    <h3 className="font-bold text-white tracking-tight text-sm">Data Import / Export</h3>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform duration-300 ${openSections.dataTransfer ? 'rotate-180' : ''}`} />
+                </div>
+
+                <AnimatePresence initial={false}>
+                  {openSections.dataTransfer && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3, ease: 'easeInOut' }}
+                      className="overflow-hidden"
+                    >
+                      <div className="flex flex-col gap-6 pt-4">
+                        {/* Export */}
+                        <div className="flex items-center justify-between p-4 bg-slate-950/50 rounded-2xl border border-slate-850">
+                          <div className="pr-4">
+                            <h4 className="text-sm font-bold text-slate-200 mb-1">Export Data</h4>
+                            <p className="text-xs text-slate-500 leading-relaxed">
+                              Download all players, matches, courts, and financial config as JSON.
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              const exportData = buildExportData(players, courts, matches, financialConfig);
+                              downloadExport(exportData);
+                            }}
+                            className="shrink-0 px-4 h-10 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold text-xs rounded-xl transition-colors border border-emerald-500/20 flex items-center gap-2"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            Export
+                          </button>
+                        </div>
+
+                        {/* Import */}
+                        <div className="p-4 bg-slate-950/50 rounded-2xl border border-slate-850 flex flex-col gap-3">
+                          <div className="flex items-center justify-between">
+                            <div className="pr-4">
+                              <h4 className="text-sm font-bold text-slate-200 mb-1">Import Data</h4>
+                              <p className="text-xs text-slate-500 leading-relaxed">
+                                Upload a JSON backup file to restore data.
+                              </p>
+                            </div>
+                          </div>
+
+                          <label className="flex items-center gap-2 text-[10px] text-slate-400">
+                            <input
+                              type="checkbox"
+                              checked={importMerge}
+                              onChange={(e) => setImportMerge(e.target.checked)}
+                              className="rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-emerald-500/20"
+                            />
+                            Merge with existing data (don't clear first)
+                          </label>
+
+                          <div className="flex gap-2">
+                            <input
+                              type="file"
+                              accept=".json"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file || !user) return;
+                                setImportLoading(true);
+                                setImportResult(null);
+                                  try {
+                                    const text = await file.text();
+                                    const parsed = JSON.parse(text);
+                                    const validation = validateImportData(parsed);
+                                    if (validation.valid === false) {
+                                      setImportResult({ success: false, message: validation.error });
+                                      return;
+                                    }
+                                    const result = await importData(user.uid, validation.data, { merge: importMerge });
+                                  setImportResult(result);
+                                } catch (err) {
+                                  setImportResult({ success: false, message: `Failed to parse file: ${err instanceof Error ? err.message : 'Unknown error'}` });
+                                } finally {
+                                  setImportLoading(false);
+                                  e.target.value = '';
+                                }
+                              }}
+                              className="flex-1 text-xs text-slate-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-[10px] file:font-bold file:bg-slate-800 file:text-slate-300 hover:file:bg-slate-700 cursor-pointer"
+                            />
+                            {importLoading && <Loader2 className="w-5 h-5 animate-spin text-slate-400 shrink-0" />}
+                          </div>
+
+                          {importResult && (
+                            <div className={`text-xs font-bold px-3 py-2 rounded-xl ${importResult.success ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                              {importResult.message}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
               <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col gap-2">
                 <div className="flex items-center justify-between cursor-pointer group" onClick={() => toggleSection('resetData')}>
                   <div className="flex items-center gap-2">
