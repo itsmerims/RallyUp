@@ -95,6 +95,23 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const handleContinueAsGuest = async () => {
+    setError('');
+    setAuthWorking(true);
+    try {
+      await continueAsGuest();
+    } catch (err: any) {
+      const msg = err.message || '';
+      if (msg.includes('auth/operation-not-allowed')) {
+        setError('Guest access is not enabled yet. Please try signing in instead.');
+      } else {
+        setError('Unable to continue as guest. Please try again.');
+      }
+    } finally {
+      setAuthWorking(false);
+    }
+  };
+
   if (loading || (user && profileLoading)) {
     return (
       <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center p-4 overflow-hidden">
@@ -114,7 +131,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         <LandingPage 
           onGetStarted={() => { setShowAuth(true); setIsSignUp(true); }} 
           onSignIn={() => { setShowAuth(true); setIsSignUp(false); }} 
-          onGuestContinue={continueAsGuest}
+          onGuestContinue={handleContinueAsGuest}
         />
       );
     }
@@ -302,13 +319,18 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
             </button>
 
             <button 
-              onClick={continueAsGuest}
+              onClick={handleContinueAsGuest}
+              disabled={authWorking}
               type="button"
-              className="w-full h-12 bg-slate-950 hover:bg-slate-900 border border-slate-800 text-slate-400 hover:text-white font-semibold rounded-xl flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
+              className="w-full h-12 bg-slate-950 hover:bg-slate-900 border border-slate-800 text-slate-400 hover:text-white font-semibold rounded-xl flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:bg-slate-800 disabled:text-slate-600"
             >
-              <UserIcon className="w-4 h-4" />
-              Continue as Guest
+              {authWorking ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserIcon className="w-4 h-4" />}
+              {authWorking ? 'Continuing as guest...' : 'Continue as Guest'}
             </button>
+
+            {error && (
+              <p className="text-red-400 text-xs font-semibold text-center mt-2">{error}</p>
+            )}
             
             <p className="text-[10px] text-slate-500 text-center mt-6 leading-normal font-mono">
               By continuing, you agree to RallyUp's{' '}
