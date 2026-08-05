@@ -11,11 +11,12 @@ gsap.registerPlugin(ScrollTrigger);
 interface LandingPageProps {
   onGetStarted: () => void;
   onSignIn: () => void;
+  onGuestContinue: () => void;
 }
 
 type PageState = 'home' | 'about' | 'how-it-works' | 'rankings';
 
-export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
+export default function LandingPage({ onGetStarted, onSignIn, onGuestContinue }: LandingPageProps) {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [activePage, setActivePage] = useState<PageState>('home');
@@ -221,6 +222,16 @@ export default function LandingPage({ onGetStarted, onSignIn }: LandingPageProps
                     <Download className="w-5 h-5" /> Install App
                   </button>
                 </motion.div>
+                
+                <motion.button 
+                  onClick={onGuestContinue}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.35 }}
+                  className="mt-6 px-8 py-3 bg-slate-900/80 border border-slate-800 hover:border-emerald-500/40 hover:bg-slate-800/80 text-slate-300 hover:text-white font-semibold rounded-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-sm"
+                >
+                  Continue as Guest <ArrowRight className="w-4 h-4" />
+                </motion.button>
                 
                 <motion.div
                   initial={{ opacity: 0 }}

@@ -6,7 +6,8 @@ import {
   GoogleAuthProvider, 
   signOut,
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword
+  createUserWithEmailAndPassword,
+  signInAnonymously
 } from 'firebase/auth';
 import { UserProfile, SkillTier } from '../types';
 import { getBaseRating } from '../utils/tiers';
@@ -21,6 +22,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, pass: string) => Promise<void>;
   signUpWithEmail: (email: string, pass: string) => Promise<void>;
+  continueAsGuest: () => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
   completeProfile: (skillTier: SkillTier, country: string, role: 'PLAYER' | 'QUEUE_MASTER') => Promise<void>;
@@ -34,6 +36,7 @@ const AuthContext = createContext<AuthContextType>({
   signInWithGoogle: async () => {},
   signInWithEmail: async () => {},
   signUpWithEmail: async () => {},
+  continueAsGuest: async () => {},
   logout: async () => {},
   updateProfile: async () => {},
   completeProfile: async () => {},
@@ -103,6 +106,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const continueAsGuest = async () => {
+    try {
+      await signInAnonymously(auth);
+      window.location.reload();
+    } catch (error) {
+      console.error('Error continuing as guest', error);
+      throw error;
+    }
+  };
+
   const updateProfile = async (updates: Partial<UserProfile>) => {
     if (!user) return;
     try {
@@ -118,7 +131,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     const initialProfile: UserProfile = {
       id: user.uid,
-      name: user.displayName || user.email?.split('@')[0] || 'Player',
+      name: user.isAnonymous
+        ? `Guest ${user.uid.slice(-4).toUpperCase()}`
+        : user.displayName || user.email?.split('@')[0] || 'Player',
       email: user.email || '',
       skillTier,
       country,
@@ -169,6 +184,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       signInWithGoogle, 
       signInWithEmail, 
       signUpWithEmail, 
+      continueAsGuest,
       logout,
       updateProfile,
       completeProfile

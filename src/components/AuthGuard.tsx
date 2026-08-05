@@ -18,6 +18,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     signInWithGoogle, 
     signInWithEmail, 
     signUpWithEmail, 
+    continueAsGuest,
     completeProfile 
   } = useAuth();
 
@@ -113,6 +114,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         <LandingPage 
           onGetStarted={() => { setShowAuth(true); setIsSignUp(true); }} 
           onSignIn={() => { setShowAuth(true); setIsSignUp(false); }} 
+          onGuestContinue={continueAsGuest}
         />
       );
     }
@@ -297,6 +299,15 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
             >
               <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
               Continue with Google
+            </button>
+
+            <button 
+              onClick={continueAsGuest}
+              type="button"
+              className="w-full h-12 bg-slate-950 hover:bg-slate-900 border border-slate-800 text-slate-400 hover:text-white font-semibold rounded-xl flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
+            >
+              <UserIcon className="w-4 h-4" />
+              Continue as Guest
             </button>
             
             <p className="text-[10px] text-slate-500 text-center mt-6 leading-normal font-mono">
