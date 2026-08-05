@@ -108,7 +108,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const continueAsGuest = async () => {
     try {
-      await signInAnonymously(auth);
+      const credential = await signInAnonymously(auth);
+      const guest = credential.user;
+      if (guest) {
+        const existing = await firestoreService.getUserProfile(guest.uid);
+        if (!existing) {
+          const defaultProfile: UserProfile = {
+            id: guest.uid,
+            name: `Guest ${guest.uid.slice(-4).toUpperCase()}`,
+            email: '',
+            skillTier: 'INT',
+            country: 'Philippines',
+            role: 'PLAYER',
+            profileCompleted: true,
+            hasSeenWelcomeModal: false,
+            ratingScore: getBaseRating('INT'),
+            joinedAt: Date.now(),
+            stats: {
+              gamesPlayed: 0,
+              wins: 0,
+              losses: 0,
+              currentStreak: 0
+            }
+          };
+          await firestoreService.saveUserProfile(guest.uid, defaultProfile);
+        }
+      }
       window.location.reload();
     } catch (error) {
       console.error('Error continuing as guest', error);

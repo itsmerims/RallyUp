@@ -326,6 +326,20 @@ export const subscribeToUserProfile = (userId: string, callback: (profile: any |
   });
 };
 
+export const getUserProfile = async (userId: string): Promise<any | null> => {
+  const path = `profiles/${userId}`;
+  try {
+    const docSnap = await getDoc(doc(db, 'profiles', userId));
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() };
+    }
+    return null;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, path);
+    return null;
+  }
+};
+
 export const saveUserProfile = async (userId: string, profile: any) => {
   const path = `profiles/${userId}`;
   try {
