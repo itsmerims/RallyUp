@@ -1,5 +1,5 @@
 export type SkillTier = 'BEG' | 'ADV_BEG' | 'LOW_INT' | 'INT' | 'MID_INT' | 'UP_INT' | 'ADV' | 'EXP' | 'PRO';
-export type PlayerStatus = 'waiting' | 'active' | 'resting' | 'timeout';
+export type PlayerStatus = 'waiting' | 'reserved' | 'active' | 'resting' | 'timeout';
 export type CourtStatus = 'Available' | 'Occupied' | 'Finishing Soon';
 
 export interface UserProfile {

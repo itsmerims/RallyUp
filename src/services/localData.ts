@@ -41,7 +41,7 @@ export const readWorkspace = (userId: string): LocalWorkspace => {
   const players = read<Player[]>(storageKey(userId, 'players'), []).map(player => ({
     ...player,
     // Self-heal legacy/corrupted records so they never vanish from the queue panel.
-    status: (player.status === 'waiting' || player.status === 'active' || player.status === 'resting' || player.status === 'timeout') ? player.status : 'waiting',
+    status: (player.status === 'waiting' || player.status === 'reserved' || player.status === 'active' || player.status === 'resting' || player.status === 'timeout') ? player.status : 'waiting',
     stats: player.stats || { gamesPlayed: 0, wins: 0, losses: 0, currentStreak: 0 },
   }));
   return {

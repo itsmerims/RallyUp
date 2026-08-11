@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Pause, Pencil, Play, Plus, Search, Sparkles, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Check, Pause, Pencil, Play, Plus, Search, Sparkles, Trash2, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAppStore } from '../store';
 import type { Player, SkillTier } from '../types';
@@ -7,10 +7,11 @@ import { formatWaitTime } from '../utils/time';
 
 interface CompactPipelineProps {
   onAddPlayer: () => void;
-  onEditPlayer: (player: Player) => void;
+  onEditPlayer: (playerId: string) => void;
   onAutoQueue: () => void;
   onFinish: (matchId: string) => void;
   onDeclareWin: (matchId: string, winner: 'A' | 'B') => void;
+  onNotify: (title: string, body: string) => void;
 }
 
 interface DraftQueue {
@@ -18,6 +19,12 @@ interface DraftQueue {
   teamA: Array<string | null>;
   teamB: Array<string | null>;
   ready?: boolean;
+}
+
+interface ConfirmState {
+  title: string;
+  detail: string;
+  onConfirm: () => void;
 }
 
 const tierColors: Record<SkillTier, string> = {
@@ -28,22 +35,35 @@ const tierColors: Record<SkillTier, string> = {
 
 const tierLabel = (tier: SkillTier) => tier.replace('_', ' ');
 
-export default function CompactPipeline({ onAddPlayer, onEditPlayer, onAutoQueue, onFinish, onDeclareWin }: CompactPipelineProps) {
+export default function CompactPipeline({ onAddPlayer, onEditPlayer, onAutoQueue, onFinish, onDeclareWin, onNotify }: CompactPipelineProps) {
   const { user } = useAuth();
-  const { players, matches, courts, deletePlayer, updatePlayerStatus, addMatch, startMatch, cancelMatch, addCourt, deleteCourt } = useAppStore();
+  const { players, matches, courts, deletePlayer, updatePlayerStatus, togglePlayerPaid, addMatch, startMatch, cancelMatch, addCourt, deleteCourt, reorderQueueMatch } = useAppStore();
   const [playerSearch, setPlayerSearch] = useState('');
   const [tierFilter, setTierFilter] = useState<SkillTier | 'ALL'>('ALL');
   const [playerSort, setPlayerSort] = useState<'waiting' | 'name' | 'games'>('waiting');
   const [sortAsc, setSortAsc] = useState(true);
   const [showRestModal, setShowRestModal] = useState(false);
   const [restSearch, setRestSearch] = useState('');
+  const [confirm, setConfirm] = useState<ConfirmState | null>(null);
+  const [autoStart, setAutoStart] = useState(() => localStorage.getItem('rallyup_auto_start') !== 'false');
+  const [now, setNow] = useState(Date.now());
   const [draftQueues, setDraftQueues] = useState<DraftQueue[]>(() => {
     try { return JSON.parse(localStorage.getItem('rallyup_draft_queues') || '[]') as DraftQueue[]; }
     catch { return []; }
   });
   useEffect(() => { localStorage.setItem('rallyup_draft_queues', JSON.stringify(draftQueues)); }, [draftQueues]);
+  useEffect(() => { localStorage.setItem('rallyup_auto_start', String(autoStart)); }, [autoStart]);
+  useEffect(() => {
+    if (!matches.some(match => match.status === 'Active')) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [matches]);
+
   const draftedPlayerIds = useMemo(() => new Set(draftQueues.flatMap(queue => [...queue.teamA, ...queue.teamB].filter((id): id is string => Boolean(id)))), [draftQueues]);
+  const poolPlayers = useMemo(() => players.filter(player => player.status === 'waiting' || player.status === 'resting' || player.status === 'reserved'), [players]);
   const waitingPlayers = useMemo(() => players.filter(player => player.status === 'waiting' && !draftedPlayerIds.has(player.id)), [players, draftedPlayerIds]);
+  const restingPlayers = useMemo(() => players.filter(player => player.status === 'resting'), [players]);
+  const reservedPlayers = useMemo(() => players.filter(player => player.status === 'reserved'), [players]);
   const availablePlayers = useMemo(() => players.filter(player => player.status === 'resting' || (player.status === 'waiting' && !draftedPlayerIds.has(player.id))), [players, draftedPlayerIds]);
   const restModalPlayers = useMemo(() => {
     const search = restSearch.trim().toLowerCase();
@@ -53,25 +73,40 @@ export default function CompactPipeline({ onAddPlayer, onEditPlayer, onAutoQueue
   }, [availablePlayers, restSearch]);
   const filteredPlayers = useMemo(() => {
     const search = playerSearch.trim().toLowerCase();
-    return availablePlayers
+    return poolPlayers
       .filter(player => (!search || player.name.toLowerCase().includes(search)) && (tierFilter === 'ALL' || player.tier === tierFilter))
       .sort((a, b) => {
-        if (a.status !== b.status) return a.status === 'resting' ? -1 : 1;
+        if (a.status !== b.status) return a.status === 'resting' ? -1 : a.status === 'reserved' ? 1 : b.status === 'reserved' ? -1 : 1;
         let result = 0;
         if (playerSort === 'name') result = a.name.localeCompare(b.name);
         else if (playerSort === 'games') result = (a.stats?.gamesPlayed || 0) - (b.stats?.gamesPlayed || 0);
         else result = (a.waitingSince || a.joinedAt) - (b.waitingSince || b.joinedAt);
         return sortAsc ? result : -result;
       });
-  }, [availablePlayers, playerSearch, tierFilter, playerSort, sortAsc]);
+  }, [poolPlayers, playerSearch, tierFilter, playerSort, sortAsc]);
   const queuedMatches = matches.filter(match => match.status === 'Waiting');
 
+  const formatElapsed = (startTime: number | null) => {
+    if (!startTime) return '00:00';
+    const total = Math.max(0, Math.floor((now - startTime) / 1000));
+    const mm = String(Math.floor(total / 60)).padStart(2, '0');
+    const ss = String(total % 60).padStart(2, '0');
+    return `${mm}:${ss}`;
+  };
+
   useEffect(() => {
-    if (!user || queuedMatches.length === 0) return;
-    courts.filter(court => !court.activeMatchId && court.status === 'Available').forEach(court => {
-      void startMatch(user.uid, court.id);
-    });
-  }, [user, queuedMatches.length, courts, startMatch]);
+    if (!user || !autoStart || queuedMatches.length === 0) return;
+    const freeCourt = courts.find(court => !court.activeMatchId && court.status === 'Available');
+    if (!freeCourt) return;
+    const ownQueued = freeCourt.queue
+      .map(matchId => matches.find(match => match.id === matchId && match.status === 'Waiting'))
+      .find(Boolean);
+    const next = ownQueued || queuedMatches[0];
+    if (!next) return;
+    void startMatch(user.uid, freeCourt.id);
+    const name = (id: string) => players.find(player => player.id === id)?.name || '?';
+    onNotify('Match Started', `${next.teamA.map(name).join(' & ')} vs ${next.teamB.map(name).join(' & ')} on ${freeCourt.name}`);
+  }, [user, autoStart, queuedMatches, courts, matches, players, startMatch, onNotify]);
 
   const addDraftQueue = () => setDraftQueues(current => [...current, { id: `draft-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, teamA: [null, null], teamB: [null, null] }]);
   const removeDraftQueue = (queueId: string) => setDraftQueues(current => current.filter(queue => queue.id !== queueId));
@@ -99,14 +134,8 @@ export default function CompactPipeline({ onAddPlayer, onEditPlayer, onAutoQueue
     setDraftQueues(current => current.map(item => item.id === queue.id ? { ...item, ready: false } : item));
     await addMatch(user.uid, { teamA: queue.teamA as string[], teamB: queue.teamB as string[], courtId: targetCourt.id });
     removeDraftQueue(queue.id);
+    onNotify('Match Queued', `${ids.map(id => players.find(player => player.id === id)?.name || '?').join(' & ')} reserved on ${targetCourt.name}`);
   };
-
-  useEffect(() => {
-    const readyQueue = draftQueues.find(queue => queue.ready && [...queue.teamA, ...queue.teamB].every(Boolean));
-    if (readyQueue && courts.length > 0) void submitDraftQueue(readyQueue);
-  // submitDraftQueue intentionally uses the latest store-backed values on each draft/court change.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draftQueues, courts.length]);
 
   const panelClass = 'flex min-h-[360px] min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/35';
   const headerClass = 'flex min-h-14 shrink-0 items-center justify-between gap-2 border-b border-slate-800 px-4 py-2';
@@ -116,7 +145,7 @@ export default function CompactPipeline({ onAddPlayer, onEditPlayer, onAutoQueue
     <div className="panel-scrollbar grid h-full min-h-0 w-full grid-cols-1 gap-3 overflow-y-auto bg-slate-950 p-2 sm:gap-4 sm:p-4 xl:grid-cols-[minmax(280px,1fr)_minmax(340px,1.35fr)_minmax(340px,1.35fr)] xl:overflow-hidden">
       <section className={panelClass}>
         <header className={headerClass}>
-          <div><h2 className="text-xs font-black tracking-[0.18em] text-white">PLAYERS</h2><p className="mt-0.5 text-[9px] text-slate-500">{waitingPlayers.length} waiting · {availablePlayers.length - waitingPlayers.length} resting</p></div>
+          <div><h2 className="text-xs font-black tracking-[0.18em] text-white">PLAYERS</h2><p className="mt-0.5 text-[9px] text-slate-500">{waitingPlayers.length} waiting · {restingPlayers.length} resting · {reservedPlayers.length} reserved</p></div>
           <div className="flex gap-2"><button onClick={() => setShowRestModal(true)} className={outlineButtonClass}><Pause className="h-3.5 w-3.5" /> Rest</button><button onClick={onAddPlayer} className={outlineButtonClass}><Plus className="h-3.5 w-3.5" /> Add</button></div>
         </header>
         <div className="shrink-0 space-y-2 border-b border-slate-800/70 p-3">
@@ -134,14 +163,14 @@ export default function CompactPipeline({ onAddPlayer, onEditPlayer, onAutoQueue
         <div className="panel-scrollbar players-scrollbar min-h-0 flex-1 overflow-y-auto p-3">
           <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
           {filteredPlayers.map(player => (
-            <article key={player.id} draggable={player.status === 'waiting'} onDragStart={event => { event.dataTransfer.setData('text/plain', player.id); event.dataTransfer.effectAllowed = 'move'; }} onClick={() => onEditPlayer(player)} className={`group min-w-0 rounded-xl border-2 p-3 shadow-sm transition ${player.status === 'resting' ? 'cursor-pointer border-amber-500/35 bg-amber-500/5 opacity-75' : 'cursor-grab border-transparent bg-slate-900 hover:border-indigo-500/40 hover:bg-slate-800 active:cursor-grabbing'}`}>
-              <div className="mb-2 flex items-center justify-between gap-1"><span className={`max-w-full truncate rounded-full px-2 py-0.5 text-[8px] font-black ${player.status === 'resting' ? 'bg-amber-500/20 text-amber-300' : tierColors[player.tier]}`}>{player.status === 'resting' ? 'RESTING' : tierLabel(player.tier)}</span><div className="flex"><button onClick={event => { event.stopPropagation(); onEditPlayer(player); }} className="p-1 text-slate-500 hover:text-indigo-300" title="Edit player"><Pencil className="h-3 w-3" /></button><button onClick={event => { event.stopPropagation(); if (user) deletePlayer(user.uid, player.id); }} className="p-1 text-slate-500 hover:text-red-400" title="Delete player"><Trash2 className="h-3 w-3" /></button></div></div>
+            <article key={player.id} draggable={player.status === 'waiting'} onDragStart={event => { if (player.status !== 'waiting') { event.preventDefault(); return; } event.dataTransfer.setData('text/plain', player.id); event.dataTransfer.effectAllowed = 'move'; }} onClick={() => onEditPlayer(player.id)} className={`group min-w-0 rounded-xl border-2 p-3 shadow-sm transition ${player.status === 'resting' ? 'cursor-pointer border-amber-500/35 bg-amber-500/5 opacity-75' : player.status === 'reserved' ? 'cursor-default border-indigo-500/40 bg-indigo-500/5' : 'cursor-grab border-transparent bg-slate-900 hover:border-indigo-500/40 hover:bg-slate-800 active:cursor-grabbing'}`}>
+              <div className="mb-2 flex items-center justify-between gap-1"><span className={`max-w-full truncate rounded-full px-2 py-0.5 text-[8px] font-black ${player.status === 'resting' ? 'bg-amber-500/20 text-amber-300' : player.status === 'reserved' ? 'bg-indigo-500/20 text-indigo-300' : tierColors[player.tier]}`}>{player.status === 'resting' ? 'RESTING' : player.status === 'reserved' ? 'RESERVED' : tierLabel(player.tier)}</span><div className="flex"><button onClick={event => { event.stopPropagation(); onEditPlayer(player.id); }} className="p-1 text-slate-500 hover:text-indigo-300" title="Edit player"><Pencil className="h-3 w-3" /></button><button onClick={event => { event.stopPropagation(); if (user) togglePlayerPaid(user.uid, player.id); }} className={`p-1 ${player.hasPaid ? 'text-emerald-400' : 'text-slate-500 hover:text-emerald-400'}`} title="Toggle paid"><Check className="h-3 w-3" /></button><button onClick={event => { event.stopPropagation(); if (user) setConfirm({ title: 'Delete player', detail: `Remove ${player.name} from the session? This cannot be undone.`, onConfirm: () => void deletePlayer(user.uid, player.id) }); }} className="p-1 text-slate-500 hover:text-red-400" title="Delete player"><Trash2 className="h-3 w-3" /></button></div></div>
               <h3 className="truncate text-xs font-bold text-white">{player.name}</h3>
-              <div className="mt-1 flex justify-between text-[9px] text-slate-500"><span>{player.status === 'resting' ? 'Wait frozen' : formatWaitTime(player.waitingSince || player.joinedAt)}</span><span>{player.stats?.gamesPlayed || 0} games</span></div>
+              <div className="mt-1 flex justify-between text-[9px] text-slate-500"><span>{player.status === 'resting' ? 'Wait frozen' : player.status === 'reserved' ? 'In queue' : formatWaitTime(player.waitingSince || player.joinedAt)}</span><span>{player.stats?.gamesPlayed || 0} games</span></div>
             </article>
           ))}
           </div>
-          {filteredPlayers.length === 0 && <p className="p-8 text-center text-xs text-slate-600">No matching waiting players</p>}
+          {filteredPlayers.length === 0 && <p className="p-8 text-center text-xs text-slate-600">{players.length === 0 ? 'No players yet - press Add' : 'No matching players'}</p>}
         </div>
       </section>
 
@@ -169,14 +198,23 @@ export default function CompactPipeline({ onAddPlayer, onEditPlayer, onAutoQueue
                   {player ? <><button onClick={() => clearDraftSlot(queue.id, team, slot)} className="absolute right-1 top-1 text-slate-500 opacity-0 hover:text-red-400 group-hover/slot:opacity-100"><X className="h-3 w-3" /></button><div className="min-w-0"><span className={`inline-block max-w-full truncate rounded px-1 py-px text-[7px] font-black ${tierColors[player.tier]}`}>{tierLabel(player.tier)}</span><div className="truncate text-[9px] font-bold text-white">{player.name}</div></div></> : <span className="text-[9px] font-semibold">Drop player</span>}
                 </div>;
               })}</div></div>)}
+              {queue.ready && <p className="mb-1 text-[9px] font-semibold text-amber-400">No courts available - adding a court will queue this match</p>}
               <button onClick={() => submitDraftQueue(queue)} disabled={playerCount !== 4} className="mt-1 h-8 w-full rounded-lg bg-indigo-600 text-[10px] font-bold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-800 disabled:text-slate-600">{queue.ready ? 'Waiting for Court' : `Queue (${playerCount}/4)`}</button>
             </article>;
           })}
-          {queuedMatches.map((match, index) => (
-            <article key={match.id} className="rounded-2xl border border-slate-700/80 border-l-4 border-l-amber-500/50 bg-slate-900 p-3 shadow-lg shadow-black/10">
+          {queuedMatches.map((match, index) => {
+            const court = courts.find(court => court.id === match.courtId);
+            const queueIndex = court ? court.queue.indexOf(match.id) : -1;
+            const canMoveUp = queueIndex > 0;
+            const canMoveDown = court ? queueIndex < court.queue.length - 1 : false;
+            const canStart = court && !court.activeMatchId && queueIndex === 0;
+            return <article key={match.id} className="rounded-2xl border border-slate-700/80 border-l-4 border-l-amber-500/50 bg-slate-900 p-3 shadow-lg shadow-black/10">
               <div className="mb-2 flex items-center justify-between">
                 <h3 className="text-xs font-bold text-white">Queue {index + 1}</h3>
-                <span className="text-[9px] text-slate-500">{courts.find(court => court.id === match.courtId)?.name}</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-[9px] text-slate-500">{court?.name}</span>
+                  <button onClick={() => user && setConfirm({ title: 'Remove queued match', detail: 'Remove this match from the queue and release its four reserved players back to the waiting pool?', onConfirm: () => void cancelMatch(user.uid, match.id) })} className="p-1 text-slate-500 hover:text-red-400" title="Remove"><Trash2 className="h-3 w-3" /></button>
+                </div>
               </div>
               {[match.teamA, match.teamB].map((team, pairIndex) => (
                 <div key={pairIndex} className="mb-2">
@@ -192,21 +230,28 @@ export default function CompactPipeline({ onAddPlayer, onEditPlayer, onAutoQueue
                   </div>
                 </div>
               ))}
-              <button onClick={() => user && cancelMatch(user.uid, match.id)} className="mt-1 flex items-center gap-1 text-[9px] font-semibold text-red-400 hover:text-red-300"><Trash2 className="h-3 w-3" /> Remove</button>
-            </article>
-          ))}
-          </div>{queuedMatches.length === 0 && draftQueues.length === 0 && <p className="p-8 text-center text-xs text-slate-600">Queue is empty</p>}</div>
+              <div className="mt-1 flex items-center gap-1">
+                <button onClick={() => canStart && user && startMatch(user.uid, match.courtId)} disabled={!canStart} className={`flex-1 h-7 rounded-md text-[10px] font-bold ${canStart ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-slate-800 text-slate-600'}`}>Start Now</button>
+                <button onClick={() => canMoveUp && user && reorderQueueMatch(user.uid, match.courtId, match.id, -1)} disabled={!canMoveUp} className="w-7 h-7 rounded-md bg-slate-800 text-slate-400 hover:text-white disabled:opacity-30" title="Move up"><ArrowUp className="h-3 w-3 mx-auto" /></button>
+                <button onClick={() => canMoveDown && user && reorderQueueMatch(user.uid, match.courtId, match.id, 1)} disabled={!canMoveDown} className="w-7 h-7 rounded-md bg-slate-800 text-slate-400 hover:text-white disabled:opacity-30" title="Move down"><ArrowDown className="h-3 w-3 mx-auto" /></button>
+              </div>
+            </article>;
+          })}
+          </div>{queuedMatches.length === 0 && draftQueues.length === 0 && <p className="p-8 text-center text-xs text-slate-600">Queue is empty - drag players into a draft above</p>}</div>
       </section>
 
       <section className={panelClass}>
-        <header className={headerClass}><div><h2 className="text-xs font-black tracking-[0.18em] text-white">COURTS</h2><p className="mt-0.5 text-[9px] text-slate-500">{courts.filter(court => court.status !== 'Available').length} occupied / {courts.length} total</p></div><div className="flex gap-2"><button onClick={onAutoQueue} disabled={waitingPlayers.length < 4 || courts.length === 0} className={outlineButtonClass} title="Auto-match four waiting players"><Sparkles className="h-3.5 w-3.5" /> Auto</button><button onClick={() => user && addCourt(user.uid, `Court ${courts.length + 1}`)} className={outlineButtonClass}><Plus className="h-3.5 w-3.5" /> Court</button></div></header>
+        <header className={headerClass}><div><h2 className="text-xs font-black tracking-[0.18em] text-white">COURTS</h2><p className="mt-0.5 text-[9px] text-slate-500">{courts.filter(court => court.status !== 'Available').length} occupied / {courts.length} total</p></div><div className="flex flex-wrap items-center gap-2"><button onClick={() => setAutoStart(value => !value)} className={`flex h-8 items-center gap-1.5 rounded-lg border-2 px-3 text-[11px] font-bold transition ${autoStart ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300' : 'border-slate-700 text-slate-500 hover:text-slate-300'}`} title="Auto-start queued matches when a court frees up"><Play className="h-3 w-3" /> {autoStart ? 'Auto ON' : 'Auto OFF'}</button><button onClick={onAutoQueue} disabled={waitingPlayers.length < 4 || courts.length === 0} className={outlineButtonClass} title="Auto-match four waiting players"><Sparkles className="h-3.5 w-3.5" /> Auto</button><button onClick={() => setConfirm({ title: 'Add court', detail: 'Create a new court?', onConfirm: () => user && addCourt(user.uid, `Court ${courts.length + 1}`) })} className={outlineButtonClass}><Plus className="h-3.5 w-3.5" /> Court</button></div></header>
         <div className="panel-scrollbar courts-scrollbar grid min-h-0 flex-1 auto-rows-min grid-cols-1 gap-3 overflow-y-auto p-3 sm:grid-cols-2">
+          {courts.length === 0 && <p className="col-span-full p-8 text-center text-xs text-slate-600">No courts yet - press Court to add one</p>}
           {courts.map(court => {
             const active = matches.find(match => match.id === court.activeMatchId);
+            const nextMatch = court.queue.map(matchId => matches.find(match => match.id === matchId && match.status === 'Waiting')).find(Boolean) || queuedMatches[0];
             const nextQueued = queuedMatches.length > 0;
             return <article key={court.id} className="rounded-2xl border border-slate-700/80 border-l-4 border-l-indigo-500/40 bg-slate-900 p-3 shadow-lg shadow-black/10">
-              <div className="mb-1.5 flex items-center justify-between"><h3 className="text-[11px] font-bold text-white">{court.name}</h3><div className="flex items-center gap-1"><span className={`h-1.5 w-1.5 rounded-full ${active ? 'bg-red-400' : 'bg-emerald-400'}`} />{!active && !nextQueued && <button onClick={() => user && deleteCourt(user.uid, court.id)} className="p-1 text-slate-500 hover:text-red-400" title="Remove court"><X className="h-3.5 w-3.5" /></button>}</div></div>
+              <div className="mb-1.5 flex items-center justify-between"><h3 className="text-[11px] font-bold text-white">{court.name}</h3><div className="flex items-center gap-1"><span className={`h-1.5 w-1.5 rounded-full ${active ? 'bg-red-400' : 'bg-emerald-400'}`} />{!active && !nextQueued && <button onClick={() => setConfirm({ title: 'Remove court', detail: `Remove ${court.name}? Empty courts can be removed safely.`, onConfirm: () => user && deleteCourt(user.uid, court.id) })} className="p-1 text-slate-500 hover:text-red-400" title="Remove court"><X className="h-3.5 w-3.5" /></button>}</div></div>
               {active ? <>
+                <div className="mb-1.5 flex items-center justify-between rounded-lg bg-slate-950/60 px-2 py-1"><span className="text-[9px] font-black text-white">{formatElapsed(active.startTime)}</span><span className="text-[9px] text-slate-500">elapsed</span></div>
                 <div className="grid min-h-32 grid-cols-[1fr_22px_1fr] items-stretch rounded-lg bg-slate-950/45 p-2">
                   <div className="flex min-w-0 flex-col items-center">
                     <div className="text-[8px] font-black tracking-widest text-slate-400">TEAM A</div>
@@ -238,16 +283,30 @@ export default function CompactPipeline({ onAddPlayer, onEditPlayer, onAutoQueue
                 </div>
                 <div className="mt-1.5 grid grid-cols-2 gap-1.5">
                   <button onClick={() => onFinish(active.id)} className="h-6 rounded-md bg-slate-700 text-[9px] font-bold text-white hover:bg-slate-600">✓ Finish</button>
-                  <button onClick={() => user && cancelMatch(user.uid, active.id)} className="h-6 rounded-md bg-red-500/15 text-[9px] font-bold text-red-300 hover:bg-red-500/25">✕ Cancel</button>
+                  <button onClick={() => user && setConfirm({ title: 'Cancel match', detail: 'Cancel this match and release its players back to the waiting pool?', onConfirm: () => void cancelMatch(user.uid, active.id) })} className="h-6 rounded-md bg-red-500/15 text-[9px] font-bold text-red-300 hover:bg-red-500/25">✕ Cancel</button>
                 </div>
               </> : <>
                 <div className="flex h-12 items-center justify-center rounded-lg border border-dashed border-slate-800 text-[9px] text-slate-600">Available</div>
+                {nextMatch && <p className="mt-1 text-[9px] text-slate-500">Next up: {nextMatch.teamA.map(id => players.find(p => p.id === id)?.name || '?').join(' & ')} vs {nextMatch.teamB.map(id => players.find(p => p.id === id)?.name || '?').join(' & ')}</p>}
                 <button onClick={() => user && startMatch(user.uid, court.id)} disabled={!nextQueued} className="mt-2 h-7 w-full rounded-md bg-blue-600 text-[10px] font-bold text-white disabled:bg-slate-800 disabled:text-slate-600">Start Next</button>
               </>}
             </article>;
           })}
         </div>
       </section>
+
+      {confirm && (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-sm" onMouseDown={event => { if (event.target === event.currentTarget) setConfirm(null); }}>
+          <div className="w-full max-w-sm rounded-3xl border border-slate-700 bg-slate-900 p-5 shadow-2xl" onClick={event => event.stopPropagation()}>
+            <h3 className="text-sm font-black uppercase text-white">{confirm.title}</h3>
+            <p className="mt-1 text-xs leading-relaxed text-slate-400">{confirm.detail}</p>
+            <div className="mt-4 flex gap-2">
+              <button onClick={() => setConfirm(null)} className="flex-1 h-10 rounded-xl border border-slate-800 text-slate-400 transition hover:bg-slate-800 hover:text-white text-xs font-bold uppercase tracking-wider">Cancel</button>
+              <button onClick={() => { confirm.onConfirm(); setConfirm(null); }} className="flex-1 h-10 rounded-xl bg-red-500 text-white text-xs font-black uppercase tracking-wider transition hover:bg-red-400">Confirm</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

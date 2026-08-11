@@ -16,7 +16,7 @@ import type { ToastItem } from './NotificationToast';
 import { 
   Plus, Check, Trophy, Settings, Trash2, LayoutGrid, Users, 
   Activity, Menu, X, Loader2, LogOut, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
-  Monitor, MonitorOff, Coins, Info, ShieldAlert, Sparkles, Bell, RotateCcw,
+  Monitor, MonitorOff, Coins, Info, ShieldAlert, Sparkles, Bell,
   MoreHorizontal, Share2, Copy, QrCode
 } from 'lucide-react';
 import { Player, SkillTier } from '../types';
@@ -39,7 +39,7 @@ export default function Dashboard() {
     isLoading, dataLoaded, currentSessionId, connectionMode,
     setPlayers, setCourts, setMatches, setFinancialConfig, setDataLoaded, setCurrentSessionId, initializeCourts,
     setClubs, setClubMembers,
-    togglePlayerPaid, completeMatch, deletePlayer, addCourt, deleteCourt, startMatch, resetMatchTimer, setConnectionMode
+    togglePlayerPaid, completeMatch, deletePlayer, addCourt, deleteCourt, startMatch, updatePlayer, setConnectionMode
   } = useAppStore();
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -114,7 +114,7 @@ export default function Dashboard() {
   };
 
   // Player detail popup
-  const [detailPlayer, setDetailPlayer] = useState<Player | null>(null);
+  const [detailPlayerId, setDetailPlayerId] = useState<string | null>(null);
 
   // Roster search & filter
   const [rosterSearch, setRosterSearch] = useState('');
@@ -665,11 +665,11 @@ export default function Dashboard() {
                   if (!user || !completingMatchId) return;
                   runOp('completeMatch', async () => {
                     if (quickDeclare) {
-                      // Quick declaration: winner gets 21, loser gets 19
+                      // Quick declaration: winner gets 21, loser gets 19. Skips rankings/ratings.
                       const win = declareWinner === 'A'
                         ? { a: 21, b: 19 }
                         : { a: 19, b: 21 };
-                      await completeMatch(user.uid, completingMatchId, win.a, win.b, 1);
+                      await completeMatch(user.uid, completingMatchId, win.a, win.b, 1, false);
                     } else {
                       await completeMatch(
                         user.uid,
@@ -1022,18 +1022,19 @@ export default function Dashboard() {
           isQM ? (
             <CompactPipeline
               onAddPlayer={() => setShowAddPlayer(true)}
-              onEditPlayer={setDetailPlayer}
+              onEditPlayer={setDetailPlayerId}
               onAutoQueue={handleAutoMatch}
               onFinish={(matchId) => {
                 setCompletingMatchId(matchId);
                 setScoreA('21'); setScoreB('19'); setShuttlesUsed('1');
                 setQuickDeclare(false); setDeclareWinner(null);
               }}
-              onDeclareWin={(matchId, winner) => {
+onDeclareWin={(matchId, winner) => {
                 setCompletingMatchId(matchId);
                 setScoreA('21'); setScoreB('19'); setShuttlesUsed('1');
                 setQuickDeclare(true); setDeclareWinner(winner);
               }}
+              onNotify={(title, body) => showToast(title, body)}
             />
           ) : false ? (
             /* QUEUE MASTER MAIN VIEW (ORIGINAL WITH COURT ALLOCATOR & LIVE ROSTER SIDEBAR) */
@@ -1137,10 +1138,11 @@ export default function Dashboard() {
                           onDragStart={(e) => { e.dataTransfer.setData('text/plain', player.id); e.dataTransfer.effectAllowed = 'move'; }}
                           className={`p-3 border rounded-xl flex items-center justify-between group transition-colors cursor-pointer ${
                           player.status === 'resting' ? 'bg-slate-900/40 border-slate-850 opacity-60' : 'bg-slate-900 border-slate-800'
-                        }`} onClick={() => setDetailPlayer(player)}>
+                        }`} onClick={() => setDetailPlayerId(player.id)}>
                           <div className="flex items-center gap-2.5">
                             <div className={`w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center text-xs font-bold shrink-0 ${
                               player.status === 'waiting' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+                              player.status === 'reserved' ? 'bg-violet-500/20 text-violet-400 border-violet-500/30' :
                               player.status === 'resting' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' :
                               'bg-slate-800 text-slate-300'
                             }`}>
@@ -1151,6 +1153,7 @@ export default function Dashboard() {
                               <div className="text-[9px] text-slate-500 uppercase tracking-wide truncate">
                                 {player.tier} • <span className="text-slate-600 font-mono">{formatWaitTime(player.waitingSince || player.joinedAt)}</span> • <span className={
                                   player.status === 'waiting' ? 'text-emerald-400 font-bold' :
+                                  player.status === 'reserved' ? 'text-violet-400 font-bold' :
                                   player.status === 'resting' ? 'text-amber-400' :
                                   player.status === 'active' ? 'text-blue-400' :
                                   player.status === 'timeout' ? 'text-slate-600' :
@@ -1390,17 +1393,7 @@ export default function Dashboard() {
                                   }}
                                   className="flex-1 h-10 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold text-xs uppercase tracking-wider rounded-xl border border-emerald-500/15"
                                 >
-                                  Complete Match
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    if (!user) return;
-                                    runOp(`reset-${activeMatch.id}`, () => resetMatchTimer(user.uid, activeMatch.id));
-                                  }}
-                                  className="h-10 w-10 bg-slate-800 hover:bg-slate-700 text-slate-400 font-bold rounded-xl border border-slate-700 flex items-center justify-center"
-                                  title="Reset timer"
-                                >
-                                  <RotateCcw className="w-4 h-4" />
+Complete Match
                                 </button>
                               </>
                             ) : (
@@ -1501,7 +1494,7 @@ export default function Dashboard() {
                   <div key={`${player.id}-${index}`} 
                     draggable
                     onDragStart={(e) => { e.dataTransfer.setData('text/plain', player.id); e.dataTransfer.effectAllowed = 'move'; }}
-                    className="bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col justify-between group cursor-pointer" onClick={() => setDetailPlayer(player)}>
+                    className="bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col justify-between group cursor-pointer" onClick={() => setDetailPlayerId(player.id)}>
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-sm font-black uppercase text-slate-300">
@@ -1512,6 +1505,7 @@ export default function Dashboard() {
                             {player.name}
                             <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${
                               player.status === 'waiting' ? 'bg-emerald-500/10 text-emerald-400' :
+                              player.status === 'reserved' ? 'bg-violet-500/10 text-violet-400' :
                               player.status === 'resting' ? 'bg-amber-500/10 text-amber-400' :
                               player.status === 'active' ? 'bg-blue-500/10 text-blue-400' :
                               player.status === 'timeout' ? 'bg-slate-800 text-slate-500' :
@@ -1659,7 +1653,7 @@ export default function Dashboard() {
       </footer>
       
       <NotificationToast toasts={toasts} onDismiss={dismissToast} />
-      <PlayerInfoModal isOpen={!!detailPlayer} player={detailPlayer} players={players} matches={matches} onClose={() => setDetailPlayer(null)} />
+      <PlayerInfoModal isOpen={!!detailPlayerId} playerId={detailPlayerId} players={players} matches={matches} onSave={(playerId, updates) => user ? updatePlayer(user.uid, playerId, updates) : Promise.resolve()} onClose={() => setDetailPlayerId(null)} />
       <AddPlayerModal isOpen={showAddPlayer} onClose={() => setShowAddPlayer(false)} />
       <SessionModal
         isOpen={showSessionModal}

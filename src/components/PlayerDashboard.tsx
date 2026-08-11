@@ -487,6 +487,7 @@ export default function PlayerDashboard({ joinedQmUserId, onNavigateToSettings }
                         </button>
                         <span className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase ${
                           p.status === 'waiting' ? 'bg-emerald-500/10 text-emerald-400' :
+                          p.status === 'reserved' ? 'bg-violet-500/10 text-violet-400' :
                           p.status === 'resting' ? 'bg-amber-500/10 text-amber-400' : 'bg-slate-800 text-slate-400'
                         }`}>
                           {p.status}
