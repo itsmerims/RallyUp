@@ -30,7 +30,7 @@ import SessionChoiceModal from './SessionChoiceModal';
 import ClubDashboard from './ClubDashboard';
 import AddPlayerModal from './AddPlayerModal';
 import CompactPipeline from './CompactPipeline';
-import { readWorkspace, writeWorkspacePart } from '../services/localData';
+import { readWorkspace, writeWorkspacePart, isCollectionHydrated, markCollectionHydrated } from '../services/localData';
 
 export default function Dashboard() {
   const { user, userProfile, logout } = useAuth();
@@ -355,56 +355,84 @@ export default function Dashboard() {
       ? joinedQmUserId 
       : user.uid;
 
+    // Local storage is the source of truth. Always hydrate the store from the
+    // local workspace first so the UI is instant and works like offline mode.
     const local = readWorkspace(targetUserId);
     setPlayers(local.players);
     setCourts(local.courts);
     setMatches(local.matches);
     if (local.financialConfig) setFinancialConfig(local.financialConfig);
 
+    // Data the signed-in user owns is local-first; data viewed from a QM's
+    // session (player role) is remote-first because that workspace is not ours.
+    const ownsData = targetUserId === user.uid;
+
     if (connectionMode === 'offline') {
-      if (local.courts.length === 0 && userProfile.role === 'QUEUE_MASTER') initializeCourts(user.uid);
+      if (ownsData && userProfile.role === 'QUEUE_MASTER' && local.courts.length === 0) initializeCourts(user.uid);
       setDataLoaded(true);
       return;
     }
 
-    // Online mode is local-first: publish the last local workspace before accepting remote snapshots.
+    // Online: publish the local workspace to Firestore (non-blocking) so other
+    // viewers and the public live feed stay current. Local changes always win.
     void Promise.all([
       ...local.players.map(player => firestoreService.savePlayer(targetUserId, player)),
       ...local.courts.map(court => firestoreService.saveCourt(targetUserId, court)),
       ...local.matches.map(match => firestoreService.saveMatch(targetUserId, match)),
       ...(local.financialConfig ? [firestoreService.saveFinancialConfig(targetUserId, local.financialConfig)] : []),
-    ]);
+    ]).catch(() => {});
 
-    let isInitialLoad = true;
-    let preferLocalPlayers = local.players.length > 0;
-    let preferLocalCourts = local.courts.length > 0;
-    let preferLocalMatches = local.matches.length > 0;
+    const hydrated = {
+      players: isCollectionHydrated(targetUserId, 'players'),
+      courts: isCollectionHydrated(targetUserId, 'courts'),
+      matches: isCollectionHydrated(targetUserId, 'matches'),
+      financialConfig: isCollectionHydrated(targetUserId, 'financialConfig'),
+    };
+
+    const adoptRemote = (collection: 'players' | 'courts' | 'matches', data: any[], apply: (data: any[]) => void): boolean => {
+      if (!ownsData) {
+        apply(data);
+        writeWorkspacePart(targetUserId, collection, data);
+        return false;
+      }
+      if (local[collection].length === 0 && !hydrated[collection]) {
+        apply(data);
+        writeWorkspacePart(targetUserId, collection, data);
+        markCollectionHydrated(targetUserId, collection);
+        hydrated[collection] = true;
+        return true;
+      }
+      return false;
+    };
     
     const unsubCourts = firestoreService.subscribeToCourts(targetUserId, (courtsData) => {
-      if (preferLocalCourts) { preferLocalCourts = false; return; }
-      if (courtsData.length === 0 && isInitialLoad && userProfile.role === 'QUEUE_MASTER') {
+      const adopted = adoptRemote('courts', courtsData, setCourts);
+      if (ownsData && userProfile.role === 'QUEUE_MASTER' && useAppStore.getState().courts.length === 0 && adopted) {
         initializeCourts(user.uid);
-      } else {
-        setCourts(courtsData);
-        writeWorkspacePart(targetUserId, 'courts', courtsData);
       }
     });
     
     const sessionFilter = currentSessionId || undefined;
     const unsubPlayers = firestoreService.subscribeToPlayers(targetUserId, (playersData) => {
-      if (preferLocalPlayers) { preferLocalPlayers = false; return; }
-      setPlayers(playersData);
-      writeWorkspacePart(targetUserId, 'players', playersData);
+      adoptRemote('players', playersData, setPlayers);
     }, sessionFilter);
 
     const unsubMatches = firestoreService.subscribeToMatches(targetUserId, (matchesData) => {
-      if (preferLocalMatches) { preferLocalMatches = false; return; }
-      setMatches(matchesData);
-      writeWorkspacePart(targetUserId, 'matches', matchesData);
+      adoptRemote('matches', matchesData, setMatches);
     }, sessionFilter);
 
     const unsubConfig = firestoreService.subscribeToFinancialConfig(targetUserId, (configData) => {
-      if (configData) { setFinancialConfig(configData); writeWorkspacePart(targetUserId, 'financialConfig', configData); }
+      if (!ownsData && configData) {
+        setFinancialConfig(configData);
+        writeWorkspacePart(targetUserId, 'financialConfig', configData);
+        return;
+      }
+      if (ownsData && configData && !local.financialConfig && !hydrated.financialConfig) {
+        setFinancialConfig(configData);
+        writeWorkspacePart(targetUserId, 'financialConfig', configData);
+        markCollectionHydrated(targetUserId, 'financialConfig');
+        hydrated.financialConfig = true;
+      }
     });
 
     // Club subscriptions
@@ -434,10 +462,7 @@ export default function Dashboard() {
       unsubClubs.push(unsubMembers);
     });
 
-    const timer = setTimeout(() => {
-      isInitialLoad = false;
-      setDataLoaded(true);
-    }, 1000);
+    setDataLoaded(true);
 
     return () => {
       unsubPlayers();
@@ -445,7 +470,6 @@ export default function Dashboard() {
       unsubMatches();
       unsubConfig();
       unsubClubs.forEach(u => u());
-      clearTimeout(timer);
     };
   }, [user, userProfile, joinedQmUserId, currentSessionId, connectionMode, setPlayers, setCourts, setMatches, setFinancialConfig, setClubs, setClubMembers, setDataLoaded, initializeCourts]);
 
@@ -458,7 +482,7 @@ export default function Dashboard() {
         ...players.map(player => firestoreService.savePlayer(user.uid, { ...player, sessionId: currentSessionId })),
         ...courts.map(court => firestoreService.saveCourt(user.uid, court)),
         ...matches.map(match => firestoreService.saveMatch(user.uid, { ...match, sessionId: currentSessionId })),
-      ]);
+      ]).catch(() => {});
     }, 250);
     return () => window.clearTimeout(publishTimer);
   }, [user, isQM, currentSessionId, connectionMode, players, courts, matches]);

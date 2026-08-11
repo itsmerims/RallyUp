@@ -56,8 +56,8 @@ export const subscribeToPlayers = (userId: string, callback: (players: Player[])
         ratingScore: data.ratingScore,
         joinedAt: data.joinedAt,
         waitingSince: data.waitingSince || data.joinedAt,
-        hasPaid: data.hasPaid,
-        status: data.status,
+        hasPaid: !!data.hasPaid,
+        status: data.status || 'waiting',
         stats: data.stats,
         fcmTokens: data.fcmTokens || [],
         sessionId: data.sessionId,
@@ -149,7 +149,6 @@ export const savePlayer = async (userId: string, player: Player) => {
     });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
-    throw error;
   }
 };
 

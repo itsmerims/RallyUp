@@ -7,6 +7,7 @@ import { SkillTier } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { buildExportData, downloadExport, validateImportData, importData } from '../utils/dataTransfer';
 import type { ExportData } from '../utils/dataTransfer';
+import { clearWorkspace, writeWorkspacePart } from '../services/localData';
 
 interface SettingsPageProps {
   onSessionJoined?: (qmUserId: string, matchSessionId?: string) => void;
@@ -217,6 +218,7 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
     if (!user) return;
     setActionLoading(true);
     try {
+      clearWorkspace(user.uid);
       await Promise.all([
         firestoreService.deleteAllMatches(user.uid),
         firestoreService.deleteAllPlayers(user.uid),
@@ -235,6 +237,7 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
     if (!user) return;
     setActionLoading(true);
     try {
+      writeWorkspacePart(user.uid, 'matches', []);
       await firestoreService.deleteAllMatches(user.uid);
       setConfirmAction(null);
       window.location.reload();
@@ -249,6 +252,7 @@ export default function SettingsPage({ onSessionJoined, joinedQmUserId, onSessio
     if (!user) return;
     setActionLoading(true);
     try {
+      clearWorkspace(user.uid);
       await Promise.all([
         firestoreService.deleteAllMatches(user.uid),
         firestoreService.deleteAllPlayers(user.uid),

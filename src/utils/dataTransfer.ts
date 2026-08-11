@@ -1,5 +1,7 @@
 import type { Player, Court, Match, FinancialConfig } from '../types';
 import * as firestoreService from '../services/firestore';
+import { writeWorkspacePart, markCollectionHydrated } from '../services/localData';
+import { useAppStore } from '../store';
 
 export interface ExportData {
   version: number;
@@ -51,24 +53,49 @@ export function validateImportData(data: unknown): { valid: true; data: ExportDa
 
 export async function importData(userId: string, data: ExportData, options: { merge?: boolean } = {}): Promise<{ success: boolean; message: string }> {
   try {
+    // Local storage is the source of truth, so imported data is written to the
+    // local workspace (and store) first, then published to Firestore.
+    const players = options.merge ? [...useAppStore.getState().players, ...data.players] : data.players;
+    const courts = options.merge ? [...useAppStore.getState().courts, ...data.courts] : data.courts;
+    const matches = options.merge ? [...useAppStore.getState().matches, ...data.matches] : data.matches;
+
+    const store = useAppStore.getState();
+    store.setPlayers(players);
+    store.setCourts(courts);
+    store.setMatches(matches);
+    if (data.financialConfig) {
+      store.setFinancialConfig(data.financialConfig);
+    }
+
+    writeWorkspacePart(userId, 'players', players);
+    writeWorkspacePart(userId, 'courts', courts);
+    writeWorkspacePart(userId, 'matches', matches);
+    markCollectionHydrated(userId, 'players');
+    markCollectionHydrated(userId, 'courts');
+    markCollectionHydrated(userId, 'matches');
+    if (data.financialConfig) {
+      writeWorkspacePart(userId, 'financialConfig', data.financialConfig);
+      markCollectionHydrated(userId, 'financialConfig');
+    }
+
     if (!options.merge) {
       await firestoreService.deleteAllPlayers(userId);
       await firestoreService.deleteAllCourts(userId);
       await firestoreService.deleteAllMatches(userId);
     }
-    for (const player of data.players) {
+    for (const player of players) {
       await firestoreService.savePlayer(userId, player);
     }
-    for (const court of data.courts) {
+    for (const court of courts) {
       await firestoreService.saveCourt(userId, court);
     }
-    for (const match of data.matches) {
+    for (const match of matches) {
       await firestoreService.saveMatch(userId, match);
     }
     if (data.financialConfig) {
       await firestoreService.saveFinancialConfig(userId, data.financialConfig);
     }
-    return { success: true, message: `Imported ${data.players.length} players, ${data.matches.length} matches, ${data.courts.length} courts.` };
+    return { success: true, message: `Imported ${players.length} players, ${matches.length} matches, ${courts.length} courts.` };
   } catch (err) {
     return { success: false, message: `Import failed: ${err instanceof Error ? err.message : 'Unknown error'}` };
   }

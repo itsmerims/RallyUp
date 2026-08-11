@@ -3,7 +3,7 @@ import { Player, Court, Match, FinancialConfig, SkillTier, Club, ClubMember } fr
 import { getBaseRating } from './utils/tiers';
 import * as firestoreService from './services/firestore';
 import { sendMatchNotification } from './services/notifications';
-import { ConnectionMode, getConnectionMode, saveConnectionMode, writeWorkspacePart } from './services/localData';
+import { ConnectionMode, getConnectionMode, saveConnectionMode, writeWorkspacePart, markCollectionHydrated } from './services/localData';
 
 interface AppState {
   players: Player[];
@@ -107,14 +107,14 @@ export const useAppStore = create<AppState>()(
       const players = [...get().players, newPlayer];
       set({ players });
       writeWorkspacePart(userId, 'players', players);
-      if (get().connectionMode === 'online') await firestoreService.savePlayer(userId, newPlayer);
+      if (get().connectionMode === 'online') void firestoreService.savePlayer(userId, newPlayer);
     },
 
     deletePlayer: async (userId, id) => {
       const players = get().players.filter(player => player.id !== id);
       set({ players });
       writeWorkspacePart(userId, 'players', players);
-      if (get().connectionMode === 'online') await firestoreService.deletePlayerDoc(userId, id);
+      if (get().connectionMode === 'online') void firestoreService.deletePlayerDoc(userId, id);
     },
     
     updatePlayerStatus: async (userId, id, status) => {
@@ -122,7 +122,7 @@ export const useAppStore = create<AppState>()(
       const players = get().players.map(player => player.id === id ? { ...player, status, ...(waitingSince ? { waitingSince } : {}) } : player);
       set({ players });
       writeWorkspacePart(userId, 'players', players);
-      if (get().connectionMode === 'online') await firestoreService.updatePlayer(userId, id, { status, ...(waitingSince ? { waitingSince } : {}) });
+      if (get().connectionMode === 'online') void firestoreService.updatePlayer(userId, id, { status, ...(waitingSince ? { waitingSince } : {}) });
     },
 
     togglePlayerPaid: async (userId, id) => {
@@ -131,7 +131,7 @@ export const useAppStore = create<AppState>()(
         const players = get().players.map(item => item.id === id ? { ...item, hasPaid: !item.hasPaid } : item);
         set({ players });
         writeWorkspacePart(userId, 'players', players);
-        if (get().connectionMode === 'online') await firestoreService.updatePlayer(userId, id, { hasPaid: !player.hasPaid });
+        if (get().connectionMode === 'online') void firestoreService.updatePlayer(userId, id, { hasPaid: !player.hasPaid });
       }
     },
 
@@ -170,12 +170,9 @@ export const useAppStore = create<AppState>()(
       writeWorkspacePart(userId, 'players', players);
 
       if (get().connectionMode === 'online') {
-        await firestoreService.saveMatch(userId, newMatch);
-        await firestoreService.updateCourt(userId, court.id, { queue: [...court.queue, newMatch.id] });
-        await Promise.all(playerIds.map(id => firestoreService.updatePlayer(userId, id, { status: 'active' })));
-      }
-
-      if (get().connectionMode === 'online') {
+        void firestoreService.saveMatch(userId, newMatch);
+        void firestoreService.updateCourt(userId, court.id, { queue: [...court.queue, newMatch.id] });
+        playerIds.forEach(id => void firestoreService.updatePlayer(userId, id, { status: 'active' }));
         sendMatchNotification({
           playerIds,
           qmUserId: userId,
@@ -213,13 +210,13 @@ export const useAppStore = create<AppState>()(
       writeWorkspacePart(userId, 'courts', courts);
 
       if (get().connectionMode === 'online') {
-        await firestoreService.updateMatch(userId, matchId, { courtId, status: 'Active', startTime });
-        await Promise.all(courts.filter((item, index) => {
+        void firestoreService.updateMatch(userId, matchId, { courtId, status: 'Active', startTime });
+        courts.filter((item, index) => {
           const previous = state.courts[index];
           return item.activeMatchId !== previous.activeMatchId || item.status !== previous.status || item.queue.length !== previous.queue.length;
-        }).map(item => firestoreService.updateCourt(userId, item.id, {
+        }).forEach(item => void firestoreService.updateCourt(userId, item.id, {
           status: item.status, activeMatchId: item.activeMatchId, queue: item.queue,
-        })));
+        }));
         sendMatchNotification({
           playerIds: [...queuedMatch.teamA, ...queuedMatch.teamB], qmUserId: userId,
           title: 'Court Ready', body: `Please proceed to ${court.name}.`, type: 'COURT_READY',
@@ -233,7 +230,7 @@ export const useAppStore = create<AppState>()(
       const matches = get().matches.map(match => match.id === matchId ? { ...match, startTime } : match);
       set({ matches });
       writeWorkspacePart(userId, 'matches', matches);
-      if (get().connectionMode === 'online') await firestoreService.updateMatch(userId, matchId, { startTime });
+      if (get().connectionMode === 'online') void firestoreService.updateMatch(userId, matchId, { startTime });
     },
 
     cancelMatch: async (userId, matchId) => {
@@ -256,11 +253,11 @@ export const useAppStore = create<AppState>()(
       writeWorkspacePart(userId, 'players', players);
       writeWorkspacePart(userId, 'courts', courts);
       if (get().connectionMode === 'online') {
-        await firestoreService.deleteMatchDoc(userId, matchId);
-        await Promise.all(players.filter(player => playerIds.has(player.id)).map(player =>
-          firestoreService.updatePlayer(userId, player.id, { status: 'waiting', waitingSince: player.waitingSince })));
+        void firestoreService.deleteMatchDoc(userId, matchId);
+        players.filter(player => playerIds.has(player.id)).forEach(player =>
+          void firestoreService.updatePlayer(userId, player.id, { status: 'waiting', waitingSince: player.waitingSince }));
         const court = state.courts.find(item => item.activeMatchId === matchId || item.queue.includes(matchId));
-        if (court) await firestoreService.updateCourt(userId, court.id, {
+        if (court) void firestoreService.updateCourt(userId, court.id, {
           activeMatchId: court.activeMatchId === matchId ? null : court.activeMatchId,
           status: court.activeMatchId === matchId ? 'Available' : court.status,
           queue: court.queue.filter(id => id !== matchId),
@@ -301,35 +298,33 @@ export const useAppStore = create<AppState>()(
       writeWorkspacePart(userId, 'courts', courts);
 
       if (get().connectionMode === 'online') {
-        await firestoreService.updateMatch(userId, matchId, { status: 'Completed', completedAt: Date.now(), shuttlecocksUsed: shuttlesUsed, scoreA: teamAScore, scoreB: teamBScore });
-        await Promise.all(players.filter(player => completedPlayerIds.includes(player.id)).map(player =>
-          firestoreService.updatePlayer(userId, player.id, { status: player.status, waitingSince, stats: player.stats, ratingScore: player.ratingScore })));
+        void firestoreService.updateMatch(userId, matchId, { status: 'Completed', completedAt: Date.now(), shuttlecocksUsed: shuttlesUsed, scoreA: teamAScore, scoreB: teamBScore });
+        players.filter(player => completedPlayerIds.includes(player.id)).forEach(player =>
+          void firestoreService.updatePlayer(userId, player.id, { status: player.status, waitingSince, stats: player.stats, ratingScore: player.ratingScore }));
         const court = state.courts.find(item => item.activeMatchId === matchId);
-        if (court) await firestoreService.updateCourt(userId, court.id, { activeMatchId: null, status: 'Available' });
+        if (court) void firestoreService.updateCourt(userId, court.id, { activeMatchId: null, status: 'Available' });
+        sendMatchNotification({
+          playerIds: completedPlayerIds,
+          qmUserId: userId,
+          title: 'Match Completed',
+          body: aWon ? 'Team A wins!' : bWon ? 'Team B wins!' : 'Match ended in a draw.',
+          courtId: match.courtId,
+          matchId: match.id,
+        });
       }
-
-      if (get().connectionMode === 'online') sendMatchNotification({
-        playerIds: completedPlayerIds,
-        qmUserId: userId,
-        title: 'Match Completed',
-        body: aWon ? 'Team A wins!' : bWon ? 'Team B wins!' : 'Match ended in a draw.',
-        courtId: match.courtId,
-        matchId: match.id,
-      });
 
     },
 
     updateFinancialConfig: async (userId, config) => {
       set({ financialConfig: config }); writeWorkspacePart(userId, 'financialConfig', config);
-      if (get().connectionMode === 'online') await firestoreService.saveFinancialConfig(userId, config);
+      if (get().connectionMode === 'online') void firestoreService.saveFinancialConfig(userId, config);
     },
     
     initializeCourts: async (userId) => {
-      if (get().connectionMode === 'online') await firestoreService.initializeDefaultCourts(userId);
-      else {
-        const courts = Array.from({ length: 4 }, (_, index) => ({ id: `c${index + 1}`, name: `Court ${index + 1}`, status: 'Available' as const, activeMatchId: null, queue: [] }));
-        set({ courts }); writeWorkspacePart(userId, 'courts', courts);
-      }
+      const courts = Array.from({ length: 4 }, (_, index) => ({ id: `c${index + 1}`, name: `Court ${index + 1}`, status: 'Available' as const, activeMatchId: null, queue: [] }));
+      set({ courts }); writeWorkspacePart(userId, 'courts', courts);
+      markCollectionHydrated(userId, 'courts');
+      if (get().connectionMode === 'online') void firestoreService.initializeDefaultCourts(userId);
     },
 
     addCourt: async (userId, name) => {
@@ -341,14 +336,18 @@ export const useAppStore = create<AppState>()(
         queue: [],
       };
       const courts = [...get().courts, newCourt]; set({ courts }); writeWorkspacePart(userId, 'courts', courts);
-      if (get().connectionMode === 'online') await firestoreService.saveCourt(userId, newCourt);
+      if (get().connectionMode === 'online') void firestoreService.saveCourt(userId, newCourt);
     },
 
     deleteCourt: async (userId, courtId) => {
-      const court = get().courts.find(item => item.id === courtId);
-      if (!court || court.activeMatchId || court.queue.length) return;
-      const courts = get().courts.filter(item => item.id !== courtId); set({ courts }); writeWorkspacePart(userId, 'courts', courts);
-      if (get().connectionMode === 'online') await firestoreService.deleteCourtDoc(userId, courtId);
+      const state = get();
+      const court = state.courts.find(item => item.id === courtId);
+      if (!court) return;
+      const hasActiveMatch = state.matches.some(match => match.id === court.activeMatchId && match.status === 'Active');
+      const hasQueuedMatches = (court.queue || []).some(id => state.matches.some(match => match.id === id && match.status === 'Waiting'));
+      if (hasActiveMatch || hasQueuedMatches) return;
+      const courts = state.courts.filter(item => item.id !== courtId); set({ courts }); writeWorkspacePart(userId, 'courts', courts);
+      if (get().connectionMode === 'online') void firestoreService.deleteCourtDoc(userId, courtId);
     }
   })
 );
