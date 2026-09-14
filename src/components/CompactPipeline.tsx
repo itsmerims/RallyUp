@@ -7,6 +7,7 @@ import { formatWaitTime } from '../utils/time';
 
 interface CompactPipelineProps {
   onAddPlayer: () => void;
+  onViewPlayer: (playerId: string) => void;
   onEditPlayer: (playerId: string) => void;
   onAutoQueue: () => void;
   onFinish: (matchId: string) => void;
@@ -35,7 +36,7 @@ const tierColors: Record<SkillTier, string> = {
 
 const tierLabel = (tier: SkillTier) => tier.replace('_', ' ');
 
-export default function CompactPipeline({ onAddPlayer, onEditPlayer, onAutoQueue, onFinish, onDeclareWin, onNotify }: CompactPipelineProps) {
+export default function CompactPipeline({ onAddPlayer, onViewPlayer, onEditPlayer, onAutoQueue, onFinish, onDeclareWin, onNotify }: CompactPipelineProps) {
   const { user } = useAuth();
   const { players, matches, courts, deletePlayer, updatePlayerStatus, togglePlayerPaid, addMatch, startMatch, cancelMatch, addCourt, deleteCourt, reorderQueueMatch } = useAppStore();
   const [playerSearch, setPlayerSearch] = useState('');
@@ -163,7 +164,7 @@ export default function CompactPipeline({ onAddPlayer, onEditPlayer, onAutoQueue
         <div className="panel-scrollbar players-scrollbar min-h-0 flex-1 overflow-y-auto p-3">
           <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
           {filteredPlayers.map(player => (
-            <article key={player.id} draggable={player.status === 'waiting'} onDragStart={event => { if (player.status !== 'waiting') { event.preventDefault(); return; } event.dataTransfer.setData('text/plain', player.id); event.dataTransfer.effectAllowed = 'move'; }} onClick={() => onEditPlayer(player.id)} className={`group min-w-0 rounded-xl border-2 p-3 shadow-sm transition ${player.status === 'resting' ? 'cursor-pointer border-amber-500/35 bg-amber-500/5 opacity-75' : player.status === 'reserved' ? 'cursor-default border-indigo-500/40 bg-indigo-500/5' : 'cursor-grab border-transparent bg-slate-900 hover:border-indigo-500/40 hover:bg-slate-800 active:cursor-grabbing'}`}>
+            <article key={player.id} draggable={player.status === 'waiting'} onDragStart={event => { if (player.status !== 'waiting') { event.preventDefault(); return; } event.dataTransfer.setData('text/plain', player.id); event.dataTransfer.effectAllowed = 'move'; }} onClick={() => onViewPlayer(player.id)} className={`group min-w-0 rounded-xl border-2 p-3 shadow-sm transition ${player.status === 'resting' ? 'cursor-pointer border-amber-500/35 bg-amber-500/5 opacity-75' : player.status === 'reserved' ? 'cursor-default border-indigo-500/40 bg-indigo-500/5' : 'cursor-grab border-transparent bg-slate-900 hover:border-indigo-500/40 hover:bg-slate-800 active:cursor-grabbing'}`}>
               <div className="mb-2 flex items-center justify-between gap-1"><span className={`max-w-full truncate rounded-full px-2 py-0.5 text-[8px] font-black ${player.status === 'resting' ? 'bg-amber-500/20 text-amber-300' : player.status === 'reserved' ? 'bg-indigo-500/20 text-indigo-300' : tierColors[player.tier]}`}>{player.status === 'resting' ? 'RESTING' : player.status === 'reserved' ? 'RESERVED' : tierLabel(player.tier)}</span><div className="flex"><button onClick={event => { event.stopPropagation(); onEditPlayer(player.id); }} className="p-1 text-slate-500 hover:text-indigo-300" title="Edit player"><Pencil className="h-3 w-3" /></button><button onClick={event => { event.stopPropagation(); if (user) togglePlayerPaid(user.uid, player.id); }} className={`p-1 ${player.hasPaid ? 'text-emerald-400' : 'text-slate-500 hover:text-emerald-400'}`} title="Toggle paid"><Check className="h-3 w-3" /></button><button onClick={event => { event.stopPropagation(); if (user) setConfirm({ title: 'Delete player', detail: `Remove ${player.name} from the session? This cannot be undone.`, onConfirm: () => void deletePlayer(user.uid, player.id) }); }} className="p-1 text-slate-500 hover:text-red-400" title="Delete player"><Trash2 className="h-3 w-3" /></button></div></div>
               <h3 className="truncate text-xs font-bold text-white">{player.name}</h3>
               <div className="mt-1 flex justify-between text-[9px] text-slate-500"><span>{player.status === 'resting' ? 'Wait frozen' : player.status === 'reserved' ? 'In queue' : formatWaitTime(player.waitingSince || player.joinedAt)}</span><span>{player.stats?.gamesPlayed || 0} games</span></div>

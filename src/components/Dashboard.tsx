@@ -23,6 +23,7 @@ import { requestNotificationPermission, removePlayerFcmToken, setupMessageListen
 import gsap from 'gsap';
 import { formatWaitTime } from '../utils/time';
 import PlayerInfoModal from './PlayerInfoModal';
+import EditPlayerModal from './EditPlayerModal';
 import SessionModal from './SessionModal';
 import SessionChoiceModal from './SessionChoiceModal';
 import ClubDashboard from './ClubDashboard';
@@ -90,6 +91,9 @@ export default function Dashboard() {
 
   // Player detail popup
   const [detailPlayerId, setDetailPlayerId] = useState<string | null>(null);
+
+  // Player edit modal
+  const [editPlayerId, setEditPlayerId] = useState<string | null>(null);
 
   // Roster search & filter
   const [rosterSearch, setRosterSearch] = useState('');
@@ -861,7 +865,8 @@ export default function Dashboard() {
           isQM ? (
             <CompactPipeline
               onAddPlayer={() => setShowAddPlayer(true)}
-              onEditPlayer={setDetailPlayerId}
+              onViewPlayer={setDetailPlayerId}
+              onEditPlayer={setEditPlayerId}
               onAutoQueue={handleAutoMatch}
               onFinish={(matchId) => {
                 setCompletingMatchId(matchId);
@@ -980,7 +985,7 @@ onDeclareWin={(matchId, winner) => {
                           <Check className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={(e) => { e.stopPropagation(); setDetailPlayerId(player.id); }}
+                          onClick={(e) => { e.stopPropagation(); setEditPlayerId(player.id); }}
                           className="text-slate-600 hover:text-indigo-400 p-1.5 bg-slate-950 border border-slate-850 rounded-lg"
                           title="Edit player"
                         >
@@ -1137,7 +1142,8 @@ onDeclareWin={(matchId, winner) => {
           </div>
         </div>
       )}
-      <PlayerInfoModal isOpen={!!detailPlayerId} playerId={detailPlayerId} players={players} matches={matches} onSave={(playerId, updates) => user ? updatePlayer(user.uid, playerId, updates).then(() => showToast('Player Updated', 'Changes saved to the roster.')) : Promise.resolve()} onClose={() => setDetailPlayerId(null)} />
+      <PlayerInfoModal isOpen={!!detailPlayerId} playerId={detailPlayerId} players={players} matches={matches} onEditPlayer={(playerId) => { setDetailPlayerId(null); setEditPlayerId(playerId); }} onClose={() => setDetailPlayerId(null)} />
+      <EditPlayerModal isOpen={!!editPlayerId} playerId={editPlayerId} players={players} onSave={(playerId, updates) => user ? updatePlayer(user.uid, playerId, updates).then(() => showToast('Player Updated', 'Changes saved to the roster.')) : Promise.resolve()} onClose={() => setEditPlayerId(null)} />
       <AddPlayerModal isOpen={showAddPlayer} onClose={() => setShowAddPlayer(false)} />
       <SessionModal
         isOpen={showSessionModal}
