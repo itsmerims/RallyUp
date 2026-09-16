@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Check, Pause, Pencil, Play, Plus, Search, Sparkles, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Check, ChevronLeft, ChevronRight, Pause, Pencil, Play, Plus, Search, Sparkles, Trash2, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAppStore } from '../store';
 import type { Player, SkillTier } from '../types';
@@ -10,6 +10,8 @@ interface CompactPipelineProps {
   onViewPlayer: (playerId: string) => void;
   onEditPlayer: (playerId: string) => void;
   onAutoQueue: () => void;
+  autoStart: boolean;
+  onToggleAutoStart: () => void;
   onFinish: (matchId: string) => void;
   onDeclareWin: (matchId: string, winner: 'A' | 'B') => void;
   onNotify: (title: string, body: string) => void;
@@ -36,7 +38,7 @@ const tierColors: Record<SkillTier, string> = {
 
 const tierLabel = (tier: SkillTier) => tier.replace('_', ' ');
 
-export default function CompactPipeline({ onAddPlayer, onViewPlayer, onEditPlayer, onAutoQueue, onFinish, onDeclareWin, onNotify }: CompactPipelineProps) {
+export default function CompactPipeline({ onAddPlayer, onViewPlayer, onEditPlayer, onAutoQueue, autoStart, onToggleAutoStart, onFinish, onDeclareWin, onNotify }: CompactPipelineProps) {
   const { user } = useAuth();
   const { players, matches, courts, deletePlayer, updatePlayerStatus, togglePlayerPaid, addMatch, startMatch, cancelMatch, addCourt, deleteCourt, reorderQueueMatch } = useAppStore();
   const [playerSearch, setPlayerSearch] = useState('');
@@ -46,14 +48,14 @@ export default function CompactPipeline({ onAddPlayer, onViewPlayer, onEditPlaye
   const [showRestModal, setShowRestModal] = useState(false);
   const [restSearch, setRestSearch] = useState('');
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
-  const [autoStart, setAutoStart] = useState(() => localStorage.getItem('rallyup_auto_start') !== 'false');
   const [now, setNow] = useState(Date.now());
   const [draftQueues, setDraftQueues] = useState<DraftQueue[]>(() => {
     try { return JSON.parse(localStorage.getItem('rallyup_draft_queues') || '[]') as DraftQueue[]; }
     catch { return []; }
   });
   useEffect(() => { localStorage.setItem('rallyup_draft_queues', JSON.stringify(draftQueues)); }, [draftQueues]);
-  useEffect(() => { localStorage.setItem('rallyup_auto_start', String(autoStart)); }, [autoStart]);
+  const [panelCollapsed, setPanelCollapsed] = useState(() => localStorage.getItem('rallyup_players_panel_collapsed') === 'true');
+  useEffect(() => { localStorage.setItem('rallyup_players_panel_collapsed', String(panelCollapsed)); }, [panelCollapsed]);
   useEffect(() => {
     if (!matches.some(match => match.status === 'Active')) return;
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -141,13 +143,21 @@ export default function CompactPipeline({ onAddPlayer, onViewPlayer, onEditPlaye
   const panelClass = 'flex min-h-[360px] min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/35';
   const headerClass = 'flex min-h-14 shrink-0 items-center justify-between gap-2 border-b border-slate-800 px-4 py-2';
   const outlineButtonClass = 'flex h-8 items-center gap-1.5 rounded-lg border-2 border-indigo-500 bg-transparent px-3 text-[11px] font-bold text-indigo-300 transition hover:bg-indigo-500/10 active:scale-95 disabled:cursor-not-allowed disabled:border-slate-700 disabled:text-slate-600';
+  const gridClass = 'panel-scrollbar grid h-full min-h-0 w-full grid-cols-1 gap-3 overflow-y-auto bg-slate-950 p-2 sm:gap-4 sm:p-4' + (panelCollapsed ? ' xl:grid-cols-[3rem_minmax(340px,1.35fr)_minmax(340px,1.35fr)]' : ' xl:grid-cols-[minmax(280px,1fr)_minmax(340px,1.35fr)_minmax(340px,1.35fr)]') + ' xl:overflow-hidden';
 
   return (
-    <div className="panel-scrollbar grid h-full min-h-0 w-full grid-cols-1 gap-3 overflow-y-auto bg-slate-950 p-2 sm:gap-4 sm:p-4 xl:grid-cols-[minmax(280px,1fr)_minmax(340px,1.35fr)_minmax(340px,1.35fr)] xl:overflow-hidden">
-      <section className={panelClass}>
+    <div className={gridClass}>
+      {panelCollapsed && (
+        <section className="hidden min-h-[360px] w-full min-w-0 flex-col items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/35 py-3 xl:flex" aria-label="Players panel collapsed">
+          <button onClick={() => setPanelCollapsed(false)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 text-slate-400 transition hover:bg-slate-800 hover:text-white" title="Expand players panel"><ChevronRight className="h-4 w-4" /></button>
+          <span className="text-[8px] font-black tracking-[0.18em] text-slate-500 [writing-mode:vertical-rl]">PLAYERS</span>
+          <span className="flex h-8 min-w-8 items-center justify-center rounded-full border border-slate-700 px-1.5 text-[9px] font-black text-slate-400">{waitingPlayers.length}</span>
+        </section>
+      )}
+      <section className={`${panelClass} ${panelCollapsed ? 'xl:hidden' : ''}`}>
         <header className={headerClass}>
           <div><h2 className="text-xs font-black tracking-[0.18em] text-white">PLAYERS</h2><p className="mt-0.5 text-[9px] text-slate-500">{waitingPlayers.length} waiting · {restingPlayers.length} resting · {reservedPlayers.length} reserved</p></div>
-          <div className="flex gap-2"><button onClick={() => setShowRestModal(true)} className={outlineButtonClass}><Pause className="h-3.5 w-3.5" /> Rest</button><button onClick={onAddPlayer} className={outlineButtonClass}><Plus className="h-3.5 w-3.5" /> Add</button></div>
+          <div className="hidden items-center gap-2 xl:flex"><button onClick={() => setPanelCollapsed(true)} className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-slate-800 text-slate-400 transition hover:border-slate-700 hover:text-white active:scale-95" title="Collapse players panel"><ChevronLeft className="h-4 w-4" /></button><button onClick={() => setShowRestModal(true)} className={outlineButtonClass}><Pause className="h-3.5 w-3.5" /> Rest</button><button onClick={onAddPlayer} className={outlineButtonClass}><Plus className="h-3.5 w-3.5" /> Add</button></div>
         </header>
         <div className="shrink-0 space-y-2 border-b border-slate-800/70 p-3">
           <div className="flex gap-2">
@@ -242,7 +252,7 @@ export default function CompactPipeline({ onAddPlayer, onViewPlayer, onEditPlaye
       </section>
 
       <section className={panelClass}>
-        <header className={headerClass}><div><h2 className="text-xs font-black tracking-[0.18em] text-white">COURTS</h2><p className="mt-0.5 text-[9px] text-slate-500">{courts.filter(court => court.status !== 'Available').length} occupied / {courts.length} total</p></div><div className="flex flex-wrap items-center gap-2"><button onClick={() => setAutoStart(value => !value)} className={`flex h-8 items-center gap-1.5 rounded-lg border-2 px-3 text-[11px] font-bold transition ${autoStart ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300' : 'border-slate-700 text-slate-500 hover:text-slate-300'}`} title="Auto-start queued matches when a court frees up"><Play className="h-3 w-3" /> {autoStart ? 'Auto ON' : 'Auto OFF'}</button><button onClick={onAutoQueue} disabled={waitingPlayers.length < 4 || courts.length === 0} className={outlineButtonClass} title="Auto-match four waiting players"><Sparkles className="h-3.5 w-3.5" /> Auto</button><button onClick={() => setConfirm({ title: 'Add court', detail: 'Create a new court?', onConfirm: () => user && addCourt(user.uid, `Court ${courts.length + 1}`) })} className={outlineButtonClass}><Plus className="h-3.5 w-3.5" /> Court</button></div></header>
+        <header className={headerClass}><div><h2 className="text-xs font-black tracking-[0.18em] text-white">COURTS</h2><p className="mt-0.5 text-[9px] text-slate-500">{courts.filter(court => court.status !== 'Available').length} occupied / {courts.length} total</p></div><div className="flex flex-wrap items-center gap-2"><button onClick={onAutoQueue} disabled={waitingPlayers.length < 4 || courts.length === 0} className={outlineButtonClass} title="AI-match four waiting players"><Sparkles className="h-3.5 w-3.5" /> AI Match</button><button onClick={() => setConfirm({ title: 'Add court', detail: 'Create a new court?', onConfirm: () => user && addCourt(user.uid, `Court ${courts.length + 1}`) })} className={outlineButtonClass}><Plus className="h-3.5 w-3.5" /> Court</button></div></header>
         <div className="panel-scrollbar courts-scrollbar grid min-h-0 flex-1 auto-rows-min grid-cols-1 gap-3 overflow-y-auto p-3 sm:grid-cols-2">
           {courts.length === 0 && <p className="col-span-full p-8 text-center text-xs text-slate-600">No courts yet - press Court to add one</p>}
           {courts.map(court => {

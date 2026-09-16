@@ -15,7 +15,7 @@ import {
   Plus, Check, Trophy, Settings, Trash2, LayoutGrid, Users, 
   Activity, Menu, X, Loader2, LogOut,
   Monitor, MonitorOff, Coins, Bell,
-  MoreHorizontal, Share2, Copy, QrCode, Pencil
+  MoreHorizontal, Share2, Copy, QrCode, Pencil, Play
 } from 'lucide-react';
 import { SkillTier } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -43,6 +43,8 @@ export default function Dashboard() {
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
+  const [autoStart, setAutoStart] = useState(() => localStorage.getItem('rallyup_auto_start') !== 'false');
+  useEffect(() => { localStorage.setItem('rallyup_auto_start', String(autoStart)); }, [autoStart]);
   const [showLiveShare, setShowLiveShare] = useState(false);
   const [liveLinkCopied, setLiveLinkCopied] = useState(false);
   // Inline player add form state
@@ -128,14 +130,14 @@ export default function Dashboard() {
     } catch { /* Ignore malformed local draft data. */ }
     const waiting = players.filter(p => p.status === 'waiting' && !draftedIds.has(p.id));
     if (waiting.length < 4) {
-      showToast('Auto Match', 'Need at least 4 waiting players.');
+      showToast('AI Match', 'Need at least 4 waiting players.');
       return;
     }
     const match = generateOptimalMatch(waiting, matches);
     if (!match || match.length < 4) return;
     const targetCourt = [...courts].sort((a, b) => a.queue.length - b.queue.length)[0];
     if (!targetCourt) {
-      showToast('Auto Match', 'Add a court before queuing a match.');
+      showToast('AI Match', 'Add a court before queuing a match.');
       return;
     }
 
@@ -154,7 +156,9 @@ export default function Dashboard() {
     const repeatA = recentPairs.has(newPairA);
     const repeatB = recentPairs.has(newPairB);
 
-    if (repeatA || repeatB) {
+    if ((repeatA || repeatB) && waiting.length <= 4) {
+      // The matchmaker already avoids an exact same-4 rematch when alternatives
+      // exist, so only ask as a final fallback when the pool left no choice.
       const names = [
         repeatA ? `${match[0].name} & ${match[1].name}` : '',
         repeatB ? `${match[2].name} & ${match[3].name}` : '',
@@ -741,6 +745,7 @@ export default function Dashboard() {
               {isQM && <button onClick={() => { setShowSessionModal(true); setIsActionMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-slate-300 hover:bg-slate-800"><QrCode className="h-4 w-4 text-indigo-400" />Session Code</button>}
               <button onClick={() => { setIsActionMenuOpen(false); void runOp('notif', async () => { if (userProfile && 'Notification' in window && Notification.permission !== 'granted') await requestNotificationPermission(userProfile.id); }); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-slate-300 hover:bg-slate-800"><Bell className="h-4 w-4 text-amber-400" />Notifications</button>
               <button onClick={() => { setActiveTab('settings'); setIsActionMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-slate-300 hover:bg-slate-800"><Settings className="h-4 w-4 text-slate-400" />Settings</button>
+              <button onClick={() => setAutoStart(value => !value)} className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-xs font-bold text-slate-300 hover:bg-slate-800"><span className="flex items-center gap-3"><Play className="h-4 w-4 text-emerald-400" />Auto-Start Matches</span><span className={`h-2.5 w-2.5 rounded-full ${autoStart ? 'bg-emerald-400' : 'bg-slate-600'}`} /></button>
               <div className="my-1 border-t border-slate-800" />
               <div className="flex items-center justify-between rounded-xl px-3 py-2"><span className="text-xs font-bold text-slate-400">Theme</span><ThemeToggle /></div>
               <button onClick={() => runOp('signout', async () => { await logout(); })} disabled={isPending('signout')} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-red-300 hover:bg-red-500/10">{isPending('signout') ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}Sign Out</button>
@@ -868,6 +873,8 @@ export default function Dashboard() {
               onViewPlayer={setDetailPlayerId}
               onEditPlayer={setEditPlayerId}
               onAutoQueue={handleAutoMatch}
+              autoStart={autoStart}
+              onToggleAutoStart={() => setAutoStart(value => !value)}
               onFinish={(matchId) => {
                 setCompletingMatchId(matchId);
                 setScoreA('21'); setScoreB('19'); setShuttlesUsed('1');
