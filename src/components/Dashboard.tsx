@@ -547,7 +547,7 @@ export default function Dashboard() {
                   {/* Info Note */}
                   <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
                     <p className="text-[10px] font-medium text-amber-300/90 leading-relaxed">
-                      Quick declaration mode. Pick a winner without entering scores — recorded under Match Declarations, not Rankings. Use Switch to Score Entry to make this match count.
+                      Quick declaration mode. Pick a winner without entering scores — the win and loss still count toward session rankings, but no rating points are awarded.
                     </p>
                   </div>
 
@@ -616,11 +616,11 @@ export default function Dashboard() {
                   if (!user || !completingMatchId) return;
                   runOp('completeMatch', async () => {
                     if (quickDeclare) {
-                      // Quick declaration: winner gets 21, loser gets 19. Skips rankings/ratings.
+                      // Quick declaration: winner gets 21, loser gets 19. Counts win/loss toward rankings but skips rating points.
                       const win = declareWinner === 'A'
                         ? { a: 21, b: 19 }
                         : { a: 19, b: 21 };
-                      await completeMatch(user.uid, completingMatchId, win.a, win.b, 1, false);
+                      await completeMatch(user.uid, completingMatchId, win.a, win.b, 1, true, false);
                     } else {
                       await completeMatch(
                         user.uid,

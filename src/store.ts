@@ -38,7 +38,7 @@ interface AppState {
   addMatch: (userId: string, match: Omit<Match, 'id' | 'startTime' | 'status' | 'shuttlecocksUsed'>) => Promise<void>;
   startMatch: (userId: string, courtId: string) => Promise<void>;
   cancelMatch: (userId: string, matchId: string) => Promise<void>;
-  completeMatch: (userId: string, matchId: string, teamAScore: number, teamBScore: number, shuttlesUsed: number, countsForRanking?: boolean) => Promise<void>;
+  completeMatch: (userId: string, matchId: string, teamAScore: number, teamBScore: number, shuttlesUsed: number, countsForRanking?: boolean, adjustRating?: boolean) => Promise<void>;
   reorderQueueMatch: (userId: string, courtId: string, matchId: string, direction: -1 | 1) => Promise<void>;
   
   updateFinancialConfig: (userId: string, config: FinancialConfig) => Promise<void>;
@@ -289,7 +289,7 @@ reorderQueueMatch: async (userId, courtId, matchId, direction) => {
       }
     },
 
-completeMatch: async (userId, matchId, teamAScore, teamBScore, shuttlesUsed, countsForRanking = true) => {
+completeMatch: async (userId, matchId, teamAScore, teamBScore, shuttlesUsed, countsForRanking = true, adjustRating = true) => {
       const state = get();
       const match = state.matches.find(m => m.id === matchId);
       if (!match) return;
@@ -302,13 +302,17 @@ completeMatch: async (userId, matchId, teamAScore, teamBScore, shuttlesUsed, cou
         if (!completedPlayerIds.includes(player.id)) return player;
         const stats = player.stats ? { ...player.stats } : { gamesPlayed: 0, wins: 0, losses: 0, currentStreak: 0 };
         let ratingScore = player.ratingScore || 1000;
+        const onTeamA = match.teamA.includes(player.id);
+        const won = (onTeamA && aWon) || (!onTeamA && bWon);
+        const lost = (onTeamA && bWon) || (!onTeamA && aWon);
         if (countsForRanking) {
           stats.gamesPlayed += 1;
-          const onTeamA = match.teamA.includes(player.id);
-          const won = (onTeamA && aWon) || (!onTeamA && bWon);
-          const lost = (onTeamA && bWon) || (!onTeamA && aWon);
-          if (won) { stats.wins += 1; stats.currentStreak = stats.currentStreak > 0 ? stats.currentStreak + 1 : 1; ratingScore += 15; }
-          if (lost) { stats.losses += 1; stats.currentStreak = stats.currentStreak < 0 ? stats.currentStreak - 1 : -1; ratingScore -= 10; }
+          if (won) { stats.wins += 1; stats.currentStreak = stats.currentStreak > 0 ? stats.currentStreak + 1 : 1; }
+          if (lost) { stats.losses += 1; stats.currentStreak = stats.currentStreak < 0 ? stats.currentStreak - 1 : -1; }
+        }
+        if (adjustRating) {
+          if (won) ratingScore += 15;
+          if (lost) ratingScore -= 10;
         }
         return { ...player, status: 'waiting' as const, waitingSince, stats, ratingScore };
       });
