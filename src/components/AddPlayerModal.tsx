@@ -3,24 +3,14 @@ import { ChevronDown, Clock } from 'lucide-react';
 import { useAppStore } from '../store';
 import { useAuth } from '../contexts/AuthContext';
 import type { SkillTier } from '../types';
-import { getTierFromShortcut } from '../utils/tiers';
+import { getTierFromShortcut, TIER_FULL_LABELS } from '../utils/tiers';
 
 interface AddPlayerModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const tiers: { value: SkillTier; label: string }[] = [
-  { value: 'BEG', label: 'Beg' },
-  { value: 'ADV_BEG', label: 'Adv Beg' },
-  { value: 'LOW_INT', label: 'Low Int' },
-  { value: 'INT', label: 'Int' },
-  { value: 'MID_INT', label: 'Mid Int' },
-  { value: 'UP_INT', label: 'Up Int' },
-  { value: 'ADV', label: 'Adv' },
-  { value: 'EXP', label: 'Expert' },
-  { value: 'PRO', label: 'Pro' },
-];
+const tiers: { value: SkillTier; label: string }[] = (Object.keys(TIER_FULL_LABELS) as SkillTier[]).map(value => ({ value, label: TIER_FULL_LABELS[value] }));
 
 const currentTime = () => new Date().toTimeString().slice(0, 5);
 
